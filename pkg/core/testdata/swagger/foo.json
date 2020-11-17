@@ -1,0 +1,170 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Foo"
+  },
+  "host": "management.azure.com",
+  "schemes": [
+    "https"
+  ],
+  "definitions": {
+    "def_foo": {
+      "properties": {
+        "foo": {}
+      }
+    },
+    "def_regular": {
+      "properties": {
+        "prop_primitive": {
+          "type": "string"
+        },
+        "prop_array_of_primitive": {
+          "type": "array",
+          "items": {
+            "type": "int"
+          }
+        },
+        "prop_array_of_object": {
+          "type": "array",
+          "items": {
+            "properties": {
+              "prop_nested": {}
+            }
+          }
+        },
+        "prop_object": {
+          "type": "object",
+          "properties": {
+            "prop_nested": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "def_prop_in_file_ref": {
+      "properties": {
+        "prop": {
+          "$ref": "#/definitions/def_foo"
+        }
+      }
+    },
+    "def_prop_cross_file_ref": {
+      "properties": {
+        "prop": {
+          "$ref": "./bar.json#/definitions/def_bar"
+        }
+      }
+    },
+    "def_prop_self_ref": {
+      "properties": {
+        "prop": {
+          "$ref": "#/definitions/def_prop_self_ref"
+        }
+      }
+    },
+    "def_array_ref": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/def_foo"
+      }
+    },
+    "def_in_file_ref": {
+      "$ref": "#/definitions/def_foo"
+    },
+    "def_cross_file_ref": {
+      "$ref": "./bar.json#/definitions/def_bar"
+    },
+    "def_self_ref": {
+      "$ref": "#/definitions/def_self_ref"
+    },
+    "def_all_of": {
+      "allOf": [
+        {
+          "properties": {
+            "prop_nested": {}
+          }
+        },
+        {
+          "$ref": "./bar.json#/definitions/def_bar"
+        },
+        {
+          "$ref": "#/definitions/def_all_of"
+        },
+        {
+          "$ref": "#/definitions/def_all_of2"
+        },
+        {
+          "$ref": "baz/baz.json#/definitions/def_all_of"
+        }
+      ],
+      "properties": {
+        "p1": {
+          "allOf": [
+            {
+              "$ref": "./bar.json#/definitions/def_bar"
+            }
+          ],
+          "properties": {
+            "p1_1": {}
+          }
+        }
+      }
+    },
+    "def_all_of2": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_foo"
+        }
+      ]
+    },
+    "def_base": {
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "def_variant1",
+            "def_variant2"
+          ]
+        }
+      }
+    },
+    "def_variant1": {
+      "x-ms-discriminator-value": "def_variant1",
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_base"
+        }
+      ]
+    },
+    "variant2_def": {
+      "x-ms-discriminator-value": "def_variant2",
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_base"
+        }
+      ]
+    },
+    "def_to_def_base": {
+      "properties": {
+        "prop": {
+          "$ref": "#/definitions/def_base"
+        }
+      }
+    },
+    "def_cov": {
+      "properties": {
+        "p1": {},
+        "p2": {
+          "properties": {
+            "p2_1": {},
+            "p2_2": {}
+          }
+        }
+      }
+    }
+  }
+}

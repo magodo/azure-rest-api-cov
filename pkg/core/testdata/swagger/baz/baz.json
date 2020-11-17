@@ -1,0 +1,24 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Baz"
+  },
+  "host": "management.azure.com",
+  "schemes": [
+    "https"
+  ],
+  "definitions": {
+    "def_baz": {
+      "properties": {
+        "baz": {}
+      }
+    },
+    "def_all_of": {
+      "allOf":[
+        {
+          "$ref": "#/definitions/def_baz"
+        }
+      ]
+    }
+  }
+}
