@@ -1185,3 +1185,193 @@ func TestSchema_Unmarshal(t *testing.T) {
 		require.Equal(t, c.expect, actual, idx)
 	}
 }
+
+func TestSchema_CalcCoverage(t *testing.T) {
+	cases := []struct {
+		schema    Schema
+		expectCov *PropertyCoverageStore
+	}{
+		{
+			schema: Schema{
+				Properties: Properties{
+					"prop1.covered": &Property{
+						PropertyState: NewPropertyState(PropStateCovered, ""),
+					},
+					"prop1.not_covered": {
+						PropertyState: NewPropertyState(PropStateUncovered, ""),
+					},
+					"prop2.covered": {
+						PropertyState: NewPropertyState(PropStateCovered, ""),
+					},
+					"prop2.granted": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
+					},
+					"prop_granted": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
+					},
+				},
+			},
+			expectCov: &PropertyCoverageStore{
+				node: propertyCoverageNode{
+					TotalAmount:   3,
+					CoveredAmount: 2,
+					Children: map[addr.PropertySegment]*propertyCoverageNode{
+						addr.MustParsePropertySegment("prop1"): {
+							TotalAmount:   2,
+							CoveredAmount: 1,
+							Children: map[addr.PropertySegment]*propertyCoverageNode{
+								addr.MustParsePropertySegment("not_covered"): {
+									TotalAmount:   1,
+									CoveredAmount: 0,
+									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+								},
+								addr.MustParsePropertySegment("covered"): {
+									TotalAmount:   1,
+									CoveredAmount: 1,
+									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+								},
+							},
+						},
+						addr.MustParsePropertySegment("prop2"): {
+							TotalAmount:   1,
+							CoveredAmount: 1,
+							Children: map[addr.PropertySegment]*propertyCoverageNode{
+								addr.MustParsePropertySegment("covered"): {
+									TotalAmount:   1,
+									CoveredAmount: 1,
+									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for idx, c := range cases {
+		cov, err := c.schema.CalcCoverage()
+		require.NoError(t, err, idx)
+		require.Equal(t, c.expectCov, cov, idx)
+	}
+}
+
+func TestPropertyCoverageStore_FindCoverage(t *testing.T) {
+	type result struct {
+		covered int
+		total   int
+		ok      bool
+	}
+
+	type step struct {
+		propRelAddr addr.RelProperty
+		expect      result
+	}
+
+	cases := []struct {
+		schema  Schema
+		steps []step
+	}{
+		{
+			schema: Schema{
+				Properties: Properties{
+					"prop1.covered": &Property{
+						PropertyState: NewPropertyState(PropStateCovered, ""),
+					},
+					"prop1.not_covered": {
+						PropertyState: NewPropertyState(PropStateUncovered, ""),
+					},
+					"prop2.covered": {
+						PropertyState: NewPropertyState(PropStateCovered, ""),
+					},
+					"prop2.granted": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
+					},
+					"prop_granted": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
+					},
+				},
+			},
+			steps: []step{
+				{
+					propRelAddr: addr.MustParseRelProperty("prop1"),
+					expect: result{
+						covered: 1,
+						total:   2,
+						ok:      true,
+					},
+				},
+				{
+					propRelAddr: addr.MustParseRelProperty("prop1.covered"),
+					expect: result{
+						covered: 1,
+						total:   1,
+						ok:      true,
+					},
+				},
+				{
+					propRelAddr: addr.MustParseRelProperty("prop1.not_covered"),
+					expect: result{
+						covered: 0,
+						total:   1,
+						ok:      true,
+					},
+				},
+				{
+					propRelAddr: addr.MustParseRelProperty("prop2"),
+					expect: result{
+						covered: 1,
+						total:   1,
+						ok:      true,
+					},
+				},
+				{
+					propRelAddr: addr.MustParseRelProperty("prop2.covered"),
+					expect: result{
+						covered: 1,
+						total:   1,
+						ok:      true,
+					},
+				},
+				{
+					propRelAddr: addr.MustParseRelProperty("prop2.granted"),
+					expect: result{
+						covered: 0,
+						total:   0,
+						ok:      false,
+					},
+				},
+				{
+					propRelAddr: addr.MustParseRelProperty("prop_granted"),
+					expect: result{
+						covered: 0,
+						total:   0,
+						ok:      false,
+					},
+				},
+				{
+					propRelAddr: addr.MustParseRelProperty("non_existed"),
+					expect: result{
+						covered: 0,
+						total:   0,
+						ok:      false,
+					},
+				},
+			},
+		},
+	}
+
+	for idx, c := range cases {
+		cov, err := c.schema.CalcCoverage()
+		require.NoError(t, err, idx)
+		for ii, step := range c.steps {
+			covered, total, ok := cov.FindCoverage(step.propRelAddr)
+			result := result{
+				covered: covered,
+				total:   total,
+				ok:      ok,
+			}
+			require.Equal(t, step.expect, result, fmt.Sprintf("%d.%d", idx, ii))
+		}
+	}
+}
