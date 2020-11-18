@@ -3,11 +3,12 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
-	"github.com/stretchr/testify/require"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -56,8 +57,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_foo",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_foo",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_foo",
+				},
 				Properties: map[string]*Property{
 					"foo": {
 						PropertyState: propStateUncovered,
@@ -78,8 +81,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_regular",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_regular",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_regular",
+				},
 				Properties: map[string]*Property{
 					"prop_primitive": {
 						PropertyState: propStateUncovered,
@@ -124,8 +129,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_prop_in_file_ref",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_prop_in_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_prop_in_file_ref",
+				},
 				Properties: map[string]*Property{
 					"prop": {
 						PropertyState: propStateUncovered,
@@ -146,8 +153,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_prop_cross_file_ref",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_prop_cross_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_prop_cross_file_ref",
+				},
 				Properties: map[string]*Property{
 					"prop": {
 						PropertyState: propStateUncovered,
@@ -168,8 +177,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_prop_self_ref",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_prop_self_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_prop_self_ref",
+				},
 				Properties: map[string]*Property{
 					"prop": {
 						PropertyState: propStateUncovered,
@@ -190,8 +201,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_array_ref",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_array_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_array_ref",
+				},
 				Properties: map[string]*Property{
 					"foo": {
 						PropertyState: propStateUncovered,
@@ -213,8 +226,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_in_file_ref",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_in_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_in_file_ref",
+				},
 				Properties: map[string]*Property{
 					"foo": {
 						PropertyState: propStateUncovered,
@@ -236,8 +251,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_cross_file_ref",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_cross_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_cross_file_ref",
+				},
 				Properties: map[string]*Property{
 					"bar": {
 						PropertyState: propStateUncovered,
@@ -259,8 +276,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_self_ref",
 			err:         nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_self_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_self_ref",
+				},
 				Properties: map[string]*Property{
 					"": {
 						PropertyState: propStateUncovered,
@@ -280,8 +299,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "foo.json",
 			schemaName:  "def_all_of",
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_all_of",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_all_of",
+				},
 				Properties: map[string]*Property{
 					"prop_nested": {
 						PropertyState: propStateUncovered,
@@ -338,8 +359,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "remote.json",
 			schemaName:  "def_foo",
 			expect: Schema{
-				SwaggerRelPath: "remote.json",
-				Name:           "def_foo",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "remote.json",
+					Name:           "def_foo",
+				},
 				Properties: map[string]*Property{
 					"prop_primitive": {
 						PropertyState: propStateUncovered,
@@ -359,8 +382,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "foo.json",
 			schemaName:  "def_base",
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_base",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_base",
+				},
 				Properties: map[string]*Property{
 					"{def_variant1}": {
 						PropertyState: propStateUncovered,
@@ -388,8 +413,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "foo.json",
 			schemaName:  "def_to_def_base",
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_to_def_base",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_to_def_base",
+				},
 				Properties: map[string]*Property{
 					"prop": {
 						PropertyState: propStateUncovered,
@@ -454,8 +481,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_foo:foo"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_foo",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_foo",
+				},
 				Properties: map[string]*Property{
 					"foo": {
 						PropertyState: propStateUncovered,
@@ -480,8 +509,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			},
 			err: nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_foo",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_foo",
+				},
 				Properties: map[string]*Property{
 					"foo": {
 						PropertyState: propStateUncovered,
@@ -506,8 +537,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			},
 			err: nil,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_regular",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_regular",
+				},
 				Properties: map[string]*Property{
 					"prop_primitive": {
 						PropertyState: propStateUncovered,
@@ -554,8 +587,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_prop_in_file_ref:prop"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_prop_in_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_prop_in_file_ref",
+				},
 				Properties: map[string]*Property{
 					"prop.foo": {
 						PropertyState: propStateUncovered,
@@ -579,8 +614,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_prop_self_ref:prop"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_prop_self_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_prop_self_ref",
+				},
 				Properties: map[string]*Property{
 					"prop": {
 						PropertyState: propStateUncovered,
@@ -603,8 +640,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_prop_cross_file_ref:prop"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_prop_cross_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_prop_cross_file_ref",
+				},
 				Properties: map[string]*Property{
 					"prop.bar": {
 						PropertyState: propStateUncovered,
@@ -628,8 +667,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_in_file_ref:foo"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_in_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_in_file_ref",
+				},
 				Properties: map[string]*Property{
 					"foo": {
 						PropertyState: propStateUncovered,
@@ -653,8 +694,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_cross_file_ref:bar"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_cross_file_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_cross_file_ref",
+				},
 				Properties: map[string]*Property{
 					"bar": {
 						PropertyState: propStateUncovered,
@@ -678,8 +721,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_self_ref:"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_self_ref",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_self_ref",
+				},
 				Properties: map[string]*Property{
 					"": {
 						PropertyState: propStateUncovered,
@@ -702,8 +747,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_base:{def_variant1}"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_base",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_base",
+				},
 				Properties: map[string]*Property{
 					"{def_variant1}.type": {
 						PropertyState: propStateUncovered,
@@ -734,8 +781,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("def_to_def_base:prop"),
 			},
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_to_def_base",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_to_def_base",
+				},
 				Properties: map[string]*Property{
 					"prop{def_variant1}": {
 						PropertyState: propStateUncovered,
@@ -809,8 +858,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("def_cov:p1"),
 					expect: Schema{
-						SwaggerRelPath: "foo.json",
-						Name:           "def_cov",
+						SchemaAddr: SchemaAddr{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_cov",
+						},
 						Properties: map[string]*Property{
 							"p1": {
 								PropertyState: propStateCovered,
@@ -837,8 +888,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("def_cov:p1"),
 					expect: Schema{
-						SwaggerRelPath: "foo.json",
-						Name:           "def_cov",
+						SchemaAddr: SchemaAddr{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_cov",
+						},
 						Properties: map[string]*Property{
 							"p1": {
 								PropertyState: propStateCovered,
@@ -871,8 +924,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("def_cov:p2.p2_1"),
 					expect: Schema{
-						SwaggerRelPath: "foo.json",
-						Name:           "def_cov",
+						SchemaAddr: SchemaAddr{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_cov",
+						},
 						Properties: map[string]*Property{
 							"p1": {
 								PropertyState: propStateUncovered,
@@ -906,8 +961,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("def_cov:p2"),
 					expect: Schema{
-						SwaggerRelPath: "foo.json",
-						Name:           "def_cov",
+						SchemaAddr: SchemaAddr{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_cov",
+						},
 						Properties: map[string]*Property{
 							"p1": {
 								PropertyState: propStateUncovered,
@@ -949,8 +1006,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("def_cov:p2"),
 					expect: Schema{
-						SwaggerRelPath: "foo.json",
-						Name:           "def_cov",
+						SchemaAddr: SchemaAddr{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_cov",
+						},
 						Properties: map[string]*Property{
 							"p1": {
 								PropertyState: propStateUncovered,
@@ -976,8 +1035,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("def_cov:p2.p2_1"),
 					expect: Schema{
-						SwaggerRelPath: "foo.json",
-						Name:           "def_cov",
+						SchemaAddr: SchemaAddr{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_cov",
+						},
 						Properties: map[string]*Property{
 							"p1": {
 								PropertyState: propStateUncovered,
@@ -1162,8 +1223,10 @@ func TestSchema_Unmarshal(t *testing.T) {
     }
 }`,
 			expect: Schema{
-				SwaggerRelPath: "foo.json",
-				Name:           "def_cov",
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_cov",
+				},
 				Properties: Properties{
 					"p1": &Property{
 						PropertyState: propStateUncovered,
@@ -1256,105 +1319,61 @@ func TestSchema_CalcCoverage(t *testing.T) {
 	}
 }
 
-func TestPropertyCoverageStore_FindCoverage(t *testing.T) {
-	type result struct {
-		covered int
-		total   int
-		ok      bool
-	}
-
-	type step struct {
-		propRelAddr addr.RelProperty
-		expect      result
-	}
-
-	cases := []struct {
-		schema  Schema
-		steps []step
+func TestSchema_Grant(t *testing.T) {
+	var cases = []struct {
+		schema       Schema
+		grants       SchemaGrants
+		expectSchema Schema
 	}{
 		{
 			schema: Schema{
-				Properties: Properties{
-					"prop1.covered": &Property{
-						PropertyState: NewPropertyState(PropStateCovered, ""),
-					},
-					"prop1.not_covered": {
-						PropertyState: NewPropertyState(PropStateUncovered, ""),
-					},
-					"prop2.covered": {
-						PropertyState: NewPropertyState(PropStateCovered, ""),
-					},
-					"prop2.granted": {
-						PropertyState: NewPropertyState(PropStateGranted, "granted"),
-					},
-					"prop_granted": {
-						PropertyState: NewPropertyState(PropStateGranted, "granted"),
+				SchemaAddr: SchemaAddr{"path", "schema1"},
+				Properties: map[string]*Property{
+					"prop1": {},
+				},
+			},
+			grants: map[SchemaAddr]SchemaGrant{
+				{SwaggerRelPath: "path", Name: "schema1"}: {
+					Comment: "granted",
+				},
+			},
+			expectSchema: Schema{
+				SchemaAddr: SchemaAddr{"path", "schema1"},
+				Properties: map[string]*Property{
+					"prop1": {},
+				},
+				IsGranted:    true,
+				GrantComment: "granted",
+			},
+		},
+		{
+			schema: Schema{
+				SchemaAddr: SchemaAddr{"path", "schema1"},
+				Properties: map[string]*Property{
+					"prop1":   {},
+					"prop2":   {},
+					"prop2_2": {},
+					"prop3":   {},
+				},
+			},
+			grants: map[SchemaAddr]SchemaGrant{
+				{SwaggerRelPath: "path", Name: "schema1"}: {
+					Properties: map[string]string{
+						"prop2_2": "granted",
+						"prop3":   "granted",
 					},
 				},
 			},
-			steps: []step{
-				{
-					propRelAddr: addr.MustParseRelProperty("prop1"),
-					expect: result{
-						covered: 1,
-						total:   2,
-						ok:      true,
+			expectSchema: Schema{
+				SchemaAddr: SchemaAddr{"path", "schema1"},
+				Properties: map[string]*Property{
+					"prop1": {},
+					"prop2": {},
+					"prop2_2": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
 					},
-				},
-				{
-					propRelAddr: addr.MustParseRelProperty("prop1.covered"),
-					expect: result{
-						covered: 1,
-						total:   1,
-						ok:      true,
-					},
-				},
-				{
-					propRelAddr: addr.MustParseRelProperty("prop1.not_covered"),
-					expect: result{
-						covered: 0,
-						total:   1,
-						ok:      true,
-					},
-				},
-				{
-					propRelAddr: addr.MustParseRelProperty("prop2"),
-					expect: result{
-						covered: 1,
-						total:   1,
-						ok:      true,
-					},
-				},
-				{
-					propRelAddr: addr.MustParseRelProperty("prop2.covered"),
-					expect: result{
-						covered: 1,
-						total:   1,
-						ok:      true,
-					},
-				},
-				{
-					propRelAddr: addr.MustParseRelProperty("prop2.granted"),
-					expect: result{
-						covered: 0,
-						total:   0,
-						ok:      false,
-					},
-				},
-				{
-					propRelAddr: addr.MustParseRelProperty("prop_granted"),
-					expect: result{
-						covered: 0,
-						total:   0,
-						ok:      false,
-					},
-				},
-				{
-					propRelAddr: addr.MustParseRelProperty("non_existed"),
-					expect: result{
-						covered: 0,
-						total:   0,
-						ok:      false,
+					"prop3": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
 					},
 				},
 			},
@@ -1362,16 +1381,7 @@ func TestPropertyCoverageStore_FindCoverage(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		cov, err := c.schema.CalcCoverage()
-		require.NoError(t, err, idx)
-		for ii, step := range c.steps {
-			covered, total, ok := cov.FindCoverage(step.propRelAddr)
-			result := result{
-				covered: covered,
-				total:   total,
-				ok:      ok,
-			}
-			require.Equal(t, step.expect, result, fmt.Sprintf("%d.%d", idx, ii))
-		}
+		require.NoError(t, c.schema.Grant(c.grants), idx)
+		require.Equal(t, c.expectSchema, c.schema, idx)
 	}
 }

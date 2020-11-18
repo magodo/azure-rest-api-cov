@@ -1,0 +1,11 @@
+{
+    "schema1": {
+        "comment": "granted"
+    },
+    "schema2": {
+        "properties": {
+            "prop1": "granted",
+            "prop2.prop2_1": "granted"
+        }
+    }
+}

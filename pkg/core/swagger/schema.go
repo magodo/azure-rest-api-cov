@@ -2,23 +2,32 @@ package swagger
 
 import (
 	"fmt"
+
 	openapispec "github.com/go-openapi/spec"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
 )
 
 const swaggerExtensionMSDiscriminatorValue = "x-ms-discriminator-value"
 
-type Schema struct {
+type SchemaAddr struct {
 	SwaggerRelPath string
 	Name           string
-	Properties     Properties
+}
+
+func (a SchemaAddr) String() string {
+	return a.SwaggerRelPath + "#/definitions/" + a.Name
+}
+
+type Schema struct {
+	SchemaAddr
+	Properties Properties
 
 	// Whether this property is granted to be not to implement in Terraform
 	IsGranted    bool   `json:",omitempty"`
 	GrantComment string `json:",omitempty"`
 
-	swagger       *openapispec.Swagger
-	swaggerURI    string
+	swagger    *openapispec.Swagger
+	swaggerURI string
 }
 
 func NewSchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schema, error) {
@@ -34,8 +43,10 @@ func NewSchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schem
 	}
 
 	swgSchema := &Schema{
-		SwaggerRelPath: swaggerRelPath,
-		Name:           schemaName,
+		SchemaAddr: SchemaAddr{
+			SwaggerRelPath: swaggerRelPath,
+			Name:           schemaName,
+		},
 		Properties: map[string]*Property{
 			"": {
 				PropertyState: NewPropertyState(PropStateUncovered, ""),
@@ -326,7 +337,7 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 
 // CalcCoverage calculates the property coverage (<=1) of the schema/property.
 // Those granted properties are not counted during the calculation.
-func (s *Schema) CalcCoverage() (*PropertyCoverageStore, error) {
+func (s Schema) CalcCoverage() (*PropertyCoverageStore, error) {
 	store := NewPropertyCoverageStore()
 	for propRAddr, prop := range s.Properties {
 		if err := store.Add(addr.MustParseRelProperty(propRAddr), *prop); err != nil {
@@ -334,4 +345,28 @@ func (s *Schema) CalcCoverage() (*PropertyCoverageStore, error) {
 		}
 	}
 	return &store, nil
+}
+
+// Grant inquiries the SchemaGrants to add the granting information onto the Schema
+func (c *Schema) Grant(grants SchemaGrants) error {
+	grant, ok := grants[c.SchemaAddr]
+	if !ok {
+		// There is no grants for this schema
+		return nil
+	}
+	if grant.IsSchemaGranted() {
+		c.IsGranted = true
+		c.GrantComment = grant.Comment
+		return nil
+	}
+
+	for propRelAddr, grantComment := range grant.Properties {
+		property, ok := c.Properties[propRelAddr]
+		if !ok {
+			return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propRelAddr, c.SchemaAddr)
+		}
+		property.PropertyState = NewPropertyState(PropStateGranted, grantComment)
+	}
+
+	return nil
 }

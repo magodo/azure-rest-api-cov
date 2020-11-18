@@ -3,6 +3,7 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
+
 	openapispec "github.com/go-openapi/spec"
 )
 
@@ -10,8 +11,6 @@ type PropertyState interface {
 	IsCovered() bool
 	IsUncovered() bool
 	IsGranted() bool
-	//GrantMessage() string
-	//UnmarshalJSON([]byte) error
 }
 
 type PropState string
@@ -35,57 +34,6 @@ func NewPropertyState(state PropState, grantMsg string) PropertyState {
 	}
 }
 
-//func MarshalPropertyState(state PropertyState) ([]byte, error) {
-//	m := map[string]interface{}{}
-//	switch state := state.(type) {
-//	case *PropertyStateCovered:
-//		m["state"] = state.State
-//	case *PropertyStateUncovered:
-//		m["state"] = state.State
-//	case *PropertyStateGranted:
-//		m["state"] = state.State
-//		m["grant_comment"] = state.GrantComment
-//	default:
-//		panic("will not happen")
-//	}
-//	return json.Marshal(m)
-//}
-//
-//func UnmarshalPropertyState(s PropertyState, b []byte) error {
-//	m := map[string]string{}
-//	if err := json.Unmarshal(b, &m); err != nil {
-//		return err
-//	}
-//	state, ok := m["state"]
-//	if !ok {
-//		return fmt.Errorf(`no "state" in the raw byte`)
-//	}
-//	pstate := PropState(state)
-//	switch s := s.(type) {
-//	case *PropertyStateCovered:
-//		if pstate != PropStateCovered {
-//			return fmt.Errorf(`cannot unmarshall covered state to non-covered PropertyState`)
-//		}
-//		s.State = pstate
-//		return nil
-//	case *PropertyStateUncovered:
-//		if pstate != PropStateUncovered {
-//			return fmt.Errorf(`cannot unmarshall uncovered state to non-uncovered PropertyState`)
-//		}
-//		s.State = pstate
-//		return nil
-//	case *PropertyStateGranted:
-//		if pstate != PropStateGranted {
-//			return fmt.Errorf(`cannot unmarshall granted state to non-granted PropertyState`)
-//		}
-//		s.State = pstate
-//		s.GrantComment = m["grant_comment"]
-//		return nil
-//	default:
-//		panic("will not happen")
-//	}
-//}
-
 type PropertyStateCovered struct {
 	State PropState `json:",omitempty"`
 }
@@ -94,9 +42,6 @@ func (s PropertyStateCovered) IsCovered() bool      { return true }
 func (s PropertyStateCovered) IsUncovered() bool    { return false }
 func (s PropertyStateCovered) IsGranted() bool      { return false }
 func (s PropertyStateCovered) GrantMessage() string { panic("Covered property has no grant message") }
-
-//func (s *PropertyStateCovered) MarshalJSON() ([]byte, error) { return MarshalPropertyState(s) }
-//func (s *PropertyStateCovered) UnmarshalJSON(b []byte) error { return UnmarshalPropertyState(s, b) }
 
 type PropertyStateUncovered struct {
 	State PropState `json:",omitempty"`
@@ -109,9 +54,6 @@ func (s PropertyStateUncovered) GrantMessage() string {
 	panic("Uncovered property has no grant message")
 }
 
-//func (s *PropertyStateUncovered) MarshalJSON() ([]byte, error) { return MarshalPropertyState(s) }
-//func (s *PropertyStateUncovered) UnmarshalJSON(b []byte) error { return UnmarshalPropertyState(s, b) }
-
 type PropertyStateGranted struct {
 	State        PropState `json:",omitempty"`
 	GrantComment string    `json:",omitempty"`
@@ -121,9 +63,6 @@ func (s PropertyStateGranted) IsCovered() bool      { return false }
 func (s PropertyStateGranted) IsUncovered() bool    { return false }
 func (s PropertyStateGranted) IsGranted() bool      { return true }
 func (s PropertyStateGranted) GrantMessage() string { return s.GrantComment }
-
-//func (s *PropertyStateGranted) MarshalJSON() ([]byte, error) { return MarshalPropertyState(s) }
-//func (s *PropertyStateGranted) UnmarshalJSON(b []byte) error { return UnmarshalPropertyState(s, b) }
 
 type Property struct {
 	PropertyState `json:"state"`

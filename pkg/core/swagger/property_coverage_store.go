@@ -1,9 +1,9 @@
 package swagger
 
 import (
-"fmt"
+	"fmt"
 
-"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
 )
 
 type PropertyCoverageStore struct {

@@ -23,4 +23,3 @@ func CollectSchemas(swaggerBaseURL, swaggerRelPath string, collector SchemaColle
 	}
 	return out, nil
 }
-

@@ -2,11 +2,12 @@ package swagger
 
 import (
 	"fmt"
-	openapispec "github.com/go-openapi/spec"
 	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
+
+	openapispec "github.com/go-openapi/spec"
 )
 
 // relativeBase could be an ABSOLUTE file path or an ABSOLUTE URL
