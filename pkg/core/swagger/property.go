@@ -77,7 +77,7 @@ type Property struct {
 	swaggerURI string
 }
 
-func NewProperty(state PropertyState, schema openapispec.Schema, resolvedRefs map[string]interface{}, schemaURI string) *Property {
+func buildProperty(state PropertyState, schema openapispec.Schema, resolvedRefs map[string]interface{}, schemaURI string) *Property {
 	newResolvedRefs := map[string]interface{}{}
 	if len(resolvedRefs) != 0 {
 		for k, v := range resolvedRefs {
@@ -93,10 +93,6 @@ func NewProperty(state PropertyState, schema openapispec.Schema, resolvedRefs ma
 }
 
 type Properties map[string]*Property // the key is relative property addr string representation
-
-func NewProperties() Properties {
-	return map[string]*Property{}
-}
 
 func (p Properties) Merge(o Properties) {
 	for k, v := range o {

@@ -10,7 +10,7 @@ import (
 
 func TestNewPropertyCoverageStore_Add(t *testing.T) {
 	type swgproperty struct {
-		addr addr.RelProperty
+		addr addr.Property
 		prop Property
 	}
 	cases := []struct {
@@ -20,25 +20,25 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 		{
 			propertiesToAdd: []swgproperty{
 				{
-					addr: addr.MustParseRelProperty("prop1.not_covered"),
+					addr: addr.MustParseProperty("prop1.not_covered"),
 					prop: Property{
 						PropertyState: NewPropertyState(PropStateUncovered, ""),
 					},
 				},
 				{
-					addr: addr.MustParseRelProperty("prop1.covered"),
+					addr: addr.MustParseProperty("prop1.covered"),
 					prop: Property{
 						PropertyState: NewPropertyState(PropStateCovered, ""),
 					},
 				},
 				{
-					addr: addr.MustParseRelProperty("prop2.covered"),
+					addr: addr.MustParseProperty("prop2.covered"),
 					prop: Property{
 						PropertyState: NewPropertyState(PropStateCovered, ""),
 					},
 				},
 				{
-					addr: addr.MustParseRelProperty("prop_granted"),
+					addr: addr.MustParseProperty("prop_granted"),
 					prop: Property{
 						PropertyState: NewPropertyState(PropStateGranted, ""),
 					},
@@ -201,7 +201,7 @@ func TestNewPropertyCoverageStore_FindCoverage(t *testing.T) {
 
 	for idx, c := range cases {
 		for idx2, subtest := range c.subtest {
-			covered, total, ok := c.store.FindCoverage(addr.MustParseRelProperty(subtest.propAddr))
+			covered, total, ok := c.store.FindCoverage(addr.MustParseProperty(subtest.propAddr))
 			result := result{
 				total:   total,
 				covered: covered,

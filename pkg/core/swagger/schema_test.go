@@ -441,7 +441,7 @@ func TestSchema(t *testing.T) {
 
 	for _, c := range cases {
 		msg := fmt.Sprintf("%s: %s", filepath.Join(c.specBaseURL, c.specRelPath), c.schemaName)
-		actual, err := NewSchema(c.specBaseURL, c.specRelPath, c.schemaName)
+		actual, err := NewEmptySchema(c.specBaseURL, c.specRelPath, c.schemaName)
 		require.Equal(t, c.err, err, msg)
 		if err == nil {
 			require.Equal(t, c.expect, *actual, msg)
@@ -478,7 +478,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_foo",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_foo:foo"),
+				addr.MustParseProperty("foo"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -504,8 +504,8 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_foo",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_foo:foo"),
-				addr.MustParseProperty("def_foo:foo"),
+				addr.MustParseProperty("foo"),
+				addr.MustParseProperty("foo"),
 			},
 			err: nil,
 			expect: Schema{
@@ -532,8 +532,8 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_regular",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_regular:prop_array_of_object"),
-				addr.MustParseProperty("def_regular:prop_object"),
+				addr.MustParseProperty("prop_array_of_object"),
+				addr.MustParseProperty("prop_object"),
 			},
 			err: nil,
 			expect: Schema{
@@ -584,7 +584,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_prop_in_file_ref",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_prop_in_file_ref:prop"),
+				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -611,7 +611,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_prop_self_ref",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_prop_self_ref:prop"),
+				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -637,7 +637,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_prop_cross_file_ref",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_prop_cross_file_ref:prop"),
+				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -664,7 +664,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_in_file_ref",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_in_file_ref:foo"),
+				addr.MustParseProperty("foo"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -691,7 +691,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cross_file_ref",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_cross_file_ref:bar"),
+				addr.MustParseProperty("bar"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -718,7 +718,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_self_ref",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_self_ref:"),
+				addr.MustParseProperty(""),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -744,7 +744,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_base",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_base:{def_variant1}"),
+				addr.MustParseProperty("{def_variant1}"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -778,7 +778,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_to_def_base",
 			expandAddrs: []addr.Property{
-				addr.MustParseProperty("def_to_def_base:prop"),
+				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
 				SchemaAddr: SchemaAddr{
@@ -812,11 +812,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		swgschema, err := NewSchema(specBasePath, c.swaggerRelPath, c.schemaName)
+		swgschema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName)
 		require.Equal(t, c.err, err, c.name)
 		if err == nil {
 			for _, addr := range c.expandAddrs {
-				require.NoError(t, swgschema.ExpandPropertyOneLevelDeep(addr), c.name)
+				require.NoError(t, swgschema.expandPropertyOneLevelDeep(addr), c.name)
 			}
 			require.Equal(t, c.expect, *swgschema, c.name)
 		}
@@ -856,7 +856,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 			schemaName:     "def_cov",
 			steps: []step{
 				{
-					swgPropAddr: addr.MustParseProperty("def_cov:p1"),
+					swgPropAddr: addr.MustParseProperty("p1"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -886,7 +886,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				},
 				// add a second tf link to the same swg property should have no change
 				{
-					swgPropAddr: addr.MustParseProperty("def_cov:p1"),
+					swgPropAddr: addr.MustParseProperty("p1"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -922,7 +922,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 			schemaName:     "def_cov",
 			steps: []step{
 				{
-					swgPropAddr: addr.MustParseProperty("def_cov:p2.p2_1"),
+					swgPropAddr: addr.MustParseProperty("p2.p2_1"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -959,7 +959,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 					},
 				},
 				{
-					swgPropAddr: addr.MustParseProperty("def_cov:p2"),
+					swgPropAddr: addr.MustParseProperty("p2"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -1004,7 +1004,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 			schemaName:     "def_cov",
 			steps: []step{
 				{
-					swgPropAddr: addr.MustParseProperty("def_cov:p2"),
+					swgPropAddr: addr.MustParseProperty("p2"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -1033,7 +1033,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 					},
 				},
 				{
-					swgPropAddr: addr.MustParseProperty("def_cov:p2.p2_1"),
+					swgPropAddr: addr.MustParseProperty("p2.p2_1"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -1074,7 +1074,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		schema, err := NewSchema(specBasePath, c.swaggerRelPath, c.schemaName)
+		schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName)
 		require.NoError(t, err, idx)
 		if err == nil {
 			for iidx, s := range c.steps {
@@ -1168,7 +1168,7 @@ func TestSchema_Marshal(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
 			process: func(schema *Schema) {
-				swgPropAddr := addr.MustParseProperty("def_cov:p2.p2_1")
+				swgPropAddr := addr.MustParseProperty("p2.p2_1")
 				require.NoError(t, schema.AddCovProperty(swgPropAddr))
 			},
 			expect: fmt.Sprintf(`{
@@ -1190,7 +1190,7 @@ func TestSchema_Marshal(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		schema, err := NewSchema(specBasePath, c.swaggerRelPath, c.schemaName)
+		schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName)
 		require.NoError(t, err, idx)
 		if c.process != nil {
 			c.process(schema)

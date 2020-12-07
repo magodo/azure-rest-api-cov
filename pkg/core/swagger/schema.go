@@ -30,7 +30,7 @@ type Schema struct {
 	swaggerURI string
 }
 
-func NewSchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schema, error) {
+func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
 	swagger, err := LoadSwagger(swaggerURI)
 	if err != nil {
@@ -66,23 +66,23 @@ func NewSchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schem
 	}
 
 	// Expand the root level properties of the schemas
-	rootAddr := addr.NewProperty(schemaName, addr.RelProperty{})
-	err = swgSchema.ExpandPropertyOneLevelDeep(rootAddr)
+	rootAddr := addr.Property{}
+	err = swgSchema.expandPropertyOneLevelDeep(rootAddr)
 	if err != nil {
 		return nil, fmt.Errorf("expanding schemas %s (%s): %w", schemaName, swaggerURI, err)
 	}
 	return swgSchema, nil
 }
 
-// ExpandPropertyOneLevelDeep expand the specified swagger schemas property one level deep, with any allOf and $ref taken into consideration.
-func (s *Schema) ExpandPropertyOneLevelDeep(propAddr addr.Property) error {
-	raddr := propAddr.Property.String()
+// expandPropertyOneLevelDeep expand the specified swagger schemas property one level deep, with any allOf and $ref taken into consideration.
+func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
+	raddr := propAddr.String()
 
 	defer func() {
 		// We have to check whether we added any child property of this property.
 		// If yes, then we need to remove this property from the Schema property map.
 		for currentRAddr := range s.Properties {
-			currentAddr := addr.NewProperty(s.Name, addr.MustParseRelProperty(currentRAddr))
+			currentAddr := addr.MustParseProperty(currentRAddr)
 			if propAddr.Contains(currentAddr) {
 				delete(s.Properties, raddr)
 				return
@@ -106,7 +106,7 @@ func (s *Schema) ExpandPropertyOneLevelDeep(propAddr addr.Property) error {
 	}
 
 	// temporarily store the Properties expanded in this level
-	levelProperties := NewProperties()
+	levelProperties := Properties{}
 
 	// expand direct top level properties
 	directTopSWGProperties := s.expandSubProperties(propAddr, prop)
@@ -129,7 +129,7 @@ func (s *Schema) ExpandPropertyOneLevelDeep(propAddr addr.Property) error {
 	// If the property to be expanded is a discriminator, we will expand it into its variants
 	levelNamedProperties := map[string]openapispec.Schema{}
 	for raddrStr, prop := range levelProperties {
-		raddr := addr.MustParseRelProperty(raddrStr)
+		raddr := addr.MustParseProperty(raddrStr)
 		propName := raddr[len(raddr)-1].String()
 		levelNamedProperties[propName] = prop.schema
 	}
@@ -170,7 +170,7 @@ func (s *Schema) ExpandPropertyOneLevelDeep(propAddr addr.Property) error {
 			}
 			resolvedRefs[normalizePaths("#/definitions/"+dscSchemaName, s.swaggerURI)] = struct{}{}
 
-			p := NewProperty(prop.PropertyState, s.swagger.Definitions[dscSchemaName], resolvedRefs, prop.swaggerURI)
+			p := buildProperty(prop.PropertyState, s.swagger.Definitions[dscSchemaName], resolvedRefs, prop.swaggerURI)
 			s.addProperty(propAddr.AsVariant(variant), *p)
 		}
 	}
@@ -181,7 +181,7 @@ func (s *Schema) ExpandPropertyOneLevelDeep(propAddr addr.Property) error {
 // expandSubProperties expand the directly contained sub-properties of the property (prop) in the specified address (addr)
 // Especially, if the property is an array to object, it will expand to the sub-properties of the object item instead.
 func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) Properties {
-	output := NewProperties()
+	output := Properties{}
 	var properties openapispec.SchemaProperties
 	if prop.schema.Items != nil {
 		properties = prop.schema.Items.Schema.Properties
@@ -189,21 +189,21 @@ func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) Pro
 		properties = prop.schema.Properties
 	}
 	for propName, propSchema := range properties {
-		p := NewProperty(prop.PropertyState, propSchema, prop.resolvedRefs, prop.swaggerURI)
-		propAddr := propAddr.Append(addr.MustParseRelProperty(propName))
-		output[propAddr.Property.String()] = p
+		p := buildProperty(prop.PropertyState, propSchema, prop.resolvedRefs, prop.swaggerURI)
+		propAddr := propAddr.Append(addr.MustParseProperty(propName))
+		output[propAddr.String()] = p
 	}
 	return output
 }
 
 // expandAllOfProperties recursively expand containing "allOf" properties for property (prop) in the specified address (addr)
 func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (Properties, error) {
-	output := NewProperties()
+	output := Properties{}
 	for _, schema := range prop.schema.AllOf {
 
 		// We construct a temp Property here (as it has no object/property related) to expand it into a concrete schemas.
 		// Then we will iterate that schemas's property which by concept is the top level property of this parent property.
-		tmpProp := NewProperty(prop.PropertyState, schema, prop.resolvedRefs, prop.swaggerURI)
+		tmpProp := buildProperty(prop.PropertyState, schema, prop.resolvedRefs, prop.swaggerURI)
 
 		// AllOf contains refs, then need to expand the reference properties first.
 		if tmpProp.schema.Ref.String() != "" {
@@ -292,7 +292,7 @@ func (s *Schema) expandRefPropertyInPlace(prop *Property) (isCyclic bool, err er
 
 // addProperty adds a new Property to the Schema.
 func (s *Schema) addProperty(propAddr addr.Property, prop Property) {
-	s.Properties[propAddr.Property.String()] = &prop
+	s.Properties[propAddr.String()] = &prop
 }
 
 // addProperties merges a new Properties to the Schema's Properties.
@@ -304,7 +304,7 @@ func (s *Schema) addProperties(props Properties) {
 func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 	var isExpandToChildProperties bool
 	for existRAddr, prop := range s.Properties {
-		existPropAddr := addr.NewProperty(s.Name, addr.MustParseRelProperty(existRAddr))
+		existPropAddr := addr.MustParseProperty(existRAddr)
 
 		if !propAddr.Contains(existPropAddr) && !existPropAddr.Contains(propAddr) && !existPropAddr.Equals(propAddr) {
 			continue
@@ -324,7 +324,7 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 		}
 
 		// The property we're seeking is a member of the property under iteration, we will first expand it one level deep.
-		if err := s.ExpandPropertyOneLevelDeep(existPropAddr); err != nil {
+		if err := s.expandPropertyOneLevelDeep(existPropAddr); err != nil {
 			return fmt.Errorf("expanding top level property for %s: %w", existPropAddr, err)
 		}
 		return s.AddCovProperty(propAddr)
@@ -340,7 +340,7 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 func (s Schema) CalcCoverage() (*PropertyCoverageStore, error) {
 	store := NewPropertyCoverageStore()
 	for propRAddr, prop := range s.Properties {
-		if err := store.Add(addr.MustParseRelProperty(propRAddr), *prop); err != nil {
+		if err := store.Add(addr.MustParseProperty(propRAddr), *prop); err != nil {
 			return nil, fmt.Errorf("adding property %q: %v", propRAddr, err)
 		}
 	}

@@ -15,7 +15,7 @@ func CollectSchemas(swaggerBaseURL, swaggerRelPath string, collector SchemaColle
 
 	out := make([]Schema, 0, len(schemas))
 	for _, schemaName := range schemas {
-		schema, err := NewSchema(swaggerBaseURL, swaggerRelPath, schemaName)
+		schema, err := NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName)
 		if err != nil {
 			return nil, err
 		}

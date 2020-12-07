@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseRelProperty(t *testing.T) {
+func TestParseProperty(t *testing.T) {
 	cases := []struct {
 		input  string
-		expect RelProperty
+		expect Property
 		error  bool
 	}{
 		{
@@ -18,15 +18,15 @@ func TestParseRelProperty(t *testing.T) {
 		},
 		{
 			input:  "p1",
-			expect: RelProperty{{name: "p1"}},
+			expect: Property{{name: "p1"}},
 		},
 		{
 			input:  "p1.p2",
-			expect: RelProperty{{name: "p1"}, {name: "p2"}},
+			expect: Property{{name: "p1"}, {name: "p2"}},
 		},
 		{
 			input:  "p1.p2{v1}",
-			expect: RelProperty{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
+			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
 		},
 		{
 			input: "p1.p2}",
@@ -35,7 +35,7 @@ func TestParseRelProperty(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		actual, err := ParseRelProperty(c.input)
+		actual, err := ParseProperty(c.input)
 		if c.error {
 			require.Error(t, err, idx)
 			continue
@@ -53,92 +53,73 @@ func TestProperty_Contains(t *testing.T) {
 	}{
 		// 0
 		{
-			addr: Property{Schema: "schema1", Property: nil},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
+			addr: nil,
+			oaddr: Property{
 				{name: "p1"},
-			}},
+			},
 			contains: true,
 		},
 		// 1
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
+			addr: Property{
 				{name: "p1"},
-			}},
+			},
+			oaddr: Property{
+				{name: "p1"},
+				{name: "p2"},
+			},
 			contains: true,
 		},
 		// 2
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
+			addr: Property{
 				{name: "p1"},
 				{name: "p2"},
-			}},
-			contains: true,
+			},
+			oaddr: Property{
+				{name: "p1"},
+			},
+			contains: false,
 		},
 		// 3
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
+			addr: Property{
 				{name: "p1"},
-				{name: "p2"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1"},
-			}},
-			contains: false,
+			},
+			oaddr: Property{
+				{name: "p1", discriminatorValue: "v1"},
+			},
+			contains: true,
 		},
 		// 4
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1"},
-			}},
-			oaddr: Property{Schema: "schema2", Property: RelProperty{
-				{name: "p1"},
-				{name: "p2"},
-			}},
+			addr: Property{
+				{name: "p1", discriminatorValue: "v1"},
+			},
+			oaddr: Property{
+				{name: "p1", discriminatorValue: "v1"},
+			},
 			contains: false,
 		},
 		// 5
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
+			addr: Property{
 				{name: "p1", discriminatorValue: "v1"},
-			}},
-			contains: true,
+			},
+			oaddr: Property{
+				{name: "p1", discriminatorValue: "v2"},
+			},
+			contains: false,
 		},
 		// 6
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1", discriminatorValue: "v1"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1", discriminatorValue: "v1"},
-			}},
-			contains: false,
-		},
-		// 7
-		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1", discriminatorValue: "v1"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
-				{name: "p1", discriminatorValue: "v2"},
-			}},
-			contains: false,
-		},
-		// 8
-		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
+			addr: Property{
 				{name: "p1"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
+			},
+			oaddr: Property{
 				{name: "p1", discriminatorValue: "v2"},
 				{name: "p2"},
-			}},
+			},
 			contains: true,
 		},
 	}
@@ -159,22 +140,22 @@ func TestProperty_Equals(t *testing.T) {
 			equal: true,
 		},
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
+			addr: Property{
 				{name: "p1"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
+			},
+			oaddr: Property{
 				{name: "p1"},
-			}},
+			},
 			equal: true,
 		},
 		{
-			addr: Property{Schema: "schema1", Property: RelProperty{
+			addr: Property{
 				{name: "p1"},
 				{name: "p2"},
-			}},
-			oaddr: Property{Schema: "schema1", Property: RelProperty{
+			},
+			oaddr: Property{
 				{name: "p1"},
-			}},
+			},
 			equal: false,
 		},
 	}
@@ -183,62 +164,30 @@ func TestProperty_Equals(t *testing.T) {
 	}
 }
 
-func TestRelProperty_String(t *testing.T) {
+func TestProperty_String(t *testing.T) {
 	cases := []struct {
-		input  RelProperty
+		input  Property
 		expect string
 	}{
 		{
-			input:  RelProperty{},
+			input:  Property{},
 			expect: "",
 		},
 		{
-			input:  RelProperty{{name: "p1"}},
+			input:  Property{{name: "p1"}},
 			expect: "p1",
 		},
 		{
-			input:  RelProperty{{name: "p1"}, {name: "p2"}},
+			input:  Property{{name: "p1"}, {name: "p2"}},
 			expect: "p1.p2",
 		},
 		{
-			input:  RelProperty{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
+			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
 			expect: "p1.p2{v1}",
 		},
 	}
 	for idx, c := range cases {
 		require.Equal(t, c.expect, c.input.String(), idx)
-	}
-}
-
-func TestProperty_String(t *testing.T) {
-	cases := []struct {
-		addr   Property
-		expect string
-	}{
-		{
-			addr:   Property{},
-			expect: "",
-		},
-		{
-			addr:   Property{Property: RelProperty{{name: "p1"}, {name: "p2"}}},
-			expect: "p1.p2",
-		},
-		{
-			addr:   Property{Schema: "schema1"},
-			expect: "schema1:",
-		},
-		{
-			addr:   Property{Schema: "schema1", Property: RelProperty{{name: "p1"}, {name: "p2"}}},
-			expect: "schema1:p1.p2",
-		},
-		{
-			addr:   Property{Schema: "schema1", Property: RelProperty{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}}},
-			expect: "schema1:p1.p2{v1}",
-		},
-	}
-
-	for idx, c := range cases {
-		require.Equal(t, c.expect, c.addr.String(), idx)
 	}
 }
 
@@ -252,20 +201,12 @@ func TestProperty_MarshalJSON(t *testing.T) {
 			expect: `""`,
 		},
 		{
-			addr:   Property{Property: RelProperty{{name: "p1"}, {name: "p2"}}},
+			addr:   Property{{name: "p1"}, {name: "p2"}},
 			expect: `"p1.p2"`,
 		},
 		{
-			addr:   Property{Schema: "schema1"},
-			expect: `"schema1:"`,
-		},
-		{
-			addr:   Property{Schema: "schema1", Property: RelProperty{{name: "p1"}, {name: "p2"}}},
-			expect: `"schema1:p1.p2"`,
-		},
-		{
-			addr:   Property{Schema: "schema1", Property: RelProperty{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}}},
-			expect: `"schema1:p1.p2{v1}"`,
+			addr:   Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
+			expect: `"p1.p2{v1}"`,
 		},
 	}
 
@@ -287,23 +228,15 @@ func TestProperty_UnmarshalJSON(t *testing.T) {
 	}{
 		{
 			input:  `""`,
-			expect: Property{},
+			expect: nil,
 		},
 		{
 			input:  `"p1.p2"`,
-			expect: Property{Property: RelProperty{{name: "p1"}, {name: "p2"}}},
+			expect: Property{{name: "p1"}, {name: "p2"}},
 		},
 		{
-			input:  `"schema1:"`,
-			expect: Property{Schema: "schema1"},
-		},
-		{
-			input:  `"schema1:p1.p2"`,
-			expect: Property{Schema: "schema1", Property: RelProperty{{name: "p1"}, {name: "p2"}}},
-		},
-		{
-			input:  `"schema1:p1.p2{v1}"`,
-			expect: Property{Schema: "schema1", Property: RelProperty{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}}},
+			input:  `"p1.p2{v1}"`,
+			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
 		},
 	}
 	for idx, c := range cases {

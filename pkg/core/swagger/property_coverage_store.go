@@ -22,7 +22,7 @@ func NewPropertyCoverageStore() PropertyCoverageStore {
 // If the property is granted, then nothing will happen.
 // If a property is added more than once, an error will be returned.
 // NOTE: The granted property will be ignored
-func (store *PropertyCoverageStore) Add(propAddr addr.RelProperty, prop Property) error {
+func (store *PropertyCoverageStore) Add(propAddr addr.Property, prop Property) error {
 	if prop.PropertyState.IsGranted() {
 		return nil
 	}
@@ -43,9 +43,9 @@ func (store *PropertyCoverageStore) SchemaCoverage() (covered, total int) {
 	return store.node.CoveredAmount, store.node.TotalAmount
 }
 
-func (store *PropertyCoverageStore) FindCoverage(relProp addr.RelProperty) (covered, total int, ok bool) {
+func (store *PropertyCoverageStore) FindCoverage(prop addr.Property) (covered, total int, ok bool) {
 	node := store.node
-	for _, addrSeg := range relProp {
+	for _, addrSeg := range prop {
 		tmpNode, ok := node.Children[addrSeg]
 		if !ok {
 			return 0, 0, false
@@ -61,7 +61,7 @@ type propertyCoverageNode struct {
 	Children      map[addr.PropertySegment]*propertyCoverageNode
 }
 
-func (node *propertyCoverageNode) add(propAddr addr.RelProperty, isCovered bool) {
+func (node *propertyCoverageNode) add(propAddr addr.Property, isCovered bool) {
 	node.TotalAmount++
 	if isCovered {
 		node.CoveredAmount++
