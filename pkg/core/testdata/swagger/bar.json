@@ -1,12 +1,16 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Bar"
+    "title": "Bar",
+    "version": "2020-12-01"
   },
   "host": "management.azure.com",
   "schemes": [
     "https"
   ],
+  "paths": {
+    "/{host}/{bar}": {}
+  },
   "definitions": {
     "def_bar": {
       "properties": {
