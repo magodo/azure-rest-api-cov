@@ -1,9 +1,0 @@
-{
-    "swagger": "2.0",
-    "info": {
-        "version": "2015-05-01-preview"
-    },
-    "paths": {
-        "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/applicationGateways/{applicationGatewayName}": {}
-    }
-}

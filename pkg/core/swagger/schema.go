@@ -15,7 +15,8 @@ type SchemaAddr struct {
 }
 
 func (a SchemaAddr) String() string {
-	return a.SwaggerRelPath + "#/definitions/" + a.Name
+	s := a.SwaggerRelPath + "#/definitions/" + a.Name
+	return s
 }
 
 type Schema struct {
@@ -300,9 +301,25 @@ func (s *Schema) addProperties(props Properties) {
 	s.Properties.Merge(props)
 }
 
+func (s Schema) HasGrantedAny() bool {
+	if s.IsGranted {
+		return true
+	}
+	for _, prop := range s.Properties {
+		if prop.IsGranted() {
+			return true
+		}
+	}
+	return false
+}
+
 // AddCovProperty adds a covered property to the schema.
+// NOTE: This has to be called before the schema goes under granting process.
 func (s *Schema) AddCovProperty(propAddr addr.Property) error {
-	var isExpandToChildProperties bool
+	if s.HasGrantedAny() {
+		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.SchemaAddr)
+	}
+	var propagateToChild bool
 	for existRAddr, prop := range s.Properties {
 		existPropAddr := addr.MustParseProperty(existRAddr)
 
@@ -313,7 +330,7 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 		// If the property to add is a parent property of any existing properties.
 		// Then we will mark the existing properties as covered also.
 		if propAddr.Contains(existPropAddr) {
-			isExpandToChildProperties = true
+			propagateToChild = true
 			prop.PropertyState = NewPropertyState(PropStateCovered, "")
 			continue
 		}
@@ -329,10 +346,30 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 		}
 		return s.AddCovProperty(propAddr)
 	}
-	if isExpandToChildProperties {
+	if propagateToChild {
 		return nil
 	}
 	return fmt.Errorf("property %s doesn't belong to schemas %s (%s)", propAddr, s.Name, s.swaggerURI)
+}
+
+// Merge merges two schema with same address in turns of covered properties.
+// NOTE: This has to be called before the schema goes under granting process.
+func (s *Schema) Merge(os Schema) error {
+	if s.HasGrantedAny() {
+		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.SchemaAddr)
+	}
+	if s.SchemaAddr != os.SchemaAddr {
+		return fmt.Errorf("trying to merge different schemas: %s and %s", s.SchemaAddr, os.SchemaAddr)
+	}
+
+	for pAddr, prop := range os.Properties {
+		if prop.IsCovered() {
+			if err := s.AddCovProperty(addr.MustParseProperty(pAddr)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // CalcCoverage calculates the property coverage (<=1) of the schema/property.

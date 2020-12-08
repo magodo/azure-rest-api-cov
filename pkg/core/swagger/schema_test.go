@@ -3,8 +3,10 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
@@ -850,6 +852,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 		schemaName     string
 		steps          []step
 	}{
+		// 0
 		{
 			name:           "add same property twice should take no diff (re-entry)",
 			swaggerRelPath: "foo.json",
@@ -916,6 +919,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				},
 			},
 		},
+		// 1
 		{
 			name:           "add tf link to swagger child property first, then add another tf link to swagger parent property",
 			swaggerRelPath: "foo.json",
@@ -997,7 +1001,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				},
 			},
 		},
-		//
+		// 2
 		{
 			name:           "add tf link to swagger parent property first, then add another tf link to swagger child property",
 			swaggerRelPath: "foo.json",
@@ -1061,6 +1065,43 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								schema:        specFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+						},
+						swaggerURI: specFooPath,
+						swagger:    specFoo,
+					},
+				},
+			},
+		},
+		// 3
+		{
+			name:           "add discriminator property",
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_base",
+			steps: []step{
+				{
+					swgPropAddr: addr.MustParseProperty("{def_variant1}.type"),
+					expect: Schema{
+						SchemaAddr: SchemaAddr{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_base",
+						},
+						Properties: map[string]*Property{
+							"{def_variant1}.type": {
+								PropertyState: propStateCovered,
+								schema:        specFoo.Definitions["def_base"].Properties["type"],
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/def_variant1": struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+							"{def_variant2}": {
+								PropertyState: propStateUncovered,
+								schema:        specFoo.Definitions["variant2_def"],
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/variant2_def": struct{}{},
 								},
 								swaggerURI: specFooPath,
 							},
@@ -1246,6 +1287,69 @@ func TestSchema_Unmarshal(t *testing.T) {
 		var actual Schema
 		require.NoError(t, json.Unmarshal([]byte(c.input), &actual), idx)
 		require.Equal(t, c.expect, actual, idx)
+	}
+}
+
+func TestSchema_Merge(t *testing.T) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	specBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	schemaBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "schema_input")
+	cases := []struct {
+		schemaInputDir   string
+		expectProperties string
+	}{
+		{
+			schemaInputDir: filepath.Join(schemaBasePath, "def_base"),
+			expectProperties: `{
+	"{def_variant1}.type": {
+		"state": "Covered"
+	},
+	"{def_variant2}.type":{
+		"state": "Covered"
+	}
+}`,
+		},
+	}
+
+	var mergedSchema *Schema
+	for idx, c := range cases {
+		err := filepath.Walk(c.schemaInputDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() ||
+				!strings.HasSuffix(info.Name(), ".json") {
+				return nil
+			}
+			b, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			var schemaInput SchemaInput
+			if err := json.Unmarshal(b, &schemaInput); err != nil {
+				return err
+			}
+			schema, err := schemaInput.ToSchema(specBaseDir)
+			if err != nil {
+				return err
+			}
+			if mergedSchema == nil {
+				mergedSchema = schema
+			} else {
+				if err := mergedSchema.Merge(*schema); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		require.NoError(t, err, idx)
+
+		b, err := mergedSchema.Properties.MarshalJSON()
+		require.NoError(t, err, idx)
+		require.JSONEq(t, c.expectProperties, string(b), idx)
 	}
 }
 

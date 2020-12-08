@@ -1,6 +1,8 @@
 package swagger
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,47 +10,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLookupSpecPath(t *testing.T) {
+func TestToSchema(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	specBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	schemaBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "schema_input")
 	cases := []struct {
-		locator        SpecLocator
-		expectSpecPath string
-		expectError    bool
+		schemaInput      string
+		expectProperties string
 	}{
 		{
-			locator: SpecLocator{
-				ApiVersion: "2020-05-01",
-				ApiPath:    "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/applicationGateways/{applicationGatewayName}",
-			},
-			expectSpecPath: "network/resource-manager/Microsoft.Network/stable/2020-05-01/applicationGateway.json",
-		},
-		{
-			locator: SpecLocator{
-				ApiVersion: "2015-05-01-preview",
-				ApiPath:    "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/applicationGateways/{applicationGatewayName}",
-			},
-			expectSpecPath: "network/resource-manager/Microsoft.Network/preview/2015-05-01-preview/network.json",
-		},
-		{
-			locator: SpecLocator{
-				ApiVersion: "non-exist",
-				ApiPath:    "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/applicationGateways/{applicationGatewayName}",
-			},
-			expectError: true,
+			schemaInput: filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
+			expectProperties: `{
+	"{def_variant1}.type": {
+		"state": "Covered"
+	},
+	"{def_variant2}":{
+		"state":"Uncovered"
+	}
+}`,
 		},
 	}
 
 	for idx, c := range cases {
-		path, err := LookupSpecPath(specBasePath, c.locator)
-		if c.expectError {
-			require.Error(t, err, idx)
-			continue
-		}
+		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
-		require.Equal(t, c.expectSpecPath, path, idx)
+
+		var schemaInput SchemaInput
+		err = json.Unmarshal(b, &schemaInput)
+		require.NoError(t, err, idx)
+
+		schema, err := schemaInput.ToSchema(specBaseDir)
+		require.NoError(t, err, idx)
+
+		b, err = schema.Properties.MarshalJSON()
+		require.NoError(t, err, idx)
+
+		require.JSONEq(t, c.expectProperties, string(b), idx)
 	}
 }

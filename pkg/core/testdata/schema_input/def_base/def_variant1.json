@@ -1,0 +1,9 @@
+{
+  "api_version": "2020-12-01",
+  "api_path": "/{host}/{foo}",
+  "name": "def_base",
+  "variant": "def_variant1",
+  "properties": [
+    "type"
+  ]
+}
