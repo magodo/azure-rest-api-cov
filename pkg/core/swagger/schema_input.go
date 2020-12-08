@@ -14,14 +14,15 @@ import (
 )
 
 type SpecLocator struct {
-	ApiVersion string
-	ApiPath    string
+	ApiVersion string `json:"api_version"`
+	ApiPath    string `json:"api_path"`
 }
 
 type SchemaInput struct {
 	SpecLocator
-	Name       string
-	Properties []string
+	Name       string   `json:"name"`
+	Variant    *string  `json:"variant,omitempty"`
+	Properties []string `json:"properties"`
 }
 
 func (schemaInput SchemaInput) ToSchema(swaggerRepoSpecBasePath string) (*Schema, error) {
