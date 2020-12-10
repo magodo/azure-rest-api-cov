@@ -3,6 +3,8 @@ package swagger
 import (
 	"fmt"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+
 	openapispec "github.com/go-openapi/spec"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
 )
@@ -33,7 +35,7 @@ type Schema struct {
 
 func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
-	swagger, err := LoadSwagger(swaggerURI)
+	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +267,7 @@ func (s *Schema) expandRefPropertyInPlace(prop *Property) (isCyclic bool, err er
 		return true, nil
 	}
 
-	swagger, err := LoadSwagger(prop.swaggerURI)
+	swagger, err := swaggerloader.LoadSwagger(prop.swaggerURI)
 	if err != nil {
 		return false, err
 	}

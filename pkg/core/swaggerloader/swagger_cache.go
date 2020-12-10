@@ -1,4 +1,4 @@
-package swagger
+package swaggerloader
 
 import (
 	"fmt"

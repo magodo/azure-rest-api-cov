@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+
 	"golang.org/x/sync/errgroup"
 )
 
@@ -20,22 +22,30 @@ type SpecLookupTables map[string]SpecLookupTable
 
 var specLookupTables = map[string]SpecLookupTable{}
 
-func LookupSpecPath(swaggerRepoSpecBasePath string, locator SpecLocator) (string, error) {
-	t, ok := specLookupTables[swaggerRepoSpecBasePath]
+func (ts SpecLookupTables) Init() error {
+	return nil
+}
+
+func LookupSpecPath(specBasePath string, locator SpecLocator) (string, error) {
+	p, err := filepath.Abs(specBasePath)
+	if err != nil {
+		return "", err
+	}
+	p = filepath.Clean(p)
+	t, ok := specLookupTables[p]
 	if !ok {
 		t = SpecLookupTable{
-			m:                       map[SpecLocator]string{},
-			isInit:                  false,
-			swaggerRepoSpecBasePath: swaggerRepoSpecBasePath,
+			Table:        map[SpecLocator]string{},
+			SpecBasePath: p,
 		}
 	}
 	return t.Lookup(locator)
 }
 
 type SpecLookupTable struct {
-	m                       map[SpecLocator]string // maps from spec locator to the spec rel-path.
-	isInit                  bool
-	swaggerRepoSpecBasePath string
+	Table        map[SpecLocator]string // maps from spec locator to the spec rel-path.
+	SpecBasePath string
+	isInit       bool
 }
 
 func (t *SpecLookupTable) Lookup(locator SpecLocator) (string, error) {
@@ -44,7 +54,7 @@ func (t *SpecLookupTable) Lookup(locator SpecLocator) (string, error) {
 			return "", err
 		}
 	}
-	path, ok := t.m[locator]
+	path, ok := t.Table[locator]
 	if !ok {
 		return "", fmt.Errorf("no spec of version %q contains path %q", locator.ApiVersion, locator.ApiPath)
 	}
@@ -57,11 +67,11 @@ func (t *SpecLookupTable) initOnce() error {
 	g.Go(func() error {
 		schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(`^(%[1]s\w+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`, regexp.QuoteMeta(string(os.PathSeparator))))
 		schemaPattern := regexp.MustCompile(fmt.Sprintf(`^%[1]s\w+%[1]sresource-manager%[1]sMicrosoft.\w+%[1]s(preview|stable)%[1]s.+?%[1]s.+?\.json$`, regexp.QuoteMeta(string(os.PathSeparator))))
-		if err := filepath.Walk(t.swaggerRepoSpecBasePath,
+		if err := filepath.Walk(t.SpecBasePath,
 			func(p string, info os.FileInfo, err error) error {
 				p, _ = filepath.Abs(p)
-				t.swaggerRepoSpecBasePath, _ = filepath.Abs(t.swaggerRepoSpecBasePath)
-				relPath := strings.TrimPrefix(p, t.swaggerRepoSpecBasePath)
+				t.SpecBasePath, _ = filepath.Abs(t.SpecBasePath)
+				relPath := strings.TrimPrefix(p, t.SpecBasePath)
 				if err != nil {
 					return err
 				}
@@ -84,7 +94,7 @@ func (t *SpecLookupTable) initOnce() error {
 					return nil
 				}
 
-				spec, err := LoadSwagger(t.swaggerRepoSpecBasePath + relPath)
+				spec, err := swaggerloader.LoadSwagger(t.SpecBasePath + relPath)
 				//log.Printf("Loading %s\n", relPath)
 				if err != nil {
 					return err
@@ -112,8 +122,9 @@ func (t *SpecLookupTable) initOnce() error {
 	}
 
 	m.Range(func(key, value interface{}) bool {
-		t.m[key.(SpecLocator)] = value.(string)
+		t.Table[key.(SpecLocator)] = value.(string)
 		return true
 	})
+	t.isInit = true
 	return nil
 }

@@ -1,13 +1,16 @@
 package swagger
 
-import openapispec "github.com/go-openapi/spec"
+import (
+	openapispec "github.com/go-openapi/spec"
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+)
 
 type SchemaCollector func(swagger *openapispec.Swagger) (schemaNames []string)
 
 // CollectSchemas collects the schemas from a swagger spec
 func CollectSchemas(swaggerBaseURL, swaggerRelPath string, collector SchemaCollector) ([]Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
-	swagger, err := LoadSwagger(swaggerURI)
+	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
 	if err != nil {
 		return nil, err
 	}

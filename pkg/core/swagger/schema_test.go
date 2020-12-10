@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+
 	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
 	"github.com/stretchr/testify/require"
 )
@@ -28,13 +30,13 @@ func TestSchema(t *testing.T) {
 	specBarPathLocal := filepath.Join(specBasePathLocal, "bar.json")
 	specBazPathLocal := filepath.Join(specBasePathLocal, "baz", "baz.json")
 	specRemotePathLocal := filepath.Join(specBasePathLocal, "remote.json")
-	specFoo, err := LoadSwagger(specFooPathLocal)
+	specFoo, err := swaggerloader.LoadSwagger(specFooPathLocal)
 	require.NoError(t, err)
-	specBar, err := LoadSwagger(specBarPathLocal)
+	specBar, err := swaggerloader.LoadSwagger(specBarPathLocal)
 	require.NoError(t, err)
-	specBaz, err := LoadSwagger(specBazPathLocal)
+	specBaz, err := swaggerloader.LoadSwagger(specBazPathLocal)
 	require.NoError(t, err)
-	specRemote, err := LoadSwagger(specRemotePathLocal)
+	specRemote, err := swaggerloader.LoadSwagger(specRemotePathLocal)
 	require.NoError(t, err)
 
 	specRemoteBaseURL := "https://gist.githubusercontent.com/magodo/f054bb1c2e7a1c74fd78f65eb42a17bb/raw/8308d9295287bc590be9b431ea0353b626da7ada"
@@ -459,8 +461,8 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
 	specFooPath := filepath.Join(specBasePath, "foo.json")
 	specBarPath := filepath.Join(specBasePath, "bar.json")
-	specFoo, err := LoadSwagger(specFooPath)
-	specBar, err := LoadSwagger(specBarPath)
+	specFoo, err := swaggerloader.LoadSwagger(specFooPath)
+	specBar, err := swaggerloader.LoadSwagger(specBarPath)
 	_ = specBar
 	_ = specFoo
 	if err != nil {
@@ -833,8 +835,8 @@ func TestSchema_AddCovProperty(t *testing.T) {
 	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
 	specFooPath := filepath.Join(specBasePath, "foo.json")
 	specBarPath := filepath.Join(specBasePath, "bar.json")
-	specFoo, err := LoadSwagger(specFooPath)
-	specBar, err := LoadSwagger(specBarPath)
+	specFoo, err := swaggerloader.LoadSwagger(specFooPath)
+	specBar, err := swaggerloader.LoadSwagger(specBarPath)
 	_ = specBar
 	if err != nil {
 		t.Fatal(err)
