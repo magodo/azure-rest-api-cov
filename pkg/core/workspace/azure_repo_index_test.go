@@ -1,4 +1,4 @@
-package workspace
+package workspace_test
 
 import (
 	"encoding/json"
@@ -7,22 +7,24 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestAPIsMarshal(t *testing.T) {
 	cases := []struct {
-		apis   APIs
+		apis   workspace.APIs
 		expect string
 	}{
 		{
-			apis: APIs{
-				API{
+			apis: workspace.APIs{
+				workspace.API{
 					Version:   "2020-12-12",
 					IsPreview: true,
-				}: APISpecs{
-					"path": APISpec{
-						Path:           "path",
+				}: workspace.APISpecs{
+					"path": workspace.APISpec{
+						RelPath:        "path",
 						APIPaths:       []string{"p1", "p2"},
 						APIRootSchemas: []string{"schema1", "schema2"},
 					},
@@ -32,7 +34,7 @@ func TestAPIsMarshal(t *testing.T) {
 {
   "2020-12-12:preview": {
   "path": {
-    "path": "path",
+    "rel_path": "path",
     "api_paths": [
       "p1",
       "p2"
@@ -58,14 +60,14 @@ func TestAPIsMarshal(t *testing.T) {
 func TestAPIsUnmarshal(t *testing.T) {
 	cases := []struct {
 		input  string
-		expect APIs
+		expect workspace.APIs
 	}{
 		{
 			input: `
 {
   "2020-12-12:preview": {
   "path": {
-    "path": "path",
+    "rel_path": "path",
     "api_paths": [
       "p1",
       "p2"
@@ -78,13 +80,13 @@ func TestAPIsUnmarshal(t *testing.T) {
   }
 }
 `,
-			expect: APIs{
-				API{
+			expect: workspace.APIs{
+				workspace.API{
 					Version:   "2020-12-12",
 					IsPreview: true,
-				}: APISpecs{
-					"path": APISpec{
-						Path:           "path",
+				}: workspace.APISpecs{
+					"path": workspace.APISpec{
+						RelPath:        "path",
 						APIPaths:       []string{"p1", "p2"},
 						APIRootSchemas: []string{"schema1", "schema2"},
 					},
@@ -94,7 +96,7 @@ func TestAPIsUnmarshal(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		var apis APIs
+		var apis workspace.APIs
 		err := json.Unmarshal([]byte(c.input), &apis)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, apis, idx)
@@ -103,20 +105,20 @@ func TestAPIsUnmarshal(t *testing.T) {
 
 func TestResourceProvidersMarshal(t *testing.T) {
 	cases := []struct {
-		rps    ResourceProviders
+		rps    workspace.ResourceProviders
 		expect string
 	}{
 		{
-			rps: ResourceProviders{
-				ResourceProvider{
+			rps: workspace.ResourceProviders{
+				workspace.ResourceProvider{
 					Name: "rp",
-				}: APIs{
-					API{
+				}: workspace.APIs{
+					workspace.API{
 						Version:   "2020-12-12",
 						IsPreview: true,
-					}: APISpecs{
-						"path": APISpec{
-							Path:           "path",
+					}: workspace.APISpecs{
+						"path": workspace.APISpec{
+							RelPath:        "path",
 							APIPaths:       []string{"p1", "p2"},
 							APIRootSchemas: []string{"schema1", "schema2"},
 						},
@@ -128,7 +130,7 @@ func TestResourceProvidersMarshal(t *testing.T) {
   "rp": {
 	  "2020-12-12:preview": {
 		"path": {
-		  "path": "path",
+		  "rel_path": "path",
 		  "api_paths": [
 			"p1",
 			"p2"
@@ -155,7 +157,7 @@ func TestResourceProvidersMarshal(t *testing.T) {
 func TestResourceProvidersUnmarshal(t *testing.T) {
 	cases := []struct {
 		input  string
-		expect ResourceProviders
+		expect workspace.ResourceProviders
 	}{
 		{
 			input: `
@@ -163,7 +165,7 @@ func TestResourceProvidersUnmarshal(t *testing.T) {
   "rp": {
 	  "2020-12-12:preview": {
 		"path": {
-		  "path": "path",
+		  "rel_path": "path",
 		  "api_paths": [
 			"p1",
 			"p2"
@@ -177,16 +179,16 @@ func TestResourceProvidersUnmarshal(t *testing.T) {
   }
 }
 `,
-			expect: ResourceProviders{
-				ResourceProvider{
+			expect: workspace.ResourceProviders{
+				workspace.ResourceProvider{
 					Name: "rp",
-				}: APIs{
-					API{
+				}: workspace.APIs{
+					workspace.API{
 						Version:   "2020-12-12",
 						IsPreview: true,
-					}: APISpecs{
-						"path": APISpec{
-							Path:           "path",
+					}: workspace.APISpecs{
+						"path": workspace.APISpec{
+							RelPath:        "path",
 							APIPaths:       []string{"p1", "p2"},
 							APIRootSchemas: []string{"schema1", "schema2"},
 						},
@@ -197,27 +199,23 @@ func TestResourceProvidersUnmarshal(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		var rps ResourceProviders
+		var rps workspace.ResourceProviders
 		err := json.Unmarshal([]byte(c.input), &rps)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, rps, idx)
 	}
 }
 
-func TestAzureRepoIndexRefresh(t *testing.T) {
+func TestNewAzureRepoIndex(t *testing.T) {
 	pwd, err := os.Getwd()
 	require.NoError(t, err, "pwd")
 	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
-	specRefreshRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "specRefresh")
-	repo := AzureRepo{
-		SpecRootDir: specRootDir,
-	}
 	expect := fmt.Sprintf(`{
   "resource_providers": {
     "dummy": {
-      "2020-12-10-preview:preview": {
-        "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-10-preview/bar.json": {
-          "path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-10-preview/bar.json",
+      "2020-12-01-preview:preview": {
+        "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json": {
+          "rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json",
           "api_paths": [
             "/{host}/{bar}"
           ],
@@ -226,7 +224,45 @@ func TestAzureRepoIndexRefresh(t *testing.T) {
       },
       "2020-12-01:stable": {
         "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
-          "path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+          "rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+          "api_paths": [
+            "/{host}/{foo}"
+          ],
+          "api_put_schemas": []
+        }
+      }
+    }
+  },
+  "spec_root_dir": "%s"
+}
+`, specRootDir)
+	idx, err := workspace.NewAzureRepoIndex(specRootDir)
+	require.NoError(t, err, "generate index")
+	b, err := json.MarshalIndent(idx, "", "  ")
+	require.NoError(t, err, "marshal index")
+	require.JSONEq(t, expect, string(b))
+}
+
+func TestAzureRepoIndexRefresh(t *testing.T) {
+	pwd, err := os.Getwd()
+	require.NoError(t, err, "pwd")
+	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	specRefreshRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "specRefresh")
+	expect := fmt.Sprintf(`{
+  "resource_providers": {
+    "dummy": {
+      "2020-12-10-preview:preview": {
+        "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-10-preview/bar.json": {
+          "rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-10-preview/bar.json",
+          "api_paths": [
+            "/{host}/{bar}"
+          ],
+          "api_put_schemas": []
+        }
+      },
+      "2020-12-01:stable": {
+        "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
+          "rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
           "api_paths": [
             "/{host}/{foo}"
           ],
@@ -238,11 +274,56 @@ func TestAzureRepoIndexRefresh(t *testing.T) {
   "spec_root_dir": "%s"
 }
 `, specRefreshRootDir)
-	idx, err := repo.GenerateIndex()
+	idx, err := workspace.NewAzureRepoIndex(specRootDir)
 	require.NoError(t, err, "generate index")
 
 	idx.SpecRootDir = specRefreshRootDir
 	require.NoError(t, idx.Refresh(), "refresh")
+
+	b, err := json.MarshalIndent(idx, "", "  ")
+	require.NoError(t, err, "marshal index")
+	require.JSONEq(t, expect, string(b))
+}
+
+func TestAzureRepoIndexExportImport(t *testing.T) {
+	pwd, err := os.Getwd()
+	require.NoError(t, err, "pwd")
+	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	expect := fmt.Sprintf(`{
+  "resource_providers": {
+    "dummy": {
+      "2020-12-01-preview:preview": {
+        "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json": {
+          "rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json",
+          "api_paths": [
+            "/{host}/{bar}"
+          ],
+          "api_put_schemas": []
+        }
+      },
+      "2020-12-01:stable": {
+        "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
+          "rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+          "api_paths": [
+            "/{host}/{foo}"
+          ],
+          "api_put_schemas": []
+        }
+      }
+    }
+  },
+  "spec_root_dir": "%s"
+}
+`, specRootDir)
+	idx, err := workspace.NewAzureRepoIndex(specRootDir)
+	require.NoError(t, err, "generate index")
+
+	tmpDir := t.TempDir()
+	indexPath := filepath.Join(tmpDir, "index.json")
+	require.NoError(t, idx.Export(indexPath), "export")
+
+	idx, err = workspace.ImportAzureRepoIndex(indexPath)
+	require.NoError(t, err, "import")
 
 	b, err := json.MarshalIndent(idx, "", "  ")
 	require.NoError(t, err, "marshal index")

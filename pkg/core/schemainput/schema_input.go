@@ -1,26 +1,20 @@
-package swagger
+package schemainput
 
 import (
 	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerlocator"
 )
 
 type SchemaInput struct {
-	SpecLocator
+	swaggerlocator.SpecLocator
 	Name       string   `json:"name"`
 	Variant    string   `json:"variant,omitempty"`
 	Properties []string `json:"properties"`
 }
 
-func (schemaInput SchemaInput) ToSchema(swaggerRepoSpecBasePath string) (*Schema, error) {
-	swaggerRelPath, err := LookupSpecPath(swaggerRepoSpecBasePath, SpecLocator{
-		ApiVersion: schemaInput.ApiVersion,
-		ApiPath:    schemaInput.ApiPath,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	schema, err := NewEmptySchema(swaggerRepoSpecBasePath, swaggerRelPath, schemaInput.Name)
+func (schemaInput SchemaInput) ToSchema(swaggerRepoSpecBasePath string, swaggerRelPath string) (*swagger.Schema, error) {
+	schema, err := swagger.NewEmptySchema(swaggerRepoSpecBasePath, swaggerRelPath, schemaInput.Name)
 	if err != nil {
 		return nil, err
 	}

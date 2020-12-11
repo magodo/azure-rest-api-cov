@@ -1,4 +1,4 @@
-package swagger
+package schemainput
 
 import (
 	"encoding/json"
@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
 
 	"github.com/stretchr/testify/require"
 )
@@ -34,6 +36,9 @@ func TestToSchema(t *testing.T) {
 		},
 	}
 
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
+	require.NoError(t, err)
+
 	for idx, c := range cases {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
@@ -42,7 +47,7 @@ func TestToSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		schema, err := schemaInput.ToSchema(specBaseDir)
+		schema, err := schemaInput.ToSchema(specBaseDir, index.SpecLookupView()[schemaInput.SpecLocator])
 		require.NoError(t, err, idx)
 
 		b, err = schema.Properties.MarshalJSON()

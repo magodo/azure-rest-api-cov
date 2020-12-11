@@ -3,10 +3,8 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
@@ -1292,69 +1290,6 @@ func TestSchema_Unmarshal(t *testing.T) {
 	}
 }
 
-func TestSchema_Merge(t *testing.T) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	specBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
-	schemaBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "schema_input")
-	cases := []struct {
-		schemaInputDir   string
-		expectProperties string
-	}{
-		{
-			schemaInputDir: filepath.Join(schemaBasePath, "def_base"),
-			expectProperties: `{
-	"{def_variant1}.type": {
-		"state": "Covered"
-	},
-	"{def_variant2}.type":{
-		"state": "Covered"
-	}
-}`,
-		},
-	}
-
-	var mergedSchema *Schema
-	for idx, c := range cases {
-		err := filepath.Walk(c.schemaInputDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() ||
-				!strings.HasSuffix(info.Name(), ".json") {
-				return nil
-			}
-			b, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			var schemaInput SchemaInput
-			if err := json.Unmarshal(b, &schemaInput); err != nil {
-				return err
-			}
-			schema, err := schemaInput.ToSchema(specBaseDir)
-			if err != nil {
-				return err
-			}
-			if mergedSchema == nil {
-				mergedSchema = schema
-			} else {
-				if err := mergedSchema.Merge(*schema); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-		require.NoError(t, err, idx)
-
-		b, err := mergedSchema.Properties.MarshalJSON()
-		require.NoError(t, err, idx)
-		require.JSONEq(t, c.expectProperties, string(b), idx)
-	}
-}
-
 func TestSchema_CalcCoverage(t *testing.T) {
 	cases := []struct {
 		schema    Schema
@@ -1422,6 +1357,73 @@ func TestSchema_CalcCoverage(t *testing.T) {
 		cov, err := c.schema.CalcCoverage()
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expectCov, cov, idx)
+	}
+}
+
+func TestSchema_Merge(t *testing.T) {
+	cases := []struct {
+		schemas []Schema
+		expect  Schema
+	}{
+		// 0
+		{
+			schemas: []Schema{
+				{
+					SchemaAddr: SchemaAddr{
+						SwaggerRelPath: "foo.json",
+						Name:           "def_base",
+					},
+					Properties: map[string]*Property{
+						"{def_variant1}.type": {
+							PropertyState: propStateCovered,
+						},
+						"{def_variant2}.type": {
+							PropertyState: propStateUncovered,
+						},
+					},
+				},
+				{
+					SchemaAddr: SchemaAddr{
+						SwaggerRelPath: "foo.json",
+						Name:           "def_base",
+					},
+					Properties: map[string]*Property{
+						"{def_variant1}.type": {
+							PropertyState: propStateUncovered,
+						},
+						"{def_variant2}.type": {
+							PropertyState: propStateCovered,
+						},
+					},
+				},
+			},
+			expect: Schema{
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_base",
+				},
+				Properties: map[string]*Property{
+					"{def_variant1}.type": {
+						PropertyState: propStateCovered,
+					},
+					"{def_variant2}.type": {
+						PropertyState: propStateCovered,
+					},
+				},
+			},
+		},
+	}
+
+	for idx, c := range cases {
+		var mergedSchema Schema
+		for i, schema := range c.schemas {
+			if i == 0 {
+				mergedSchema = schema
+				continue
+			}
+			require.NoError(t, mergedSchema.Merge(schema), i, idx)
+		}
+		require.Equal(t, c.expect, mergedSchema, idx)
 	}
 }
 
