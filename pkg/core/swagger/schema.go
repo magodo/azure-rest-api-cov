@@ -3,6 +3,8 @@ package swagger
 import (
 	"fmt"
 
+	"github.com/go-openapi/jsonreference"
+
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
 
 	openapispec "github.com/go-openapi/spec"
@@ -45,6 +47,8 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 		return nil, fmt.Errorf("schema %q is not found in swagger spec %q", schemaName, swaggerURI)
 	}
 
+	normalizedSchemaRef := normalizePaths("#/definitions/"+schemaName, swaggerURI)
+
 	swgSchema := &Schema{
 		SchemaAddr: SchemaAddr{
 			SwaggerRelPath: swaggerRelPath,
@@ -54,7 +58,10 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 			"": {
 				PropertyState: NewPropertyState(PropStateUncovered, ""),
 				schema:        schema,
-				swaggerURI:    swaggerURI,
+				fromRef: &openapispec.Ref{
+					Ref: jsonreference.MustCreateRef(normalizedSchemaRef),
+				},
+				swaggerURI: swaggerURI,
 			},
 		},
 		swaggerURI: swaggerURI,
@@ -64,7 +71,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 	// Consider this schemas itself as resolved reference only when it is not a discriminator schema
 	if schema.Discriminator == "" {
 		swgSchema.Properties[""].resolvedRefs = map[string]interface{}{
-			normalizePaths("#/definitions/"+schemaName, swaggerURI): struct{}{},
+			normalizedSchemaRef: struct{}{},
 		}
 	}
 
@@ -98,7 +105,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		return fmt.Errorf("property %s does not exist in Schema %s (%s)", propAddr, s.Name, s.swaggerURI)
 	}
 
-	isCyclic, err := s.expandRefPropertyInPlace(prop)
+	isCyclic, err := prop.expandRefPropertyInPlace()
 	if err != nil {
 		return fmt.Errorf("dereferencing property %s in Schema %s (%s): %w", propAddr, s.Name, s.swaggerURI, err)
 	}
@@ -147,9 +154,18 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 			var dscSchemaName string
 
 			for name, schema := range s.swagger.Definitions {
-				if v, ok := schema.Extensions[swaggerExtensionMSDiscriminatorValue].(string); ok && v == variant {
-					dscSchemaName = name
-					break
+				if v, ok := schema.Extensions[swaggerExtensionMSDiscriminatorValue].(string); ok {
+					allOfRefs := map[string]struct{}{}
+					for _, allOf := range schema.AllOf {
+						if ref := allOf.Ref; ref.String() != "" {
+							normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
+							allOfRefs[normalizedRef.String()] = struct{}{}
+						}
+					}
+					if _, ok := allOfRefs[prop.fromRef.String()]; ok && v == variant {
+						dscSchemaName = name
+						break
+					}
 				}
 			}
 
@@ -171,9 +187,12 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 			for k, v := range prop.resolvedRefs {
 				resolvedRefs[k] = v
 			}
-			resolvedRefs[normalizePaths("#/definitions/"+dscSchemaName, s.swaggerURI)] = struct{}{}
+			normalizedRef := openapispec.Ref{
+				Ref: jsonreference.MustCreateRef(normalizePaths("#/definitions/"+dscSchemaName, s.swaggerURI)),
+			}
+			resolvedRefs[normalizedRef.String()] = struct{}{}
 
-			p := buildProperty(prop.PropertyState, s.swagger.Definitions[dscSchemaName], resolvedRefs, prop.swaggerURI)
+			p := buildProperty(prop.PropertyState, s.swagger.Definitions[dscSchemaName], resolvedRefs, prop.swaggerURI, &normalizedRef)
 			s.addProperty(propAddr.AsVariant(variant), *p)
 		}
 	}
@@ -192,7 +211,7 @@ func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) Pro
 		properties = prop.schema.Properties
 	}
 	for propName, propSchema := range properties {
-		p := buildProperty(prop.PropertyState, propSchema, prop.resolvedRefs, prop.swaggerURI)
+		p := buildProperty(prop.PropertyState, propSchema, prop.resolvedRefs, prop.swaggerURI, prop.fromRef)
 		propAddr := propAddr.Append(addr.MustParseProperty(propName))
 		output[propAddr.String()] = p
 	}
@@ -206,11 +225,11 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 
 		// We construct a temp Property here (as it has no object/property related) to expand it into a concrete schemas.
 		// Then we will iterate that schemas's property which by concept is the top level property of this parent property.
-		tmpProp := buildProperty(prop.PropertyState, schema, prop.resolvedRefs, prop.swaggerURI)
+		tmpProp := buildProperty(prop.PropertyState, schema, prop.resolvedRefs, prop.swaggerURI, prop.fromRef)
 
 		// AllOf contains refs, then need to expand the reference properties first.
 		if tmpProp.schema.Ref.String() != "" {
-			isCyclic, err := s.expandRefPropertyInPlace(tmpProp)
+			isCyclic, err := tmpProp.expandRefPropertyInPlace()
 			if err != nil {
 				return nil, fmt.Errorf("dereferencing property %s in Schema %s (%s): %w", propAddr, s.Name, s.swaggerURI, err)
 			}
@@ -231,66 +250,6 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 	}
 
 	return output, nil
-}
-
-// expandRefPropertyInPlace expand a property itself IN-PLACE until either it is a concrete schemas (i.e. not a ref) or hit a cyclic ref.
-func (s *Schema) expandRefPropertyInPlace(prop *Property) (isCyclic bool, err error) {
-	ref := prop.schema.Ref
-	if ref.String() == "" {
-		// Specially, if current schema is an array and the items is a ref, we need to go on expand it.
-		if prop.schema.Items == nil {
-			return false, nil
-		}
-
-		if prop.schema.Items.Schema == nil || len(prop.schema.Items.Schemas) != 0 {
-			return false, nil
-		}
-
-		var schema openapispec.Schema
-		if prop.schema.Items.Schema != nil {
-			schema = *prop.schema.Items.Schema
-		} else {
-			schema = prop.schema.Items.Schemas[0]
-		}
-		if schema.Ref.String() == "" {
-			return false, nil
-		}
-		// continue expanding the ref of the array item
-		ref = schema.Ref
-	}
-
-	normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
-	normalizedRefURI := normalizedRef.String()
-
-	// If current ref has already been derefed, meaning a cyclic ref is hit, we will return.
-	if _, ok := prop.resolvedRefs[normalizedRefURI]; ok {
-		return true, nil
-	}
-
-	swagger, err := swaggerloader.LoadSwagger(prop.swaggerURI)
-	if err != nil {
-		return false, err
-	}
-	schema, err := openapispec.ResolveRefWithBase(swagger, &ref, &openapispec.ExpandOptions{RelativeBase: prop.swaggerURI})
-	if err != nil {
-		return false, fmt.Errorf("resolve reference %s: %w", ref.String(), err)
-	}
-
-	// Keep track of the resolved reference to avoid cyclic ref.
-	// Specifically, we need to avoid track the discriminator base schemas as they will not be exactly referenced
-	// (only its variants are referenced). This allows us to reference the base schema's properties in the
-	// `allOf` from the variant's schema.
-	if schema.Discriminator == "" {
-		prop.resolvedRefs[normalizedRefURI] = struct{}{}
-	}
-
-	// update the stored schemas by the derefed schemas
-	prop.schema = *schema
-
-	// update the swaggerURI to using the referenced swagger
-	prop.swaggerURI = normalizedRef.GetURL().Path
-
-	return s.expandRefPropertyInPlace(prop)
 }
 
 // addProperty adds a new Property to the Schema.

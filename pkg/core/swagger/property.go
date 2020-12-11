@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+
 	openapispec "github.com/go-openapi/spec"
 )
 
@@ -70,6 +72,9 @@ type Property struct {
 	// The schemas of this swagger schemas property
 	schema openapispec.Schema
 
+	// The normalized ref of the schema directly defines the concrete schema of this property.
+	fromRef *openapispec.Ref
+
 	// The resolved URI refs along the way to this schemas, each is an absolute/normalized reference.
 	resolvedRefs map[string]interface{}
 
@@ -77,7 +82,7 @@ type Property struct {
 	swaggerURI string
 }
 
-func buildProperty(state PropertyState, schema openapispec.Schema, resolvedRefs map[string]interface{}, schemaURI string) *Property {
+func buildProperty(state PropertyState, schema openapispec.Schema, resolvedRefs map[string]interface{}, schemaURI string, fromRef *openapispec.Ref) *Property {
 	newResolvedRefs := map[string]interface{}{}
 	if len(resolvedRefs) != 0 {
 		for k, v := range resolvedRefs {
@@ -89,6 +94,7 @@ func buildProperty(state PropertyState, schema openapispec.Schema, resolvedRefs 
 		schema:        schema,
 		resolvedRefs:  newResolvedRefs,
 		swaggerURI:    schemaURI,
+		fromRef:       fromRef,
 	}
 }
 
@@ -99,6 +105,70 @@ func (p Properties) Merge(o Properties) {
 		p[k] = v
 	}
 }
+
+// expandRefPropertyInPlace expand a property itself IN-PLACE until either it is a concrete schemas (i.e. not a ref) or hit a cyclic ref.
+func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
+	ref := prop.schema.Ref
+	if ref.String() == "" {
+		// Specially, if current schema is an array and the items is a ref, we need to go on expand it.
+		if prop.schema.Items == nil {
+			return false, nil
+		}
+
+		if prop.schema.Items.Schema == nil || len(prop.schema.Items.Schemas) != 0 {
+			return false, nil
+		}
+
+		var schema openapispec.Schema
+		if prop.schema.Items.Schema != nil {
+			schema = *prop.schema.Items.Schema
+		} else {
+			schema = prop.schema.Items.Schemas[0]
+		}
+		if schema.Ref.String() == "" {
+			return false, nil
+		}
+		// continue expanding the ref of the array item
+		ref = schema.Ref
+	}
+
+	normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
+	normalizedRefURI := normalizedRef.String()
+
+	// If current ref has already been derefed, meaning a cyclic ref is hit, we will return.
+	if _, ok := prop.resolvedRefs[normalizedRefURI]; ok {
+		return true, nil
+	}
+
+	swagger, err := swaggerloader.LoadSwagger(prop.swaggerURI)
+	if err != nil {
+		return false, err
+	}
+	schema, err := openapispec.ResolveRefWithBase(swagger, &ref, &openapispec.ExpandOptions{RelativeBase: prop.swaggerURI})
+	if err != nil {
+		return false, fmt.Errorf("resolve reference %s: %w", ref.String(), err)
+	}
+
+	// Keep track of the resolved reference to avoid cyclic ref.
+	// Specifically, we need to avoid track the discriminator base schemas as they will not be exactly referenced
+	// (only its variants are referenced). This allows us to reference the base schema's properties in the
+	// `allOf` from the variant's schema.
+	if schema.Discriminator == "" {
+		prop.resolvedRefs[normalizedRefURI] = struct{}{}
+	}
+
+	// update the schemas by the de-referred schemas
+	prop.schema = *schema
+
+	// update the fromRef
+	prop.fromRef = normalizedRef
+
+	// update the swaggerURI to using the referenced swagger
+	prop.swaggerURI = normalizedRef.GetURL().Path
+
+	return prop.expandRefPropertyInPlace()
+}
+
 func (props Properties) MarshalJSON() ([]byte, error) {
 	m := map[string]interface{}{}
 	for k, prop := range props {

@@ -159,6 +159,43 @@
         }
       }
     },
+    "def_base_template": {
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "def_variant1",
+            "def_variant2"
+          ]
+        }
+      }
+    },
+    "def_variant1_template": {
+      "x-ms-discriminator-value": "def_variant1",
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_base_template"
+        }
+      ]
+    },
+    "def_variant2_template": {
+      "x-ms-discriminator-value": "def_variant2",
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_base_template"
+        }
+      ]
+    },
+    "def_to_def_base_template": {
+      "properties": {
+        "prop": {
+          "$ref": "#/definitions/def_base_template"
+        }
+      }
+    },
     "def_cov": {
       "properties": {
         "p1": {},
