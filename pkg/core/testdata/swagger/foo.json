@@ -206,6 +206,38 @@
           }
         }
       }
+    },
+
+    "def_parent": {
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "def_child1": {
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_parent"
+        }
+      ]
+    },
+    "def_child2": {
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_parent"
+        }
+      ]
+    },
+    "def_to_def_parent": {
+      "properties": {
+        "prop": {
+          "$ref": "#/definitions/def_parent"
+        }
+      }
     }
   }
 }

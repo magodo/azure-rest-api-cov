@@ -31,6 +31,8 @@ func TestSchema(t *testing.T) {
 	specBarPathLocal := filepath.Join(specBasePathLocal, "bar.json")
 	specBazPathLocal := filepath.Join(specBasePathLocal, "baz", "baz.json")
 	specRemotePathLocal := filepath.Join(specBasePathLocal, "remote.json")
+	specNestedDiscriminatorPathLocal := filepath.Join(specBasePathLocal, "nested_discriminator.json")
+
 	specFoo, err := swaggerloader.LoadSwagger(specFooPathLocal)
 	require.NoError(t, err)
 	specBar, err := swaggerloader.LoadSwagger(specBarPathLocal)
@@ -38,6 +40,8 @@ func TestSchema(t *testing.T) {
 	specBaz, err := swaggerloader.LoadSwagger(specBazPathLocal)
 	require.NoError(t, err)
 	specRemote, err := swaggerloader.LoadSwagger(specRemotePathLocal)
+	require.NoError(t, err)
+	specNestedDiscriminator, err := swaggerloader.LoadSwagger(specNestedDiscriminatorPathLocal)
 	require.NoError(t, err)
 
 	specRemoteBaseURL := "https://gist.githubusercontent.com/magodo/f054bb1c2e7a1c74fd78f65eb42a17bb/raw/8308d9295287bc590be9b431ea0353b626da7ada"
@@ -57,6 +61,7 @@ func TestSchema(t *testing.T) {
 		err         error
 		expect      Schema
 	}{
+		// 0
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -84,6 +89,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 1
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -144,6 +150,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 2
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -171,6 +178,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 3
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -198,6 +206,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 4
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -225,6 +234,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 5
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -253,6 +263,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 6
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -281,6 +292,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 7
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -309,6 +321,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 8
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -336,6 +349,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 9
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -411,32 +425,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
-		//{
-		//	specBaseURL: specRemoteBaseURL,
-		//	specRelPath: "remote.json",
-		//	schemaName:  "def_foo",
-		//	expect: Schema{
-		//		SchemaAddr: SchemaAddr{
-		//			SwaggerRelPath: "remote.json",
-		//			Name:           "def_foo",
-		//		},
-		//		Properties: map[string]*Property{
-		//			"prop_primitive": {
-		//				PropertyState: propStateUncovered,
-		//				schema:        specRemote.Definitions["def_foo"].Properties["prop_primitive"],
-		//				resolvedRefs: map[string]interface{}{
-		//					specRemoteFileURL + "#/definitions/def_foo": struct{}{},
-		//				},
-		//				fromRef: &openapispec.Ref{
-		//					Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_all_of")),
-		//				},
-		//				swaggerURI: specRemoteFileURL,
-		//			},
-		//		},
-		//		swaggerURI: specRemoteFileURL,
-		//		swagger:    specRemote,
-		//	},
-		//},
+		// 10
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -474,6 +463,7 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 11
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
@@ -500,12 +490,14 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 12
 		{
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "non_existent_schema",
 			err:         fmt.Errorf("schema %q is not found in swagger spec %q", "non_existent_schema", specBasePathLocal+"/foo.json"),
 		},
+		// 13
 		// The "def_base_template" uses the same discriminator values as "def_base",
 		// the difference is that the variant schemas are inheriting from different base schemas (via allOf).
 		{
@@ -546,6 +538,109 @@ func TestSchema(t *testing.T) {
 				swagger:    specFoo,
 			},
 		},
+		// 14
+		{
+			specBaseURL: specBasePathLocal,
+			specRelPath: "foo.json",
+			schemaName:  "def_parent",
+			expect: Schema{
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_parent",
+				},
+				Properties: map[string]*Property{
+					"{def_child1}": {
+						PropertyState: propStateUncovered,
+						schema:        specFoo.Definitions["def_child1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPathLocal + "#/definitions/def_child1": struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child1")),
+						},
+						swaggerURI: specFooPathLocal,
+					},
+					"{def_child2}": {
+						PropertyState: propStateUncovered,
+						schema:        specFoo.Definitions["def_child2"],
+						resolvedRefs: map[string]interface{}{
+							specFooPathLocal + "#/definitions/def_child2": struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child2")),
+						},
+						swaggerURI: specFooPathLocal,
+					},
+				},
+				swaggerURI: specFooPathLocal,
+				swagger:    specFoo,
+			},
+		},
+		// 15
+		{
+			specBaseURL: specBasePathLocal,
+			specRelPath: "nested_discriminator.json",
+			schemaName:  "def_a",
+			expect: Schema{
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "nested_discriminator.json",
+					Name:           "def_a",
+				},
+				Properties: map[string]*Property{
+					"{def_b}": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
+						},
+						swaggerURI: specNestedDiscriminatorPathLocal,
+					},
+					"{def_c}": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_c"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
+						},
+						swaggerURI: specNestedDiscriminatorPathLocal,
+					},
+				},
+				swaggerURI: specNestedDiscriminatorPathLocal,
+				swagger:    specNestedDiscriminator,
+			},
+		},
+		//
+		//{
+		//	specBaseURL: specRemoteBaseURL,
+		//	specRelPath: "remote.json",
+		//	schemaName:  "def_foo",
+		//	expect: Schema{
+		//		SchemaAddr: SchemaAddr{
+		//			SwaggerRelPath: "remote.json",
+		//			Name:           "def_foo",
+		//		},
+		//		Properties: map[string]*Property{
+		//			"prop_primitive": {
+		//				PropertyState: propStateUncovered,
+		//				schema:        specRemote.Definitions["def_foo"].Properties["prop_primitive"],
+		//				resolvedRefs: map[string]interface{}{
+		//					specRemoteFileURL + "#/definitions/def_foo": struct{}{},
+		//				},
+		//				fromRef: &openapispec.Ref{
+		//					Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_all_of")),
+		//				},
+		//				swaggerURI: specRemoteFileURL,
+		//			},
+		//		},
+		//		swaggerURI: specRemoteFileURL,
+		//		swagger:    specRemote,
+		//	},
+		//},
 	}
 
 	for _, c := range cases {
@@ -1004,6 +1099,46 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						fromRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template")),
+						},
+						swaggerURI: specFooPath,
+					},
+				},
+				swaggerURI: specFooPath,
+				swagger:    specFoo,
+			},
+		},
+		{
+			name:           `Expand "def_parent" (schema itself is a discriminator)`,
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_parent",
+			expandAddrs: []addr.Property{
+				addr.MustParseProperty("{def_child1}"),
+			},
+			expect: Schema{
+				SchemaAddr: SchemaAddr{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_parent",
+				},
+				Properties: map[string]*Property{
+					"{def_child1}/type": {
+						PropertyState: propStateUncovered,
+						schema:        specFoo.Definitions["def_parent"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_child1": struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_parent")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"{def_child2}": {
+						PropertyState: propStateUncovered,
+						schema:        specFoo.Definitions["def_child2"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_child2": struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2")),
 						},
 						swaggerURI: specFooPath,
 					},

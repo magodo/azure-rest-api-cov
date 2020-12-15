@@ -1,0 +1,43 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "NestedDiscriminator",
+    "version": "2020-12-01"
+  },
+  "host": "management.azure.com",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/{host}/{nested_discriminator}": {}
+  },
+
+  "definitions": {
+    "def_a": {
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+
+    "def_b": {
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_a"
+        }
+      ]
+    },
+
+    "def_c": {
+      "properties": {},
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_b"
+        }
+      ]
+    }
+  }
+}

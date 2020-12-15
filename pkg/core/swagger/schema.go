@@ -2,6 +2,7 @@ package swagger
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-openapi/jsonreference"
 
@@ -47,7 +48,8 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 		return nil, fmt.Errorf("schema %q is not found in swagger spec %q", schemaName, swaggerURI)
 	}
 
-	normalizedSchemaRef := normalizePaths("#/definitions/"+schemaName, swaggerURI)
+	ref := schemaNameToRef(schemaName)
+	normalizedSchemaRef := normalizePaths(ref.String(), swaggerURI)
 
 	swgSchema := &Schema{
 		SchemaAddr: SchemaAddr{
@@ -144,57 +146,76 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		levelNamedProperties[propName] = prop.schema
 	}
 
-	if discriminatorProp := levelNamedProperties[discriminator]; discriminatorProp.Enum != nil {
-		// TODO: optimize to using map
-		for _, variantRaw := range discriminatorProp.Enum {
-			variant, ok := variantRaw.(string)
-			if !ok {
-				panic(fmt.Sprintf("failed to find variant dscSchema who implements discriminator %q in %q", discriminator, propAddr.String()))
-			}
-			var dscSchemaName string
+	// In Azure rest api spec, if there is a "allOf" hierarchy, then all the derived schema should be considered as derived
+	// from the root schema. In other word, we should flatten this hierarchy into one level.
 
-			for name, schema := range s.swagger.Definitions {
-				if v, ok := schema.Extensions[swaggerExtensionMSDiscriminatorValue].(string); ok {
-					allOfRefs := map[string]struct{}{}
-					for _, allOf := range schema.AllOf {
-						if ref := allOf.Ref; ref.String() != "" {
-							normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
-							allOfRefs[normalizedRef.String()] = struct{}{}
-						}
-					}
-					if _, ok := allOfRefs[prop.fromRef.String()]; ok && v == variant {
-						dscSchemaName = name
-						break
-					}
-				}
-			}
-
-			// For some malformed swagger, the 'x-ms-discriminator-value' is not defined for the variant schemas,
-			// then we will fallback to try a schema name match
-			if dscSchemaName == "" {
-				if _, ok := s.swagger.Definitions[variant]; ok {
-					dscSchemaName = variant
-				}
-			}
-
-			if dscSchemaName == "" {
-				return fmt.Errorf("variant schema with discriminator set to %q is not found", variant)
-			}
-
-			// Since we removed the discriminator base schema from the "resolvedRefs" when we creat the Property, we should in turn add the
-			// exact variant schema expanded to the "resolvedRefs".
-			resolvedRefs := map[string]interface{}{}
-			for k, v := range prop.resolvedRefs {
-				resolvedRefs[k] = v
-			}
-			normalizedRef := openapispec.Ref{
-				Ref: jsonreference.MustCreateRef(normalizePaths("#/definitions/"+dscSchemaName, s.swaggerURI)),
-			}
-			resolvedRefs[normalizedRef.String()] = struct{}{}
-
-			p := buildProperty(prop.PropertyState, s.swagger.Definitions[dscSchemaName], resolvedRefs, prop.swaggerURI, &normalizedRef)
-			s.addProperty(propAddr.AsVariant(variant), *p)
+	// {schemaName -> {refString, ...}, ...}
+	allAllOfs := map[string]map[string]struct{}{}
+	for name, schema := range s.swagger.Definitions {
+		if len(schema.AllOf) == 0 {
+			continue
 		}
+		allOfRefs := map[string]struct{}{}
+		allAllOfs[name] = allOfRefs
+		for _, allOf := range schema.AllOf {
+			if ref := allOf.Ref; ref.String() != "" {
+				normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
+				allOfRefs[normalizedRef.String()] = struct{}{}
+			}
+		}
+	}
+
+	baseSchemaRef := prop.fromRef.String()
+	potentialBaseRefSet := map[string]struct{}{baseSchemaRef: {}}
+	var stop bool
+	for !stop {
+		oldPotentialBaseRefSet := potentialBaseRefSet
+		potentialBaseRefSet = make(map[string]struct{}, len(oldPotentialBaseRefSet))
+		for k := range oldPotentialBaseRefSet {
+			potentialBaseRefSet[k] = struct{}{}
+		}
+
+		for baseRef := range oldPotentialBaseRefSet {
+			for name, refs := range allAllOfs {
+				if _, ok := refs[baseRef]; !ok {
+					continue
+				}
+				ref := schemaNameToRef(name)
+				normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
+				potentialBaseRefSet[normalizedRef.String()] = struct{}{}
+			}
+		}
+
+		stop = len(potentialBaseRefSet) == len(oldPotentialBaseRefSet)
+	}
+
+	// Remove the base schema ref from the potential base ref set, then the remaining potential base refs represent
+	// the complete set of variant schemas' ref.
+	delete(potentialBaseRefSet, baseSchemaRef)
+
+	for variantRef := range potentialBaseRefSet {
+		ref := openapispec.MustCreateRef(variantRef)
+		name := schemaNameFromRef(ref)
+
+		descValue := name
+		// If the 'x-ms-discriminator-value' is defined for the variant schemas, then it will take priority.
+		if v, ok := s.swagger.Definitions[name].Extensions[swaggerExtensionMSDiscriminatorValue].(string); ok {
+			descValue = v
+		}
+
+		// Since we removed the discriminator base schema from the "resolvedRefs" when we creat the Property, we should in turn add the
+		// exact variant schema expanded to the "resolvedRefs".
+		resolvedRefs := map[string]interface{}{}
+		for k, v := range prop.resolvedRefs {
+			resolvedRefs[k] = v
+		}
+		normalizedRef := openapispec.Ref{
+			Ref: jsonreference.MustCreateRef(normalizePaths(ref.String(), s.swaggerURI)),
+		}
+		resolvedRefs[normalizedRef.String()] = struct{}{}
+
+		p := buildProperty(prop.PropertyState, s.swagger.Definitions[name], resolvedRefs, prop.swaggerURI, &normalizedRef)
+		s.addProperty(propAddr.AsVariant(descValue), *p)
 	}
 
 	return nil
@@ -367,4 +388,13 @@ func (c *Schema) Grant(grants SchemaGrants) error {
 	}
 
 	return nil
+}
+
+func schemaNameFromRef(ref openapispec.Ref) string {
+	fragments := strings.Split(ref.GetURL().Fragment, "/")
+	return fragments[len(fragments)-1]
+}
+
+func schemaNameToRef(schemaName string) openapispec.Ref {
+	return openapispec.MustCreateRef(fmt.Sprintf("#/definitions/%s", schemaName))
 }
