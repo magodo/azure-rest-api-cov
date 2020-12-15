@@ -682,7 +682,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI: specFooPath,
 					},
-					"prop_array_of_object.prop_nested": {
+					"prop_array_of_object/prop_nested": {
 						PropertyState: propStateUncovered,
 						schema:        specFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested"],
 						resolvedRefs: map[string]interface{}{
@@ -693,7 +693,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI: specFooPath,
 					},
-					"prop_object.prop_nested": {
+					"prop_object/prop_nested": {
 						PropertyState: propStateUncovered,
 						schema:        specFoo.Definitions["def_regular"].Properties["prop_object"].Properties["prop_nested"],
 						resolvedRefs: map[string]interface{}{
@@ -722,7 +722,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					Name:           "def_prop_in_file_ref",
 				},
 				Properties: map[string]*Property{
-					"prop.foo": {
+					"prop/foo": {
 						PropertyState: propStateUncovered,
 						schema:        specFoo.Definitions["def_foo"].Properties["foo"],
 						resolvedRefs: map[string]interface{}{
@@ -781,7 +781,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					Name:           "def_prop_cross_file_ref",
 				},
 				Properties: map[string]*Property{
-					"prop.bar": {
+					"prop/bar": {
 						PropertyState: propStateUncovered,
 						schema:        specBar.Definitions["def_bar"].Properties["bar"],
 						resolvedRefs: map[string]interface{}{
@@ -900,7 +900,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					Name:           "def_base",
 				},
 				Properties: map[string]*Property{
-					"{def_variant1}.type": {
+					"{def_variant1}/type": {
 						PropertyState: propStateUncovered,
 						schema:        specFoo.Definitions["def_base"].Properties["type"],
 						resolvedRefs: map[string]interface{}{
@@ -1141,7 +1141,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 			schemaName:     "def_cov",
 			steps: []step{
 				{
-					swgPropAddr: addr.MustParseProperty("p2.p2_1"),
+					swgPropAddr: addr.MustParseProperty("p2/p2_1"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -1159,7 +1159,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								},
 								swaggerURI: specFooPath,
 							},
-							"p2.p2_1": {
+							"p2/p2_1": {
 								PropertyState: propStateCovered,
 								schema:        specFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_1"],
 								resolvedRefs: map[string]interface{}{
@@ -1170,7 +1170,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								},
 								swaggerURI: specFooPath,
 							},
-							"p2.p2_2": {
+							"p2/p2_2": {
 								PropertyState: propStateUncovered,
 								schema:        specFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
 								resolvedRefs: map[string]interface{}{
@@ -1205,7 +1205,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								},
 								swaggerURI: specFooPath,
 							},
-							"p2.p2_1": {
+							"p2/p2_1": {
 								PropertyState: propStateCovered,
 								schema:        specFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_1"],
 								resolvedRefs: map[string]interface{}{
@@ -1216,7 +1216,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								},
 								swaggerURI: specFooPath,
 							},
-							"p2.p2_2": {
+							"p2/p2_2": {
 								PropertyState: propStateCovered,
 								schema:        specFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
 								resolvedRefs: map[string]interface{}{
@@ -1276,7 +1276,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 					},
 				},
 				{
-					swgPropAddr: addr.MustParseProperty("p2.p2_1"),
+					swgPropAddr: addr.MustParseProperty("p2/p2_1"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
@@ -1294,7 +1294,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								},
 								swaggerURI: specFooPath,
 							},
-							"p2.p2_1": {
+							"p2/p2_1": {
 								PropertyState: propStateCovered,
 								schema:        specFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_1"],
 								resolvedRefs: map[string]interface{}{
@@ -1305,7 +1305,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								},
 								swaggerURI: specFooPath,
 							},
-							"p2.p2_2": {
+							"p2/p2_2": {
 								PropertyState: propStateCovered,
 								schema:        specFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
 								resolvedRefs: map[string]interface{}{
@@ -1330,14 +1330,14 @@ func TestSchema_AddCovProperty(t *testing.T) {
 			schemaName:     "def_base",
 			steps: []step{
 				{
-					swgPropAddr: addr.MustParseProperty("{def_variant1}.type"),
+					swgPropAddr: addr.MustParseProperty("{def_variant1}/type"),
 					expect: Schema{
 						SchemaAddr: SchemaAddr{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_base",
 						},
 						Properties: map[string]*Property{
-							"{def_variant1}.type": {
+							"{def_variant1}/type": {
 								PropertyState: propStateCovered,
 								schema:        specFoo.Definitions["def_base"].Properties["type"],
 								resolvedRefs: map[string]interface{}{
@@ -1463,7 +1463,7 @@ func TestSchema_Marshal(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
 			process: func(schema *Schema) {
-				swgPropAddr := addr.MustParseProperty("p2.p2_1")
+				swgPropAddr := addr.MustParseProperty("p2/p2_1")
 				require.NoError(t, schema.AddCovProperty(swgPropAddr))
 			},
 			expect: fmt.Sprintf(`{
@@ -1473,10 +1473,10 @@ func TestSchema_Marshal(t *testing.T) {
 		"p1": {
 		  "state": "Uncovered"
 		},
-		"p2.p2_1": {
+		"p2/p2_1": {
 		  "state": "Covered"
 		},
-		"p2.p2_2": {
+		"p2/p2_2": {
 		  "state": "Uncovered"
 		}
     }
@@ -1509,10 +1509,10 @@ func TestSchema_Unmarshal(t *testing.T) {
 		"p1": {
 		  "state": "Uncovered"
 		},
-		"p2.p2_1": {
+		"p2/p2_1": {
 		  "state": "Covered"
 		},
-		"p2.p2_2": {
+		"p2/p2_2": {
 		  "state": "Uncovered"
 		}
     }
@@ -1526,10 +1526,10 @@ func TestSchema_Unmarshal(t *testing.T) {
 					"p1": &Property{
 						PropertyState: propStateUncovered,
 					},
-					"p2.p2_1": &Property{
+					"p2/p2_1": &Property{
 						PropertyState: propStateCovered,
 					},
-					"p2.p2_2": &Property{
+					"p2/p2_2": &Property{
 						PropertyState: propStateUncovered,
 					},
 				},
@@ -1552,16 +1552,16 @@ func TestSchema_CalcCoverage(t *testing.T) {
 		{
 			schema: Schema{
 				Properties: Properties{
-					"prop1.covered": &Property{
+					"prop1/covered": &Property{
 						PropertyState: NewPropertyState(PropStateCovered, ""),
 					},
-					"prop1.not_covered": {
+					"prop1/not_covered": {
 						PropertyState: NewPropertyState(PropStateUncovered, ""),
 					},
-					"prop2.covered": {
+					"prop2/covered": {
 						PropertyState: NewPropertyState(PropStateCovered, ""),
 					},
-					"prop2.granted": {
+					"prop2/granted": {
 						PropertyState: NewPropertyState(PropStateGranted, "granted"),
 					},
 					"prop_granted": {
@@ -1628,10 +1628,10 @@ func TestSchema_Merge(t *testing.T) {
 						Name:           "def_base",
 					},
 					Properties: map[string]*Property{
-						"{def_variant1}.type": {
+						"{def_variant1}/type": {
 							PropertyState: propStateCovered,
 						},
-						"{def_variant2}.type": {
+						"{def_variant2}/type": {
 							PropertyState: propStateUncovered,
 						},
 					},
@@ -1642,10 +1642,10 @@ func TestSchema_Merge(t *testing.T) {
 						Name:           "def_base",
 					},
 					Properties: map[string]*Property{
-						"{def_variant1}.type": {
+						"{def_variant1}/type": {
 							PropertyState: propStateUncovered,
 						},
-						"{def_variant2}.type": {
+						"{def_variant2}/type": {
 							PropertyState: propStateCovered,
 						},
 					},
@@ -1657,10 +1657,10 @@ func TestSchema_Merge(t *testing.T) {
 					Name:           "def_base",
 				},
 				Properties: map[string]*Property{
-					"{def_variant1}.type": {
+					"{def_variant1}/type": {
 						PropertyState: propStateCovered,
 					},
-					"{def_variant2}.type": {
+					"{def_variant2}/type": {
 						PropertyState: propStateCovered,
 					},
 				},

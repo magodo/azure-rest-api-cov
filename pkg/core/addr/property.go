@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const propertyAddrSep = "."
+const propertyAddrSep = "/"
 const propertyDiscriminatorStartMark = "{"
 const propertyDiscriminatorEndMark = "}"
 

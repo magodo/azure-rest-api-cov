@@ -26,10 +26,27 @@ func TestToSchema(t *testing.T) {
 		{
 			schemaInput: filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
 			expectProperties: `{
-	"{def_variant1}.type": {
+	"{def_variant1}/type": {
 		"state": "Covered"
 	},
 	"{def_variant2}":{
+		"state":"Uncovered"
+	}
+}`,
+		},
+		{
+			schemaInput: filepath.Join(schemaBasePath, "def_regular", "def_regular.json"),
+			expectProperties: `{
+	"prop_primitive": {
+		"state": "Covered"
+	},
+	"prop_array_of_primitive":{
+		"state":"Uncovered"
+	},
+	"prop_array_of_object":{
+		"state":"Uncovered"
+	},
+	"prop_object":{
 		"state":"Uncovered"
 	}
 }`,

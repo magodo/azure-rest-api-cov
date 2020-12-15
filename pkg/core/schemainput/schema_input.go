@@ -19,9 +19,12 @@ func (schemaInput SchemaInput) ToSchema(swaggerRepoSpecBasePath string, swaggerR
 		return nil, err
 	}
 
-	rootProp := addr.MustParseProperty("").AsVariant(schemaInput.Variant)
-	for _, prop := range schemaInput.Properties {
-		if err := schema.AddCovProperty(rootProp.Append(addr.MustParseProperty(prop))); err != nil {
+	for _, propStr := range schemaInput.Properties {
+		prop := addr.MustParseProperty(propStr)
+		if schemaInput.Variant != "" {
+			prop = addr.MustParseProperty("").AsVariant(schemaInput.Variant).Append(prop)
+		}
+		if err := schema.AddCovProperty(prop); err != nil {
 			return nil, err
 		}
 	}

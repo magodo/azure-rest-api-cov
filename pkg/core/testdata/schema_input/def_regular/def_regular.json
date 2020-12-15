@@ -1,0 +1,8 @@
+{
+  "api_version": "2020-12-01",
+  "api_path": "/{host}/{foo}",
+  "name": "def_regular",
+  "properties": [
+    "prop_primitive"
+  ]
+}

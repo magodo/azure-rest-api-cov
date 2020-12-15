@@ -20,19 +20,19 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 		{
 			propertiesToAdd: []swgproperty{
 				{
-					addr: addr.MustParseProperty("prop1.not_covered"),
+					addr: addr.MustParseProperty("prop1/not_covered"),
 					prop: Property{
 						PropertyState: NewPropertyState(PropStateUncovered, ""),
 					},
 				},
 				{
-					addr: addr.MustParseProperty("prop1.covered"),
+					addr: addr.MustParseProperty("prop1/covered"),
 					prop: Property{
 						PropertyState: NewPropertyState(PropStateCovered, ""),
 					},
 				},
 				{
-					addr: addr.MustParseProperty("prop2.covered"),
+					addr: addr.MustParseProperty("prop2/covered"),
 					prop: Property{
 						PropertyState: NewPropertyState(PropStateCovered, ""),
 					},
@@ -159,7 +159,7 @@ func TestNewPropertyCoverageStore_FindCoverage(t *testing.T) {
 					},
 				},
 				{
-					propAddr: "prop1.nest.covered",
+					propAddr: "prop1/nest/covered",
 					expect: result{
 						total:   1,
 						covered: 1,
@@ -167,7 +167,7 @@ func TestNewPropertyCoverageStore_FindCoverage(t *testing.T) {
 					},
 				},
 				{
-					propAddr: "prop1.nest.uncovered",
+					propAddr: "prop1/nest/uncovered",
 					expect: result{
 						total:   1,
 						covered: 0,
@@ -175,7 +175,7 @@ func TestNewPropertyCoverageStore_FindCoverage(t *testing.T) {
 					},
 				},
 				{
-					propAddr: "prop1.nest",
+					propAddr: "prop1/nest",
 					expect: result{
 						total:   2,
 						covered: 1,

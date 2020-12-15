@@ -68,6 +68,7 @@ func main() {
 		if !ok {
 			log.Printf("[WARNING] Can't locate swagger spec by (%q, %q), this might because this tuple ends up with multiple swagger specs.",
 				schemaInput.SpecLocator.ApiVersion, schemaInput.SpecLocator.ApiPath)
+			continue
 		}
 
 		schema, err := schemaInput.ToSchema(repo.SpecRootDir, swaggerRelPath)

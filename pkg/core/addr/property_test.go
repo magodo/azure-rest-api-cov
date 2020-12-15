@@ -21,15 +21,15 @@ func TestParseProperty(t *testing.T) {
 			expect: Property{{name: "p1"}},
 		},
 		{
-			input:  "p1.p2",
+			input:  "p1/p2",
 			expect: Property{{name: "p1"}, {name: "p2"}},
 		},
 		{
-			input:  "p1.p2{v1}",
+			input:  "p1/p2{v1}",
 			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
 		},
 		{
-			input: "p1.p2}",
+			input: "p1/p2}",
 			error: true,
 		},
 	}
@@ -179,11 +179,11 @@ func TestProperty_String(t *testing.T) {
 		},
 		{
 			input:  Property{{name: "p1"}, {name: "p2"}},
-			expect: "p1.p2",
+			expect: "p1/p2",
 		},
 		{
 			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
-			expect: "p1.p2{v1}",
+			expect: "p1/p2{v1}",
 		},
 	}
 	for idx, c := range cases {
@@ -202,11 +202,11 @@ func TestProperty_MarshalJSON(t *testing.T) {
 		},
 		{
 			addr:   Property{{name: "p1"}, {name: "p2"}},
-			expect: `"p1.p2"`,
+			expect: `"p1/p2"`,
 		},
 		{
 			addr:   Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
-			expect: `"p1.p2{v1}"`,
+			expect: `"p1/p2{v1}"`,
 		},
 	}
 
@@ -231,11 +231,11 @@ func TestProperty_UnmarshalJSON(t *testing.T) {
 			expect: nil,
 		},
 		{
-			input:  `"p1.p2"`,
+			input:  `"p1/p2"`,
 			expect: Property{{name: "p1"}, {name: "p2"}},
 		},
 		{
-			input:  `"p1.p2{v1}"`,
+			input:  `"p1/p2{v1}"`,
 			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
 		},
 	}
