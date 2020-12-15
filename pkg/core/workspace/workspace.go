@@ -10,8 +10,17 @@ import (
 
 const azureRepoIndexFilename = "index.json"
 
-func Init(dir string, force bool) (*AzureRepo, *AzureRepoIndex, error) {
-	if force {
+type InitOption struct {
+	// Force inits workspace from scratch
+	Force bool
+
+	// RepoHash specifies the commit hash of azure rest api spec repo to checkout.
+	// If this is empty string, then will not modify the repo head after clone.
+	RepoHash string
+}
+
+func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
+	if opt.Force {
 		if err := os.RemoveAll(dir); err != nil {
 			return nil, nil, fmt.Errorf("cleaning up the workspace %q: %w", dir, err)
 		}
@@ -30,37 +39,44 @@ func Init(dir string, force bool) (*AzureRepo, *AzureRepoIndex, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Println("Pull origin/main for Azure Repo...")
-	if err := repo.Pull(); err != nil {
-		return nil, nil, err
-	}
-	log.Println("Azure Repo ready")
 
-	// Try to load index file from fs
-	indexPath := filepath.Join(dir, azureRepoIndexFilename)
-	index, err := ImportAzureRepoIndex(indexPath)
-	if err == nil {
-		log.Println("Refresh Azure Repo Index")
-		// For imported index, we should refresh it to ensure it is up-to-date
-		if err := index.Refresh(); err != nil {
-			return nil, nil, err
-		}
-	} else {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, nil, err
-		}
-
-		// Index not exported yet, need to generate the index and export it then.
-		log.Println("Generating Azure Repo Index...")
-		index, err = NewAzureRepoIndex(repo.SpecRootDir)
+	var repoChanged bool
+	if opt.RepoHash != "" {
+		log.Printf("Checkout %s for Azure Repo", opt.RepoHash)
+		var err error
+		repoChanged, err = repo.CheckoutHash(opt.RepoHash)
 		if err != nil {
 			return nil, nil, err
 		}
-		log.Println("Azure Repo Index generated")
-		if err := index.Export(indexPath); err != nil {
-			return nil, nil, err
-		}
-		log.Println("Azure Repo Index exported")
 	}
+	log.Println("Azure Repo ready")
+
+	indexPath := filepath.Join(dir, azureRepoIndexFilename)
+	// If repo HEAD changes, we need to regenerate repo index.
+	if repoChanged {
+		log.Println("Remove Azure Repo Index (if any) since repo HEAD changes")
+		os.Remove(indexPath)
+	}
+
+	index, err := ImportAzureRepoIndex(indexPath)
+	if err == nil {
+		return repo, index, nil
+	}
+
+	if !errors.Is(err, os.ErrNotExist) {
+		return nil, nil, err
+	}
+
+	// Index not exported yet, need to generate the index and export it then.
+	log.Println("Generating Azure Repo Index...")
+	index, err = NewAzureRepoIndex(repo.SpecRootDir)
+	if err != nil {
+		return nil, nil, err
+	}
+	log.Println("Azure Repo Index generated")
+	if err := index.Export(indexPath); err != nil {
+		return nil, nil, err
+	}
+	log.Println("Azure Repo Index exported")
 	return repo, index, nil
 }

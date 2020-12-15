@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,6 +17,9 @@ import (
 )
 
 const apiSep = ":"
+
+const schemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
+const schemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]sMicrosoft.\w+%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`
 
 type AzureRepoIndex struct {
 	SpecRootDir       string                                `json:"spec_root_dir"`
@@ -50,8 +54,8 @@ func NewAzureRepoIndex(specRootDir string) (*AzureRepoIndex, error) {
 		SpecRootDir:       specRootDir,
 		ResourceProviders: map[ResourceProvider]APIs{},
 	}
-	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(`^(\w+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`, regexp.QuoteMeta(string(os.PathSeparator))))
-	schemaPattern := regexp.MustCompile(fmt.Sprintf(`^(\w+)%[1]sresource-manager%[1]sMicrosoft.\w+%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`, regexp.QuoteMeta(string(os.PathSeparator))))
+	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(schemaFolderPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
+	schemaPattern := regexp.MustCompile(fmt.Sprintf(schemaPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
 	if err := filepath.Walk(specRootDir,
 		func(p string, info os.FileInfo, err error) error {
 			relPath := strings.TrimPrefix(strings.TrimPrefix(p, specRootDir), string(os.PathSeparator))
@@ -156,6 +160,7 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 	}
 	// For those ambiguous locators, we have to avoid process them.
 	for loc := range ambiguousLocators {
+		log.Printf("[WARNING] removing ambiguous spec locator: (%q, %q)", loc.ApiPath, loc.ApiVersion)
 		delete(index.specLookupView, loc)
 	}
 	return
@@ -203,11 +208,17 @@ func (index *AzureRepoIndex) recordSpec(relPath string, rpName string, api API) 
 
 	schemaNameSet := map[string]struct{}{}
 	for _, path := range spec.Paths.Paths {
-		// We only consider resource contains GET, PUT and DELETE methods.
-		if path.Put == nil || path.Delete == nil || path.Get == nil {
-			continue
+		var params []openapispec.Parameter
+		if path.Put != nil {
+			params = append(params, path.Put.Parameters...)
 		}
-		for _, param := range path.Put.Parameters {
+		if path.Post != nil {
+			params = append(params, path.Post.Parameters...)
+		}
+		if path.Patch != nil {
+			params = append(params, path.Patch.Parameters...)
+		}
+		for _, param := range params {
 			// The param is a ref, we simply deref it for once.
 			if param.Ref.String() != "" {
 				refParam, err := openapispec.ResolveParameterWithBase(spec, param.Ref, &openapispec.ExpandOptions{RelativeBase: specAbsPath})
@@ -249,74 +260,74 @@ func (index *AzureRepoIndex) recordSpec(relPath string, rpName string, api API) 
 	return nil
 }
 
-func (index *AzureRepoIndex) Refresh() error {
-	newIndex := AzureRepoIndex{
-		SpecRootDir:       index.SpecRootDir,
-		ResourceProviders: ResourceProviders{},
-	}
-	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(`^(\w+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`, regexp.QuoteMeta(string(os.PathSeparator))))
-	schemaPattern := regexp.MustCompile(fmt.Sprintf(`^(\w+)%[1]sresource-manager%[1]sMicrosoft.\w+%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`, regexp.QuoteMeta(string(os.PathSeparator))))
-	if err := filepath.Walk(index.SpecRootDir,
-		func(p string, info os.FileInfo, err error) error {
-			relPath := strings.TrimPrefix(strings.TrimPrefix(p, index.SpecRootDir), string(os.PathSeparator))
-			if err != nil {
-				return err
-			}
-			if info == nil {
-				return nil
-			}
-
-			// Skip directories not match the schema folder patterns
-			if info.IsDir() {
-				if !schemaFolderPattern.MatchString(relPath) {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-
-			// Skip files not match the schema file patterns
-			match := schemaPattern.FindStringSubmatch(relPath)
-			if len(match) == 0 {
-				return nil
-			}
-
-			rpName, apiState, apiVersion := match[1], match[2], match[3]
-			rp := ResourceProvider{Name: rpName}
-			api := API{
-				Version:   apiVersion,
-				IsPreview: apiState == "preview",
-			}
-
-			if _, ok := index.SpecSetView()[relPath]; ok {
-				apis, ok := newIndex.ResourceProviders[rp]
-				if !ok {
-					apis = APIs{}
-					newIndex.ResourceProviders[rp] = apis
-				}
-				specs, ok := apis[api]
-				if !ok {
-					specs = APISpecs{}
-					apis[api] = specs
-				}
-				specs[relPath] = index.ResourceProviders[rp][api][relPath]
-				return nil
-			}
-
-			if err := newIndex.recordSpec(relPath, rpName, api); err != nil {
-				return err
-			}
-			return nil
-		}); err != nil {
-		return err
-	}
-
-	// rebuild views
-	newIndex.buildSpecSetView()
-	newIndex.buildSpecLookupView()
-
-	*index = newIndex
-	return nil
-}
+//func (index *AzureRepoIndex) Refresh() error {
+//	newIndex := AzureRepoIndex{
+//		SpecRootDir:       index.SpecRootDir,
+//		ResourceProviders: ResourceProviders{},
+//	}
+//	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(schemaFolderPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
+//	schemaPattern := regexp.MustCompile(fmt.Sprintf(schemaPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
+//	if err := filepath.Walk(index.SpecRootDir,
+//		func(p string, info os.FileInfo, err error) error {
+//			relPath := strings.TrimPrefix(strings.TrimPrefix(p, index.SpecRootDir), string(os.PathSeparator))
+//			if err != nil {
+//				return err
+//			}
+//			if info == nil {
+//				return nil
+//			}
+//
+//			// Skip directories not match the schema folder patterns
+//			if info.IsDir() {
+//				if !schemaFolderPattern.MatchString(relPath) {
+//					return filepath.SkipDir
+//				}
+//				return nil
+//			}
+//
+//			// Skip files not match the schema file patterns
+//			match := schemaPattern.FindStringSubmatch(relPath)
+//			if len(match) == 0 {
+//				return nil
+//			}
+//
+//			rpName, apiState, apiVersion := match[1], match[2], match[3]
+//			rp := ResourceProvider{Name: rpName}
+//			api := API{
+//				Version:   apiVersion,
+//				IsPreview: apiState == "preview",
+//			}
+//
+//			if _, ok := index.SpecSetView()[relPath]; ok {
+//				apis, ok := newIndex.ResourceProviders[rp]
+//				if !ok {
+//					apis = APIs{}
+//					newIndex.ResourceProviders[rp] = apis
+//				}
+//				specs, ok := apis[api]
+//				if !ok {
+//					specs = APISpecs{}
+//					apis[api] = specs
+//				}
+//				specs[relPath] = index.ResourceProviders[rp][api][relPath]
+//				return nil
+//			}
+//
+//			if err := newIndex.recordSpec(relPath, rpName, api); err != nil {
+//				return err
+//			}
+//			return nil
+//		}); err != nil {
+//		return err
+//	}
+//
+//	// rebuild views
+//	newIndex.buildSpecSetView()
+//	newIndex.buildSpecLookupView()
+//
+//	*index = newIndex
+//	return nil
+//}
 
 func (rps ResourceProviders) MarshalJSON() ([]byte, error) {
 	m := map[string]interface{}{}

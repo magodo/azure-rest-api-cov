@@ -12,7 +12,7 @@ import (
 
 func TestNewAzureRepo(t *testing.T) {
 	if os.Getenv(envTestAll) == "" {
-		t.Skipf(`Skipping %s since "COV_TEST_ALL" environment variable is not set...`, t.Name())
+		t.Skipf(`Skipping %s since "%s" environment variable is not set...`, t.Name(), envTestAll)
 	}
 	tmpDir := t.TempDir()
 	t.Log("start to new azure repo (1)")

@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/schemainput"
 
@@ -27,62 +26,59 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	workspaceDir := flag.String("workspace", filepath.Join(cacheDir, "azure-rest-api-cov"),
+	workspaceDir := flag.String("w", filepath.Join(cacheDir, "azure-rest-api-cov"),
 		"The path to the workspace for caching the azure-rest-api repository and other stuffs")
-	inputPath := flag.String("schema-cov-dir", "",
-		"The path to the directory contains schema schema input files")
+	inputPath := flag.String("i", "",
+		"The path to the schema input file, which is expected to hold a JSON array of input schemas")
+	force := flag.Bool("f", false, "whether to force create the workspace")
+	repoHash := flag.String("c", "", "The azure-rest-api-spec repo commit hash to checkout")
 
 	flag.Parse()
 
-	if *workspaceDir == "" ||
-		*inputPath == "" {
+	if *inputPath == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	// Initialize the workspace, which will return the repo and repo index.
-	repo, index, err := workspace.Init(*workspaceDir, false)
+	repo, index, err := workspace.Init(*workspaceDir, workspace.InitOption{
+		Force:    *force,
+		RepoHash: *repoHash,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Println("Walk the schema schema input files...")
-	if err := filepath.Walk(*inputPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() ||
-			!strings.HasSuffix(info.Name(), ".json") {
-			return nil
-		}
+	b, err := ioutil.ReadFile(*inputPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var schemaInputs []schemainput.SchemaInput
+	if err := json.Unmarshal(b, &schemaInputs); err != nil {
+		log.Fatal(err)
+	}
 
-		b, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
+	for _, schemaInput := range schemaInputs {
+		name := schemaInput.Name
+		if schemaInput.Variant != "" {
+			name = fmt.Sprintf("%s[%s]", name, schemaInput.Variant)
 		}
-		var schemaInput schemainput.SchemaInput
-		if err := json.Unmarshal(b, &schemaInput); err != nil {
-			return err
-		}
-
+		log.Printf("Processing: %s(%s): %s", schemaInput.ApiPath, schemaInput.ApiVersion, name)
 		swaggerRelPath, ok := index.SpecLookupView()[schemaInput.SpecLocator]
 		if !ok {
 			log.Printf("[WARNING] Can't locate swagger spec by (%q, %q), this might because this tuple ends up with multiple swagger specs.",
 				schemaInput.SpecLocator.ApiVersion, schemaInput.SpecLocator.ApiPath)
 		}
+
 		schema, err := schemaInput.ToSchema(repo.SpecRootDir, swaggerRelPath)
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 		cov, err := schema.CalcCoverage()
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 		covered, total := cov.SchemaCoverage()
 		fmt.Printf("%s: (%d/%d)\n", schema.SchemaAddr.String(), covered, total)
-		return nil
-	}); err != nil {
-		fmt.Fprint(os.Stderr, err)
-		os.Exit(1)
 	}
 }
