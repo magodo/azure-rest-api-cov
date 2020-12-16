@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const propertyAddrSep = "/"
+const PropertyAddrSep = "/"
 const propertyDiscriminatorStartMark = "{"
 const propertyDiscriminatorEndMark = "}"
 
@@ -26,8 +26,20 @@ func ParseProperty(addr string) (Property, error) {
 	if strings.Trim(addr, " ") == "" {
 		return nil, nil
 	}
+	potentialSplits := strings.Split(addr, PropertyAddrSep)
+	var splits []string
+	var crossProp string
+	for i, prop := range potentialSplits {
+		p := regexp.MustCompile(`(\\+)$`)
+		if m := p.FindStringSubmatch(prop); i != len(potentialSplits)-1 && len(m) == 2 && len(m[1])%2 == 1 {
+			crossProp += prop + `/`
+			continue
+		}
+		splits = append(splits, crossProp+prop)
+		crossProp = ""
+	}
 	var props Property
-	for _, prop := range strings.Split(addr, propertyAddrSep) {
+	for _, prop := range splits {
 		segment, err := ParsePropertySegment(prop)
 		if err != nil {
 			return Property{}, err
@@ -128,7 +140,7 @@ func (addr Property) String() string {
 		props = append(props, prop.String())
 	}
 
-	return strings.Join(props, propertyAddrSep)
+	return strings.Join(props, PropertyAddrSep)
 }
 
 func (addr Property) MarshalJSON() ([]byte, error) {
@@ -153,19 +165,61 @@ type PropertySegment struct {
 }
 
 func ParsePropertySegment(addr string) (PropertySegment, error) {
-	discriminatorPattern := regexp.MustCompile(fmt.Sprintf(`^(.*)\%s(.+)\%s$`, propertyDiscriminatorStartMark, propertyDiscriminatorEndMark))
-	if !strings.HasSuffix(addr, propertyDiscriminatorEndMark) {
-		return PropertySegment{name: addr}, nil
+
+	findDiscriminatorMarkIndex := func(mark string) (int, error) {
+		p1 := regexp.MustCompile(fmt.Sprintf(`(([^%[1]s\\]*)|(\\+))(%[1]s)`, mark))
+		matches := p1.FindAllStringSubmatchIndex(addr, -1)
+		discStartIdx := -1
+		for _, m := range matches {
+			idx := -1
+			if m[6] != -1 {
+				backSlashes := addr[m[6]:m[7]]
+				if len(backSlashes)%2 == 0 {
+					idx = m[8]
+				}
+			} else {
+				idx = m[8]
+			}
+			if idx != -1 {
+				if discStartIdx != -1 {
+					return 0, fmt.Errorf(`invalid property notation: multiple unescaped %ss: %q`,
+						addr, mark)
+				}
+				discStartIdx = idx
+			}
+		}
+		return discStartIdx, nil
 	}
 
-	m := discriminatorPattern.FindStringSubmatch(addr)
-	if len(m) != 3 {
-		return PropertySegment{}, fmt.Errorf(`invalid discriminator property notation: %q (expected format: "prop%svariant%s")`,
-			addr, propertyDiscriminatorStartMark, propertyDiscriminatorEndMark)
+	discStartIdx, err := findDiscriminatorMarkIndex(propertyDiscriminatorStartMark)
+	if err != nil {
+		return PropertySegment{}, err
 	}
+	discEndIdx, err := findDiscriminatorMarkIndex(propertyDiscriminatorEndMark)
+	if err != nil {
+		return PropertySegment{}, err
+	}
+	if discStartIdx == -1 && discEndIdx == -1 {
+		return PropertySegment{name: unEscapeProperty(addr)}, nil
+	}
+
+	if discStartIdx == -1 {
+		return PropertySegment{}, fmt.Errorf(`invalid property notation: no paring discriminator start mark: %q`, addr)
+	}
+	if discEndIdx == -1 {
+		return PropertySegment{}, fmt.Errorf(`invalid property notation: no paring discriminator end mark: %q`, addr)
+	}
+	if discEndIdx != len(addr)-1 {
+		return PropertySegment{}, fmt.Errorf(`invalid property notation: content after discriminator end mark: %q`, addr)
+	}
+	if discStartIdx >= discEndIdx {
+		return PropertySegment{}, fmt.Errorf(`invalid property notation: discriminator start mark (%d) after discriminator end mark (%d): %q`,
+			discStartIdx, discEndIdx, addr)
+	}
+
 	return PropertySegment{
-		name:               m[1],
-		discriminatorValue: m[2],
+		name:               unEscapeProperty(unEscapeProperty(addr[:discStartIdx])),
+		discriminatorValue: unEscapeProperty(unEscapeProperty(addr[discStartIdx+1 : discEndIdx])),
 	}, nil
 }
 
@@ -179,9 +233,32 @@ func MustParsePropertySegment(addr string) PropertySegment {
 }
 
 func (prop PropertySegment) String() string {
-	v := prop.name
+	v := EscapeProperty(prop.name)
 	if prop.discriminatorValue != "" {
-		v += propertyDiscriminatorStartMark + prop.discriminatorValue + propertyDiscriminatorEndMark
+		v += EncloseVariant(EscapeProperty(prop.discriminatorValue))
 	}
+	return v
+}
+
+func EncloseVariant(v string) string {
+	return propertyDiscriminatorStartMark + v + propertyDiscriminatorEndMark
+}
+
+func EscapeProperty(v string) string {
+	v = strings.ReplaceAll(v, `\`, `\\`)
+	v = strings.ReplaceAll(v, propertyDiscriminatorStartMark, `\`+propertyDiscriminatorStartMark)
+	v = strings.ReplaceAll(v, propertyDiscriminatorEndMark, `\`+propertyDiscriminatorEndMark)
+	v = strings.ReplaceAll(v, PropertyAddrSep, `\`+PropertyAddrSep)
+	return v
+}
+
+func unEscapeProperty(v string) string {
+	p1 := regexp.MustCompile(`([^\\]|^)(\\)` + propertyDiscriminatorStartMark)
+	p2 := regexp.MustCompile(`([^\\]|^)(\\)` + propertyDiscriminatorEndMark)
+	p3 := regexp.MustCompile(`([^\\]|^)(\\)` + PropertyAddrSep)
+	v = p1.ReplaceAllString(v, "$1"+propertyDiscriminatorStartMark)
+	v = p2.ReplaceAllString(v, "$1"+propertyDiscriminatorEndMark)
+	v = p3.ReplaceAllString(v, "$1"+PropertyAddrSep)
+	v = strings.ReplaceAll(v, `\\`, `\`)
 	return v
 }

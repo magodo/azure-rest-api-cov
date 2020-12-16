@@ -12,22 +12,72 @@ func TestParseProperty(t *testing.T) {
 		expect Property
 		error  bool
 	}{
+		// 0
 		{
 			input:  "",
 			expect: nil,
 		},
+		// 1
 		{
 			input:  "p1",
 			expect: Property{{name: "p1"}},
 		},
+		// 2
 		{
 			input:  "p1/p2",
 			expect: Property{{name: "p1"}, {name: "p2"}},
 		},
+		// 3
 		{
 			input:  "p1/p2{v1}",
 			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
 		},
+		// 4
+		{
+			input:  `p1\//p2`,
+			expect: Property{{name: "p1/"}, {name: "p2"}},
+		},
+		// 5
+		{
+			input:  `p1\\//p2`,
+			expect: Property{{name: `p1\`}, {}, {name: "p2"}},
+		},
+		// 6
+		{
+			input:  `p1\\/p2`,
+			expect: Property{{name: `p1\`}, {name: "p2"}},
+		},
+		// 7
+		{
+			input:  `p1\{/p2`,
+			expect: Property{{name: `p1{`}, {name: "p2"}},
+		},
+		// 8
+		{
+			input:  `p1\}/p2`,
+			expect: Property{{name: `p1}`}, {name: "p2"}},
+		},
+		// 9
+		{
+			input:  `p1/p2{v1\}}`,
+			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1}`}},
+		},
+		// 10
+		{
+			input:  `p1/p2{v1\{}`,
+			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1{`}},
+		},
+		// 11
+		{
+			input:  `p1/p2{v1\/}`,
+			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1/`}},
+		},
+		// 12
+		{
+			input:  `p1/p2{v1\\}`,
+			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1\`}},
+		},
+		// 13
 		{
 			input: "p1/p2}",
 			error: true,
@@ -169,21 +219,70 @@ func TestProperty_String(t *testing.T) {
 		input  Property
 		expect string
 	}{
+		// 0
 		{
 			input:  Property{},
 			expect: "",
 		},
+		// 1
 		{
 			input:  Property{{name: "p1"}},
 			expect: "p1",
 		},
+		// 2
 		{
 			input:  Property{{name: "p1"}, {name: "p2"}},
 			expect: "p1/p2",
 		},
+		// 3
 		{
 			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
 			expect: "p1/p2{v1}",
+		},
+		// 4
+		{
+			input:  Property{{name: "p1/"}, {name: "p2"}},
+			expect: `p1\//p2`,
+		},
+		// 5
+		{
+			input:  Property{{name: `p1\`}, {}, {name: "p2"}},
+			expect: `p1\\//p2`,
+		},
+		// 6
+		{
+			input:  Property{{name: `p1\`}, {name: "p2"}},
+			expect: `p1\\/p2`,
+		},
+		// 7
+		{
+			input:  Property{{name: `p1{`}, {name: "p2"}},
+			expect: `p1\{/p2`,
+		},
+		// 8
+		{
+			input:  Property{{name: `p1}`}, {name: "p2"}},
+			expect: `p1\}/p2`,
+		},
+		// 9
+		{
+			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1}`}},
+			expect: `p1/p2{v1\}}`,
+		},
+		// 10
+		{
+			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1{`}},
+			expect: `p1/p2{v1\{}`,
+		},
+		// 11
+		{
+			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1/`}},
+			expect: `p1/p2{v1\/}`,
+		},
+		// 12
+		{
+			expect: `p1/p2{v1\\}`,
+			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1\`}},
 		},
 	}
 	for idx, c := range cases {
