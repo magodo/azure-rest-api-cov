@@ -226,9 +226,11 @@ func TestNewAzureRepoIndex(t *testing.T) {
         "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
           "rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
           "api_paths": [
-            "/{host}/{foo}"
+            "/{host}/{foo}/def_bar",
+            "/{host}/{foo}/def_base",
+            "/{host}/{foo}/def_regular"
           ],
-          "api_put_schemas": []
+          "api_put_schemas": ["def_bar", "def_base", "def_regular"]
         }
       }
     }
@@ -289,32 +291,7 @@ func TestAzureRepoIndexExportImport(t *testing.T) {
 	pwd, err := os.Getwd()
 	require.NoError(t, err, "pwd")
 	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
-	expect := fmt.Sprintf(`{
-  "resource_providers": {
-    "dummy": {
-      "2020-12-01-preview:preview": {
-        "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json": {
-          "rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json",
-          "api_paths": [
-            "/{host}/{bar}"
-          ],
-          "api_put_schemas": []
-        }
-      },
-      "2020-12-01:stable": {
-        "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
-          "rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
-          "api_paths": [
-            "/{host}/{foo}"
-          ],
-          "api_put_schemas": []
-        }
-      }
-    }
-  },
-  "spec_root_dir": "%s"
-}
-`, specRootDir)
+
 	idx, err := workspace.NewAzureRepoIndex(specRootDir)
 	require.NoError(t, err, "generate index")
 
@@ -322,10 +299,8 @@ func TestAzureRepoIndexExportImport(t *testing.T) {
 	indexPath := filepath.Join(tmpDir, "index.json")
 	require.NoError(t, idx.Export(indexPath), "export")
 
-	idx, err = workspace.ImportAzureRepoIndex(indexPath)
+	newidx, err := workspace.ImportAzureRepoIndex(indexPath)
 	require.NoError(t, err, "import")
 
-	b, err := json.MarshalIndent(idx, "", "  ")
-	require.NoError(t, err, "marshal index")
-	require.JSONEq(t, expect, string(b))
+	require.Equal(t, idx, newidx)
 }

@@ -51,6 +51,14 @@ func TestToSchema(t *testing.T) {
 	}
 }`,
 		},
+		{
+			schemaInput: filepath.Join(schemaBasePath, "def_bar", "def_bar.json"),
+			expectProperties: `{
+	"bar": {
+		"state": "Covered"
+	}
+}`,
+		},
 	}
 
 	index, err := workspace.NewAzureRepoIndex(specBaseDir)
@@ -64,7 +72,7 @@ func TestToSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		schema, err := schemaInput.ToSchema(specBaseDir, index.SpecLookupView()[schemaInput.SpecLocator])
+		schema, err := schemaInput.ToSchema(specBaseDir, index)
 		require.NoError(t, err, idx)
 
 		b, err = schema.Properties.MarshalJSON()

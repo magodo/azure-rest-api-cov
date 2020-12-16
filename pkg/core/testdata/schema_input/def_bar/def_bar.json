@@ -1,0 +1,8 @@
+{
+  "api_version": "2020-12-01",
+  "api_path": "/{host}/{foo}/def_bar",
+  "operation": "POST",
+  "properties": [
+    "bar"
+  ]
+}

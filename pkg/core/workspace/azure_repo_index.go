@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerlocator"
@@ -249,6 +250,9 @@ func (index *AzureRepoIndex) recordSpec(relPath string, rpName string, api API) 
 	for schemaName := range schemaNameSet {
 		schemaNames = append(schemaNames, schemaName)
 	}
+
+	sort.Strings(apiPaths)
+	sort.Strings(schemaNames)
 
 	apiSpec := APISpec{
 		RelPath:        relPath,

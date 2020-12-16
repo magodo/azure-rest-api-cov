@@ -9,7 +9,45 @@
     "https"
   ],
   "paths": {
-    "/{host}/{foo}": {}
+    "/{host}/{foo}/def_bar": {
+      "post": {
+        "parameters": [
+          {
+            "name": "foo",
+            "in": "body",
+            "schema": {
+              "$ref": "../../preview/2020-12-01-preview/bar.json#/definitions/def_bar"
+            }
+          }
+        ]
+      }
+    },
+    "/{host}/{foo}/def_regular": {
+      "put": {
+        "parameters": [
+          {
+            "name": "foo",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/def_regular"
+            }
+          }
+        ]
+      }
+    },
+    "/{host}/{foo}/def_base": {
+      "put": {
+        "parameters": [
+          {
+            "name": "foo",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/def_base"
+            }
+          }
+        ]
+      }
+    }
   },
   "definitions": {
     "def_foo": {

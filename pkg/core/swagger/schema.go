@@ -48,7 +48,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 		return nil, fmt.Errorf("schema %q is not found in swagger spec %q", schemaName, swaggerURI)
 	}
 
-	ref := schemaNameToRef(schemaName)
+	ref := SchemaNameToRef(schemaName, "")
 	normalizedSchemaRef := normalizePaths(ref.String(), swaggerURI)
 
 	swgSchema := &Schema{
@@ -180,7 +180,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 				if _, ok := refs[baseRef]; !ok {
 					continue
 				}
-				ref := schemaNameToRef(name)
+				ref := SchemaNameToRef(name, "")
 				normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
 				potentialBaseRefSet[normalizedRef.String()] = struct{}{}
 			}
@@ -195,7 +195,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 
 	for variantRef := range potentialBaseRefSet {
 		ref := openapispec.MustCreateRef(variantRef)
-		name := schemaNameFromRef(ref)
+		name, _ := SchemaNameFromRef(ref)
 
 		descValue := name
 		// If the 'x-ms-discriminator-value' is defined for the variant schemas, then it will take priority.
@@ -390,11 +390,11 @@ func (c *Schema) Grant(grants SchemaGrants) error {
 	return nil
 }
 
-func schemaNameFromRef(ref openapispec.Ref) string {
+func SchemaNameFromRef(ref openapispec.Ref) (name string, path string) {
 	fragments := strings.Split(ref.GetURL().Fragment, "/")
-	return fragments[len(fragments)-1]
+	return fragments[len(fragments)-1], ref.GetURL().Path
 }
 
-func schemaNameToRef(schemaName string) openapispec.Ref {
-	return openapispec.MustCreateRef(fmt.Sprintf("#/definitions/%s", schemaName))
+func SchemaNameToRef(schemaName string, path string) openapispec.Ref {
+	return openapispec.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", path, schemaName))
 }

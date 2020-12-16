@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -59,20 +60,17 @@ func main() {
 	}
 
 	for _, schemaInput := range schemaInputs {
-		name := schemaInput.Name
+		msg := fmt.Sprintf("Processing: %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
 		if schemaInput.Variant != "" {
-			name = fmt.Sprintf("%s[%s]", name, schemaInput.Variant)
+			msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
 		}
-		log.Printf("Processing: %s(%s): %s", schemaInput.ApiPath, schemaInput.ApiVersion, name)
-		swaggerRelPath, ok := index.SpecLookupView()[schemaInput.SpecLocator]
-		if !ok {
-			log.Printf("[WARNING] Can't locate swagger spec by (%q, %q), this might because this tuple ends up with multiple swagger specs.",
-				schemaInput.SpecLocator.ApiVersion, schemaInput.SpecLocator.ApiPath)
-			continue
-		}
+		log.Println(msg)
 
-		schema, err := schemaInput.ToSchema(repo.SpecRootDir, swaggerRelPath)
+		schema, err := schemaInput.ToSchema(repo.SpecRootDir, index)
 		if err != nil {
+			if errors.Is(err, schemainput.ErrFailtoLocateSwagger) {
+				continue
+			}
 			log.Fatal(err)
 		}
 		cov, err := schema.CalcCoverage()
