@@ -72,7 +72,7 @@ func TestToSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		schema, err := schemaInput.ToSchema(specBaseDir, index)
+		schema, err := schemaInput.ToSchema(index)
 		require.NoError(t, err, idx)
 
 		b, err = schema.Properties.MarshalJSON()

@@ -1192,7 +1192,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 	}{
 		// 0
 		{
-			name:           "add same property twice should take no diff (re-entry)",
+			name:           "Add same property twice should take no diff (re-entry)",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
 			steps: []step{
@@ -1231,7 +1231,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 						swagger:    specFoo,
 					},
 				},
-				// add a second tf link to the same swg property should have no change
+				// Add a second tf link to the same swg property should have no change
 				{
 					swgPropAddr: addr.MustParseProperty("p1"),
 					expect: Schema{
@@ -1271,7 +1271,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 		},
 		// 1
 		{
-			name:           "add tf link to swagger child property first, then add another tf link to swagger parent property",
+			name:           "Add tf link to swagger child property first, then Add another tf link to swagger parent property",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
 			steps: []step{
@@ -1371,7 +1371,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 		},
 		// 2
 		{
-			name:           "add tf link to swagger parent property first, then add another tf link to swagger child property",
+			name:           "Add tf link to swagger parent property first, then Add another tf link to swagger child property",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
 			steps: []step{
@@ -1460,7 +1460,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 		},
 		// 3
 		{
-			name:           "add discriminator property",
+			name:           "Add discriminator property",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_base",
 			steps: []step{
@@ -1538,9 +1538,9 @@ func TestSchema_Marshal(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_regular",
 			expect: fmt.Sprintf(`{
-    "SwaggerRelPath": "foo.json",
-    "Name": "def_regular",
-    "Properties": {
+    "swagger_rel_path": "foo.json",
+    "name": "def_regular",
+    "properties": {
         "prop_array_of_primitive": {
 		  "state": "Uncovered"
 		},
@@ -1560,9 +1560,9 @@ func TestSchema_Marshal(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_prop_in_file_ref",
 			expect: fmt.Sprintf(`{
-    "SwaggerRelPath": "foo.json",
-    "Name": "def_prop_in_file_ref",
-    "Properties": {
+    "swagger_rel_path": "foo.json",
+    "name": "def_prop_in_file_ref",
+    "properties": {
         "prop": {
 		  "state": "Uncovered"
 		}
@@ -1573,9 +1573,9 @@ func TestSchema_Marshal(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_all_of",
 			expect: fmt.Sprintf(`{
-    "SwaggerRelPath": "foo.json",
-    "Name": "def_all_of",
-    "Properties": {
+    "swagger_rel_path": "foo.json",
+    "name": "def_all_of",
+    "properties": {
 		"prop_nested": {
 		  "state": "Uncovered"
 		},
@@ -1602,9 +1602,9 @@ func TestSchema_Marshal(t *testing.T) {
 				require.NoError(t, schema.AddCovProperty(swgPropAddr))
 			},
 			expect: fmt.Sprintf(`{
-    "SwaggerRelPath": "foo.json",
-    "Name": "def_cov",
-    "Properties": {
+    "swagger_rel_path": "foo.json",
+    "name": "def_cov",
+    "properties": {
 		"p1": {
 		  "state": "Uncovered"
 		},
@@ -1638,9 +1638,9 @@ func TestSchema_Unmarshal(t *testing.T) {
 	}{
 		{
 			input: `{
-   "SwaggerRelPath": "foo.json",
-   "Name": "def_cov",
-   "Properties": {
+   "swagger_rel_path": "foo.json",
+   "name": "def_cov",
+   "properties": {
 		"p1": {
 		  "state": "Uncovered"
 		},
@@ -1682,7 +1682,7 @@ func TestSchema_Unmarshal(t *testing.T) {
 func TestSchema_CalcCoverage(t *testing.T) {
 	cases := []struct {
 		schema    Schema
-		expectCov *PropertyCoverageStore
+		expectCov *SchemaCoverageStore
 	}{
 		{
 			schema: Schema{
@@ -1704,35 +1704,35 @@ func TestSchema_CalcCoverage(t *testing.T) {
 					},
 				},
 			},
-			expectCov: &PropertyCoverageStore{
-				node: propertyCoverageNode{
+			expectCov: &SchemaCoverageStore{
+				Node: PropertyCoverageNode{
 					TotalAmount:   3,
 					CoveredAmount: 2,
-					Children: map[addr.PropertySegment]*propertyCoverageNode{
+					Children: map[addr.PropertySegment]*PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*propertyCoverageNode{
+							Children: map[addr.PropertySegment]*PropertyCoverageNode{
 								addr.MustParsePropertySegment("not_covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 0,
-									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 								},
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 								},
 							},
 						},
 						addr.MustParsePropertySegment("prop2"): {
 							TotalAmount:   1,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*propertyCoverageNode{
+							Children: map[addr.PropertySegment]*PropertyCoverageNode{
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 								},
 							},
 						},

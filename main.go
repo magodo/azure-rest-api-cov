@@ -66,9 +66,9 @@ func main() {
 		}
 		log.Println(msg)
 
-		schema, err := schemaInput.ToSchema(repo.SpecRootDir, index)
+		schema, err := schemaInput.ToSchema(index)
 		if err != nil {
-			if errors.Is(err, schemainput.ErrFailtoLocateSwagger) {
+			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 				continue
 			}
 			log.Fatal(err)
@@ -77,7 +77,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		covered, total := cov.SchemaCoverage()
-		fmt.Printf("%s: (%d/%d)\n", schema.SchemaAddr.String(), covered, total)
+		b, err := json.MarshalIndent(cov, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(b))
+		//covered, total := cov.SchemaCoverage()
+		//fmt.Printf("%s: (%d/%d)\n", schema.SchemaAddr.String(), covered, total)
 	}
 }

@@ -304,3 +304,47 @@ func TestAzureRepoIndexExportImport(t *testing.T) {
 
 	require.Equal(t, idx, newidx)
 }
+
+func TestAzureRepoIndexLocateSchema(t *testing.T) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	specBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+
+	type result struct {
+		schemaName  string
+		specRelPath string
+	}
+
+	cases := []struct {
+		locator workspace.SchemaLocator
+		expect  result
+	}{
+		{
+			locator: workspace.SchemaLocator{
+				SpecLocator: workspace.SpecLocator{
+					ApiVersion: "2020-12-01",
+					ApiPath:    "/{host}/{foo}/def_bar",
+				},
+				Operation: "POST",
+			},
+			expect: result{
+				schemaName:  "def_bar",
+				specRelPath: filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "preview", "2020-12-01-preview", "bar.json"),
+			},
+		},
+	}
+
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
+	require.NoError(t, err)
+
+	for idx, c := range cases {
+		name, p, err := index.LocateSchema(c.locator)
+		require.NoError(t, err, idx)
+		require.Equal(t, c.expect, result{
+			schemaName:  name,
+			specRelPath: p,
+		}, idx)
+	}
+}

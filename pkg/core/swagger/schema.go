@@ -15,8 +15,8 @@ import (
 const swaggerExtensionMSDiscriminatorValue = "x-ms-discriminator-value"
 
 type SchemaAddr struct {
-	SwaggerRelPath string
-	Name           string
+	SwaggerRelPath string `json:"swagger_rel_path"`
+	Name           string `json:"name"`
 }
 
 func (a SchemaAddr) String() string {
@@ -26,7 +26,7 @@ func (a SchemaAddr) String() string {
 
 type Schema struct {
 	SchemaAddr
-	Properties Properties
+	Properties Properties `json:"properties"`
 
 	// Whether this property is granted to be not to implement in Terraform
 	IsGranted    bool   `json:",omitempty"`
@@ -203,7 +203,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 			descValue = v
 		}
 
-		// Since we removed the discriminator base schema from the "resolvedRefs" when we creat the Property, we should in turn add the
+		// Since we removed the discriminator base schema from the "resolvedRefs" when we creat the Property, we should in turn Add the
 		// exact variant schema expanded to the "resolvedRefs".
 		resolvedRefs := map[string]interface{}{}
 		for k, v := range prop.resolvedRefs {
@@ -309,7 +309,7 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 			continue
 		}
 
-		// If the property to add is a parent property of any existing properties.
+		// If the property to Add is a parent property of any existing properties.
 		// Then we will mark the existing properties as covered also.
 		if propAddr.Contains(existPropAddr) {
 			propagateToChild = true
@@ -356,8 +356,8 @@ func (s *Schema) Merge(os Schema) error {
 
 // CalcCoverage calculates the property coverage (<=1) of the schema/property.
 // Those granted properties are not counted during the calculation.
-func (s Schema) CalcCoverage() (*PropertyCoverageStore, error) {
-	store := NewPropertyCoverageStore()
+func (s Schema) CalcCoverage() (*SchemaCoverageStore, error) {
+	store := NewSchemaCoverageStore()
 	for propRAddr, prop := range s.Properties {
 		if err := store.Add(addr.MustParseProperty(propRAddr), *prop); err != nil {
 			return nil, fmt.Errorf("adding property %q: %v", propRAddr, err)
@@ -366,7 +366,7 @@ func (s Schema) CalcCoverage() (*PropertyCoverageStore, error) {
 	return &store, nil
 }
 
-// Grant inquiries the SchemaGrants to add the granting information onto the Schema
+// Grant inquiries the SchemaGrants to Add the granting information onto the Schema
 func (c *Schema) Grant(grants SchemaGrants) error {
 	grant, ok := grants[c.SchemaAddr]
 	if !ok {

@@ -2,6 +2,7 @@ package workspace
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerlocator"
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
 
 	openapispec "github.com/go-openapi/spec"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
@@ -22,11 +23,33 @@ const apiSep = ":"
 const schemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
 const schemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]sMicrosoft.\w+%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`
 
+var (
+	ErrFailedToLocateSwagger = errors.New("can't locate swagger spec")
+)
+
+type OperationKind string
+
+const (
+	OperationKindPut   OperationKind = "PUT"
+	OperationKindPost                = "POST"
+	OperationKindPatch               = "PATCH"
+)
+
+type SpecLocator struct {
+	ApiVersion string `json:"api_version"`
+	ApiPath    string `json:"api_path"`
+}
+
+type SchemaLocator struct {
+	SpecLocator
+	Operation OperationKind `json:"operation"`
+}
+
 type AzureRepoIndex struct {
-	SpecRootDir       string                                `json:"spec_root_dir"`
-	ResourceProviders ResourceProviders                     `json:"resource_providers"`
-	specSetView       map[string]struct{}                   //  key is the swagger spec rel path
-	specLookupView    map[swaggerlocator.SpecLocator]string // value is the spec rel path
+	SpecRootDir       string                 `json:"spec_root_dir"`
+	ResourceProviders ResourceProviders      `json:"resource_providers"`
+	specSetView       map[string]struct{}    //  key is the swagger spec rel path
+	specLookupView    map[SpecLocator]string // value is the spec rel path
 }
 
 type ResourceProviders map[ResourceProvider]APIs
@@ -138,13 +161,13 @@ func (index *AzureRepoIndex) SpecSetView() map[string]struct{} {
 }
 
 func (index *AzureRepoIndex) buildSpecLookupView() {
-	index.specLookupView = map[swaggerlocator.SpecLocator]string{}
-	ambiguousLocators := map[swaggerlocator.SpecLocator]struct{}{}
+	index.specLookupView = map[SpecLocator]string{}
+	ambiguousLocators := map[SpecLocator]struct{}{}
 	for _, apis := range index.ResourceProviders {
 		for apiInfo, specs := range apis {
 			for _, spec := range specs {
 				for _, apiPath := range spec.APIPaths {
-					locator := swaggerlocator.SpecLocator{
+					locator := SpecLocator{
 						ApiVersion: apiInfo.Version,
 						ApiPath:    apiPath,
 					}
@@ -167,12 +190,82 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 	return
 }
 
-func (index *AzureRepoIndex) SpecLookupView() map[swaggerlocator.SpecLocator]string {
+func (index *AzureRepoIndex) SpecLookupView() map[SpecLocator]string {
 	if index.specLookupView != nil {
 		return index.specLookupView
 	}
 	index.buildSpecLookupView()
 	return index.specLookupView
+}
+
+// LocateSpec locates the Swagger Spec that defines the API path of the API version as defined in the locator.
+// On success, it returns the relative path to the swagger spec.
+func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (string, error) {
+	p, ok := index.SpecLookupView()[locator]
+	if !ok {
+		return "", fmt.Errorf("can't locate swagger spec by (%q, %q), this might because this tuple ends up with multiple swagger specs: %w",
+			locator.ApiVersion, locator.ApiPath, ErrFailedToLocateSwagger)
+	}
+	return p, nil
+}
+
+// LocateSchema locates the schema name and the Swagger Spec that defines the "in-body" parameter of the specified operation
+// on the API path of the API version as defined in the locator, which might be different that the one that defines the API path.
+// On success, it returns the schema name and the relative path to the swagger spec.
+func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (schemaName, swaggerRelPath string, err error) {
+	swaggerRelPathDefApiPath, err := index.LocateSpec(locator.SpecLocator)
+	if err != nil {
+		return "", "", err
+	}
+	swaggerPathDefApiPath := filepath.Join(index.SpecRootDir, swaggerRelPathDefApiPath)
+	swg, err := swaggerloader.LoadSwagger(swaggerPathDefApiPath)
+	if err != nil {
+		return "", "", err
+	}
+
+	path := swg.Paths.Paths[locator.ApiPath]
+	params := []openapispec.Parameter{}
+	switch locator.Operation {
+	case OperationKindPut:
+		params = path.Put.Parameters
+	case OperationKindPost:
+		params = path.Post.Parameters
+	case OperationKindPatch:
+		params = path.Patch.Parameters
+	default:
+		return "", "", fmt.Errorf("unknown operation kind: %q", locator.Operation)
+	}
+
+	var param *openapispec.Parameter
+	for _, p := range params {
+		// In case the parameter itself is a ref, we will simply deref it for once.
+		if p.Ref.String() != "" {
+			pparam, err := openapispec.ResolveParameterWithBase(swg, p.Ref, &openapispec.ExpandOptions{RelativeBase: swaggerPathDefApiPath})
+			if err != nil {
+				return "", "", err
+			}
+			p = *pparam
+		}
+
+		if p.In == "body" {
+			param = &p
+			break
+		}
+	}
+	if param == nil {
+		return "", "", fmt.Errorf("no in body parameter found")
+	}
+
+	name, refPath := swagger.SchemaNameFromRef(param.Schema.Ref)
+	if refPath != "" {
+		if filepath.IsAbs(refPath) {
+			return "", "", fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
+		}
+		swaggerRelPath = filepath.Clean(filepath.Join(filepath.Dir(swaggerRelPathDefApiPath), refPath))
+	} else {
+		swaggerRelPath = swaggerRelPathDefApiPath
+	}
+	return name, swaggerRelPath, nil
 }
 
 func (index *AzureRepoIndex) recordSpec(relPath string, rpName string, api API) error {

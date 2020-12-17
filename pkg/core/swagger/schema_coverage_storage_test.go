@@ -15,7 +15,7 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 	}
 	cases := []struct {
 		propertiesToAdd []swgproperty
-		expectStore     PropertyCoverageStore
+		expectStore     SchemaCoverageStore
 	}{
 		{
 			propertiesToAdd: []swgproperty{
@@ -44,35 +44,35 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 					},
 				},
 			},
-			expectStore: PropertyCoverageStore{
-				node: propertyCoverageNode{
+			expectStore: SchemaCoverageStore{
+				Node: PropertyCoverageNode{
 					TotalAmount:   3,
 					CoveredAmount: 2,
-					Children: map[addr.PropertySegment]*propertyCoverageNode{
+					Children: map[addr.PropertySegment]*PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*propertyCoverageNode{
+							Children: map[addr.PropertySegment]*PropertyCoverageNode{
 								addr.MustParsePropertySegment("not_covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 0,
-									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 								},
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 								},
 							},
 						},
 						addr.MustParsePropertySegment("prop2"): {
 							TotalAmount:   1,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*propertyCoverageNode{
+							Children: map[addr.PropertySegment]*PropertyCoverageNode{
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 								},
 							},
 						},
@@ -83,7 +83,7 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store := NewPropertyCoverageStore()
+		store := NewSchemaCoverageStore()
 		for idx2, prop := range c.propertiesToAdd {
 			require.NoError(t, store.Add(prop.addr, prop.prop), fmt.Sprintf("%d.%d", idx, idx2))
 		}
@@ -104,33 +104,33 @@ func TestNewPropertyCoverageStore_FindCoverage(t *testing.T) {
 	}
 
 	cases := []struct {
-		store               PropertyCoverageStore
+		store               SchemaCoverageStore
 		subtest             []subtest
 		expectTotalCoverage result
 	}{
 		{
-			store: PropertyCoverageStore{
-				node: propertyCoverageNode{
+			store: SchemaCoverageStore{
+				Node: PropertyCoverageNode{
 					TotalAmount:   3,
 					CoveredAmount: 1,
-					Children: map[addr.PropertySegment]*propertyCoverageNode{
+					Children: map[addr.PropertySegment]*PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*propertyCoverageNode{
+							Children: map[addr.PropertySegment]*PropertyCoverageNode{
 								addr.MustParsePropertySegment("nest"): {
 									TotalAmount:   2,
 									CoveredAmount: 1,
-									Children: map[addr.PropertySegment]*propertyCoverageNode{
+									Children: map[addr.PropertySegment]*PropertyCoverageNode{
 										addr.MustParsePropertySegment("covered"): {
 											TotalAmount:   1,
 											CoveredAmount: 1,
-											Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+											Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 										},
 										addr.MustParsePropertySegment("uncovered"): {
 											TotalAmount:   1,
 											CoveredAmount: 0,
-											Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+											Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 										},
 									},
 								},
@@ -139,7 +139,7 @@ func TestNewPropertyCoverageStore_FindCoverage(t *testing.T) {
 						addr.MustParsePropertySegment("uncovered"): {
 							TotalAmount:   1,
 							CoveredAmount: 0,
-							Children:      map[addr.PropertySegment]*propertyCoverageNode{},
+							Children:      map[addr.PropertySegment]*PropertyCoverageNode{},
 						},
 					},
 				},
