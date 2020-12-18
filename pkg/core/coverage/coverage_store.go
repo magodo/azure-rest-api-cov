@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
+
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
+
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
 )
 
@@ -20,8 +24,8 @@ type ResourceProvider string
 type Operations map[Operation]APIVersions
 
 type Operation struct {
-	APIPath       string `json:"api_path"`
-	OperationKind string `json:"operation_kind"`
+	APIPath       string                  `json:"api_path"`
+	OperationKind workspace.OperationKind `json:"operation_kind"`
 }
 
 type APIVersions map[APIVersion]*SchemaCoverageStore
@@ -44,7 +48,7 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore
 					for op := range ops {
 						covOp := Operation{
 							APIPath:       string(apiPath),
-							OperationKind: string(op),
+							OperationKind: op,
 						}
 						covVersions, ok := covOps[covOp]
 						if !ok {
@@ -61,6 +65,37 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore
 	return coverage
 }
 
+func (repoCov *RepoCoverageStore) AddSchema(s swagger.Schema, locator workspace.SchemaLocator) error {
+	schemaCov, err := NewSchemaCoverageStore(s)
+	if err != nil {
+		return err
+	}
+
+	p := specpath.Path(s.SwaggerRelPath)
+	pathInfo, err := p.PathInfo()
+	if err != nil {
+		return err
+	}
+
+	rp := ResourceProvider(pathInfo.ResourceProvider)
+	ops, ok := repoCov.ResourceProviders[rp]
+	if !ok {
+		return fmt.Errorf("no resource provider %q found", rp)
+	}
+
+	op := Operation{
+		APIPath:       locator.ApiPath,
+		OperationKind: locator.Operation,
+	}
+	versions, ok := ops[op]
+	if !ok {
+		return fmt.Errorf("no operation %q found for resource provider %q", op, rp)
+	}
+
+	versions[APIVersion(locator.ApiVersion)] = schemaCov
+	return nil
+}
+
 func (op Operation) String() string {
 	return fmt.Sprintf("%s:%s", op.APIPath, op.OperationKind)
 }
@@ -69,7 +104,7 @@ func ParseOperation(s string) Operation {
 	l := strings.Split(s, ":")
 	return Operation{
 		APIPath:       l[0],
-		OperationKind: l[1],
+		OperationKind: workspace.OperationKind(l[1]),
 	}
 }
 

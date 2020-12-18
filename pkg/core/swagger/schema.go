@@ -16,7 +16,6 @@ const swaggerExtensionMSDiscriminatorValue = "x-ms-discriminator-value"
 
 type SchemaMetaInfo struct {
 	Name           string `json:"name"`
-	Version        string `json:"version"`
 	SwaggerRelPath string `json:"swagger_rel_path"`
 }
 
@@ -55,7 +54,6 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 	swgSchema := &Schema{
 		SchemaMetaInfo: SchemaMetaInfo{
 			Name:           schemaName,
-			Version:        swagger.Info.Version,
 			SwaggerRelPath: swaggerRelPath,
 		},
 		Properties: map[string]*Property{

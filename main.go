@@ -34,6 +34,7 @@ func main() {
 	inputPath := flag.String("i", "",
 		"The path to the schema input file, which is expected to hold a JSON array of input schemas")
 	force := flag.Bool("f", false, "whether to force create the workspace")
+	regenIndex := flag.Bool("r", false, "whether to force regenerate the repository index in the workspace")
 	repoHash := flag.String("c", "", "The azure-rest-api-spec repo commit hash to checkout")
 
 	flag.Parse()
@@ -45,8 +46,9 @@ func main() {
 
 	// Initialize the workspace, which will return the repo and repo index.
 	_, index, err := workspace.Init(*workspaceDir, workspace.InitOption{
-		Force:    *force,
-		RepoHash: *repoHash,
+		Force:      *force,
+		RegenIndex: *regenIndex,
+		RepoHash:   *repoHash,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -60,6 +62,8 @@ func main() {
 	if err := json.Unmarshal(b, &schemaInputs); err != nil {
 		log.Fatal(err)
 	}
+
+	cov := coverage.NewEmptyRepoCoverageStore(*index)
 
 	for _, schemaInput := range schemaInputs {
 		msg := fmt.Sprintf("Processing: %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
@@ -75,13 +79,15 @@ func main() {
 			}
 			log.Fatal(err)
 		}
-		cov, err := coverage.NewSchemaCoverageStore(*schema)
-		b, err := json.MarshalIndent(cov, "", "  ")
-		if err != nil {
+
+		if err := cov.AddSchema(*schema, schemaInput.SchemaLocator); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(string(b))
-		//covered, total := cov.SchemaCoverage()
-		//fmt.Printf("%s: (%d/%d)\n", schema.SchemaAddr.String(), covered, total)
 	}
+
+	b, err = json.MarshalIndent(cov, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(b))
 }

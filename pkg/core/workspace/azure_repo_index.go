@@ -8,17 +8,16 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
+	"sort"
 	"strings"
+
+	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
 
 	openapispec "github.com/go-openapi/spec"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
 )
-
-const schemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
-const schemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]sMicrosoft.\w+%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`
 
 var (
 	ErrFailedToLocateSwagger = errors.New("can't locate swagger spec")
@@ -79,8 +78,6 @@ func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, erro
 		Commit:            commit,
 		ResourceProviders: ResourceProviders{},
 	}
-	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(schemaFolderPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
-	schemaPattern := regexp.MustCompile(fmt.Sprintf(schemaPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
 	if err := filepath.Walk(specRootDir,
 		func(p string, info os.FileInfo, err error) error {
 			relPath := strings.TrimPrefix(strings.TrimPrefix(p, specRootDir), string(os.PathSeparator))
@@ -91,21 +88,23 @@ func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, erro
 				return nil
 			}
 
+			path := specpath.Path(relPath)
+
 			// Skip directories not match the schema folder patterns
 			if info.IsDir() {
-				if !schemaFolderPattern.MatchString(relPath) {
+				if !path.IsSpecFolder() {
 					return filepath.SkipDir
 				}
 				return nil
 			}
 
 			// Skip files not match the schema file patterns
-			match := schemaPattern.FindStringSubmatch(relPath)
-			if len(match) == 0 {
+			pathInfo, err := path.PathInfo()
+			if err != nil {
 				return nil
 			}
 
-			rp := ResourceProvider(match[1])
+			rp := ResourceProvider(pathInfo.ResourceProvider)
 
 			if err := index.recordSpec(SpecPath(relPath), rp); err != nil {
 				return err
@@ -183,34 +182,38 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 
 		var (
 			info *SchemaInfo
+			ok   bool
 			err  error
 		)
 		switch kind {
 		case OperationKindPost,
 			OperationKindPut,
 			OperationKindPatch:
-			info, err = getSchemaInfoFromParameter(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
+			info, ok, err = getSchemaInfoFromParameter(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
 		case OperationKindGet:
-			info, err = getSchemaInfoFromResponse(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
+			info, ok, err = getSchemaInfoFromResponse(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
 		default:
 			return nil, fmt.Errorf("invalid operation kind %q for api path %q", kind, apiPath)
 		}
 		if err != nil {
 			return nil, err
 		}
-		infos[kind] = *info
+		if ok {
+			infos[kind] = *info
+		}
 	}
 	return infos, nil
 }
 
-func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, apiPath APIPath, operation openapispec.Operation) (*SchemaInfo, error) {
+//  getSchemaInfoFromParameter get the information for in-body parameter if any. Otherwise, it returns false while nil error.
+func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, apiPath APIPath, operation openapispec.Operation) (*SchemaInfo, bool, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	for _, param := range operation.Parameters {
 		// The param is a ref, we simply deref it for once.
 		if param.Ref.String() != "" {
 			refParam, err := openapispec.ResolveParameterWithBase(swg, param.Ref, &openapispec.ExpandOptions{RelativeBase: specAbsPathDefAPI})
 			if err != nil {
-				return nil, fmt.Errorf("resolve param ref %q: %v", param.Ref.String(), err)
+				return nil, false, fmt.Errorf("resolve param ref %q: %v", param.Ref.String(), err)
 			}
 			param = *refParam
 		}
@@ -219,52 +222,69 @@ func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelP
 			continue
 		}
 
+		if param.Schema == nil {
+			return nil, false, nil
+		}
+
 		name, refPath := swagger.SchemaInfoFromRef(param.Schema.Ref)
+		if name == "" {
+			// The name might be empty string for those swg with inlined schema definitions. Currently, we don't support schema definitions with no name
+			// (since SDK will not generate corresponding data model).
+			// E.g. The in-body parameter of "ApiOperationsPolicy_CreateOrUpdate" in: specification/apimanagement/resource-manager/Microsoft.ApiManagement/stable/2016-10-10/apimapis.json.
+			return nil, false, nil
+		}
+
 		relPath := specRelPathDefAPI
 		if refPath != "" {
 			if filepath.IsAbs(refPath) {
-				return nil, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
+				return nil, false, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
 			}
 			relPath = filepath.Clean(filepath.Join(filepath.Dir(relPath), refPath))
 		}
-		// The name might be empty string for those swg with inlined schema definitions. Currently, we don't support schema definitions with no name
-		// (since SDK will not generate corresponding data model).
-		// E.g. The in-body parameter of "ApiOperationsPolicy_CreateOrUpdate" in: specification/apimanagement/resource-manager/Microsoft.ApiManagement/stable/2016-10-10/apimapis.json.
 		return &SchemaInfo{
 			Name:        name,
 			SpecRelPath: relPath,
-		}, nil
+		}, true, nil
 	}
-	return nil, fmt.Errorf("no in-body parameter found for operation %q of api path %q", operation.Description, apiPath)
+	return nil, false, nil
 }
 
-func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, apiPath APIPath, operation openapispec.Operation) (*SchemaInfo, error) {
+//  getSchemaInfoFromResponse get the information for the response of code 200 if any. Otherwise, it returns false while nil error.
+func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, apiPath APIPath, operation openapispec.Operation) (*SchemaInfo, bool, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	resp, ok := operation.Responses.ResponsesProps.StatusCodeResponses[200]
 	if !ok {
-		return nil, fmt.Errorf("can't find response definition for code 200 in operation %q of api path %q", operation.Description, apiPath)
+		return nil, false, nil
 	}
+
 	// The resp is a ref, we simply deref it for once.
 	if resp.Ref.String() != "" {
 		refRespones, err := openapispec.ResolveResponseWithBase(swg, resp.Ref, &openapispec.ExpandOptions{RelativeBase: specAbsPathDefAPI})
 		if err != nil {
-			return nil, fmt.Errorf("resolve response ref %q: %v", resp.Ref.String(), err)
+			return nil, false, fmt.Errorf("resolve response ref %q: %v", resp.Ref.String(), err)
 		}
 		resp = *refRespones
 	}
 
+	if resp.Schema == nil {
+		return nil, false, nil
+	}
+
 	name, refPath := swagger.SchemaInfoFromRef(resp.Schema.Ref)
+	if name == "" {
+		return nil, false, nil
+	}
 	relPath := specRelPathDefAPI
 	if refPath != "" {
 		if filepath.IsAbs(refPath) {
-			return nil, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
+			return nil, false, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
 		}
 		relPath = filepath.Clean(filepath.Join(filepath.Dir(relPath), refPath))
 	}
 	return &SchemaInfo{
 		Name:        name,
 		SpecRelPath: relPath,
-	}, nil
+	}, true, nil
 }
 
 func ImportAzureRepoIndex(path string) (*AzureRepoIndex, error) {
@@ -289,7 +309,7 @@ func (index AzureRepoIndex) Export(path string) error {
 
 func (index *AzureRepoIndex) buildSpecLookupView() {
 	index.specLookupView = map[SpecLocator]string{}
-	ambiguousLocators := map[SpecLocator]struct{}{}
+	ambiguousLocators := map[SpecLocator][]string{}
 	for _, versions := range index.ResourceProviders {
 		for version, specs := range versions {
 			for specPath, apiPaths := range specs {
@@ -300,8 +320,11 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 					}
 					// The locator should end up with one and only one match. If there are ambiguous ones,
 					// we will just ignore them for now.
-					if _, ok := index.specLookupView[locator]; ok {
-						ambiguousLocators[locator] = struct{}{}
+					if existPath, ok := index.specLookupView[locator]; ok {
+						if len(ambiguousLocators[locator]) == 0 {
+							ambiguousLocators[locator] = []string{existPath}
+						}
+						ambiguousLocators[locator] = append(ambiguousLocators[locator], string(specPath))
 						continue
 					}
 					index.specLookupView[locator] = string(specPath)
@@ -310,8 +333,10 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 		}
 	}
 	// For those ambiguous locators, we have to avoid process them.
-	for loc := range ambiguousLocators {
-		log.Printf("[WARNING] removing ambiguous spec locator: (%q, %q)", loc.ApiPath, loc.ApiVersion)
+	for loc, appears := range ambiguousLocators {
+		sort.Strings(appears)
+		log.Printf(`[WARNING] removing ambiguous spec locator: (%q, %q), appears in:
+%s`, loc.ApiPath, loc.ApiVersion, strings.Join(appears, "\n"))
 		delete(index.specLookupView, loc)
 	}
 	return

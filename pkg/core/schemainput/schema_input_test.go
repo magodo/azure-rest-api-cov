@@ -1,4 +1,4 @@
-package schemainput
+package schemainput_test
 
 import (
 	"encoding/json"
@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/pkg/core/schemainput"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
 
@@ -68,7 +70,7 @@ func TestToSchema(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
-		var schemaInput SchemaInput
+		var schemaInput schemainput.SchemaInput
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 

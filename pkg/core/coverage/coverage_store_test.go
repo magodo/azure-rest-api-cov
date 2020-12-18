@@ -2,9 +2,12 @@ package coverage_test
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/pkg/core/schemainput"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/coverage"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
@@ -53,11 +56,92 @@ func TestNewEmptyRepoCoverageStore(t *testing.T) {
 
 	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
 	require.NoError(t, err, "generate index")
-
 	cov := coverage.NewEmptyRepoCoverageStore(*idx)
-
 	require.Equal(t, expect, cov)
+}
 
+func TestRepoCoverageStoreAddSchema(t *testing.T) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	specBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	schemaBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "schema_input")
+	cases := []struct {
+		schemaInput string
+		expect      string
+	}{
+		{
+			schemaInput: filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
+			expect: `
+{
+  "commit": "",
+  "resource_providers": {
+    "dummy": {
+      "/{host}/{foo}/def_bar:POST": {
+        "2020-12-01": null
+      },
+      "/{host}/{foo}/def_base:PUT": {
+        "2020-12-01": {
+          "name": "def_base",
+          "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+          "node": {
+            "total_amount": 2,
+            "covered_amount": 1,
+            "children": {
+              "{def_variant1}": {
+                "total_amount": 1,
+                "covered_amount": 1,
+                "children": {
+                  "type": {
+                    "total_amount": 1,
+                    "covered_amount": 1
+                  }
+                }
+              },
+              "{def_variant2}": {
+                "total_amount": 1,
+                "covered_amount": 0
+              }
+            }
+          }
+        }
+      },
+      "/{host}/{foo}/def_regular:GET": {
+        "2020-12-01": null
+      },
+      "/{host}/{foo}/def_regular:PUT": {
+        "2020-12-01": null
+      }
+    }
+  }
+}
+`,
+		},
+	}
+
+	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	require.NoError(t, err)
+
+	for idx, c := range cases {
+		b, err := ioutil.ReadFile(c.schemaInput)
+		require.NoError(t, err, idx)
+
+		var schemaInput schemainput.SchemaInput
+		err = json.Unmarshal(b, &schemaInput)
+		require.NoError(t, err, idx)
+
+		schema, err := schemaInput.ToSchema(index)
+		require.NoError(t, err, idx)
+
+		cov := coverage.NewEmptyRepoCoverageStore(*index)
+		require.NoError(t, cov.AddSchema(*schema, schemaInput.SchemaLocator), idx)
+
+		b, err = json.MarshalIndent(cov, "", "  ")
+		require.NoError(t, err, idx)
+
+		require.JSONEq(t, c.expect, string(b), idx)
+	}
 }
 
 func TestRepoCoverageStoreMarshal(t *testing.T) {
@@ -77,7 +161,6 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
 							"version1": &coverage.SchemaCoverageStore{
 								SchemaMetaInfo: swagger.SchemaMetaInfo{
 									Name:           "schema1",
-									Version:        "2077-01-01",
 									SwaggerRelPath: "foo/bar.json",
 								},
 								Node: coverage.PropertyCoverageNode{
@@ -98,7 +181,6 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
       "path1:PUT": {
         "version1": {
           "name": "schema1",
-          "version": "2077-01-01",
           "swagger_rel_path": "foo/bar.json",
           "node": {
             "total_amount": 1,
@@ -135,7 +217,6 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
       "path1:PUT": {
         "version1": {
           "name": "schema1",
-          "version": "2077-01-01",
           "swagger_rel_path": "foo/bar.json",
           "node": {
             "total_amount": 1,
@@ -159,7 +240,6 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
 							"version1": &coverage.SchemaCoverageStore{
 								SchemaMetaInfo: swagger.SchemaMetaInfo{
 									Name:           "schema1",
-									Version:        "2077-01-01",
 									SwaggerRelPath: "foo/bar.json",
 								},
 								Node: coverage.PropertyCoverageNode{

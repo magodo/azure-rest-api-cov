@@ -14,6 +14,9 @@ type InitOption struct {
 	// Force inits workspace from scratch
 	Force bool
 
+	// RegenIndex regenerates the index
+	RegenIndex bool
+
 	// RepoHash specifies the commit hash of azure rest api spec repo to checkout.
 	// If this is empty string, then will not modify the repo head after clone.
 	RepoHash string
@@ -49,11 +52,13 @@ func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
 			return nil, nil, err
 		}
 	}
+	headRef, _ := repo.Repo.Head()
 	log.Println("Azure Repo ready")
 
 	indexPath := filepath.Join(dir, azureRepoIndexFilename)
+
 	// If repo HEAD changes, we need to regenerate repo index.
-	if repoChanged {
+	if repoChanged || opt.RegenIndex {
 		log.Println("Remove Azure Repo Index (if any) since repo HEAD changes")
 		os.Remove(indexPath)
 	}
@@ -69,7 +74,7 @@ func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
 
 	// Index not exported yet, need to generate the index and export it then.
 	log.Println("Generating Azure Repo Index...")
-	index, err = NewAzureRepoIndex(repo.SpecRootDir, "")
+	index, err = NewAzureRepoIndex(repo.SpecRootDir, headRef.Hash().String())
 	if err != nil {
 		return nil, nil, err
 	}
