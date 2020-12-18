@@ -1,31 +1,39 @@
-package swagger
+package coverage
 
 import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
+
 	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
 )
 
 type SchemaCoverageStore struct {
-	*SchemaMetaInfo
+	swagger.SchemaMetaInfo
 	Node PropertyCoverageNode `json:"node"`
 }
 
-func NewSchemaCoverageStore(info *SchemaMetaInfo) SchemaCoverageStore {
-	return SchemaCoverageStore{
-		SchemaMetaInfo: info,
+func NewSchemaCoverageStore(s swagger.Schema) (*SchemaCoverageStore, error) {
+	store := SchemaCoverageStore{
+		SchemaMetaInfo: s.SchemaMetaInfo,
 		Node: PropertyCoverageNode{
 			Children: PropertyCoverageNodes{},
 		},
 	}
+	for propRAddr, prop := range s.Properties {
+		if err := store.Add(addr.MustParseProperty(propRAddr), *prop); err != nil {
+			return nil, fmt.Errorf("adding property %q: %v", propRAddr, err)
+		}
+	}
+	return &store, nil
 }
 
 // Add adds a Property and record the coverage PropertyState in each property level.
 // If the property is granted, then nothing will happen.
 // If a property is added more than once, an error will be returned.
 // NOTE: The granted property will be ignored
-func (store *SchemaCoverageStore) Add(propAddr addr.Property, prop Property) error {
+func (store *SchemaCoverageStore) Add(propAddr addr.Property, prop swagger.Property) error {
 	if prop.PropertyState.IsGranted() {
 		return nil
 	}
@@ -63,7 +71,7 @@ type PropertyCoverageNodes map[addr.PropertySegment]*PropertyCoverageNode
 type PropertyCoverageNode struct {
 	TotalAmount   int                   `json:"total_amount"`
 	CoveredAmount int                   `json:"covered_amount"`
-	Children      PropertyCoverageNodes `json:"children"`
+	Children      PropertyCoverageNodes `json:"children,omitempty"`
 }
 
 func (nodes PropertyCoverageNodes) MarshalJSON() ([]byte, error) {

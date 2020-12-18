@@ -197,7 +197,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 
 	for variantRef := range potentialBaseRefSet {
 		ref := openapispec.MustCreateRef(variantRef)
-		name, _ := SchemaNameFromRef(ref)
+		name, _ := SchemaInfoFromRef(ref)
 
 		descValue := name
 		// If the 'x-ms-discriminator-value' is defined for the variant schemas, then it will take priority.
@@ -356,23 +356,6 @@ func (s *Schema) Merge(os Schema) error {
 	return nil
 }
 
-// CalcCoverage calculates the property coverage (<=1) of the schema/property.
-// Those granted properties are not counted during the calculation.
-func (s Schema) CalcCoverage() (*SchemaCoverageStore, error) {
-	metaInfo := &s.SchemaMetaInfo
-	emptyInfo := SchemaMetaInfo{}
-	if s.SchemaMetaInfo == emptyInfo {
-		metaInfo = nil
-	}
-	store := NewSchemaCoverageStore(metaInfo)
-	for propRAddr, prop := range s.Properties {
-		if err := store.Add(addr.MustParseProperty(propRAddr), *prop); err != nil {
-			return nil, fmt.Errorf("adding property %q: %v", propRAddr, err)
-		}
-	}
-	return &store, nil
-}
-
 // Grant inquiries the SchemaGrants to Add the granting information onto the Schema
 func (c *Schema) Grant(grants SchemaGrants) error {
 	grant, ok := grants[c.Ref()]
@@ -397,7 +380,11 @@ func (c *Schema) Grant(grants SchemaGrants) error {
 	return nil
 }
 
-func SchemaNameFromRef(ref openapispec.Ref) (name string, path string) {
+// NOTE: In case the ref is nil, it will return empty strings.
+func SchemaInfoFromRef(ref openapispec.Ref) (name string, path string) {
+	if ref.GetURL() == nil {
+		return "", ""
+	}
 	fragments := strings.Split(ref.GetURL().Fragment, "/")
 	return fragments[len(fragments)-1], ref.GetURL().Path
 }

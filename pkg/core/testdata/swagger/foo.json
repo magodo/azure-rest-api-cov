@@ -23,6 +23,15 @@
       }
     },
     "/{host}/{foo}/def_regular": {
+      "get": {
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/def_regular"
+            }
+          }
+        }
+      },
       "put": {
         "parameters": [
           {

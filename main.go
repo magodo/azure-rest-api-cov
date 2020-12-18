@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/coverage"
+
 	"github.com/magodo/azure-rest-api-cov/pkg/core/schemainput"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
@@ -73,10 +75,7 @@ func main() {
 			}
 			log.Fatal(err)
 		}
-		cov, err := schema.CalcCoverage()
-		if err != nil {
-			log.Fatal(err)
-		}
+		cov, err := coverage.NewSchemaCoverageStore(*schema)
 		b, err := json.MarshalIndent(cov, "", "  ")
 		if err != nil {
 			log.Fatal(err)

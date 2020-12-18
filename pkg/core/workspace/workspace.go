@@ -69,7 +69,7 @@ func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
 
 	// Index not exported yet, need to generate the index and export it then.
 	log.Println("Generating Azure Repo Index...")
-	index, err = NewAzureRepoIndex(repo.SpecRootDir)
+	index, err = NewAzureRepoIndex(repo.SpecRootDir, "")
 	if err != nil {
 		return nil, nil, err
 	}
