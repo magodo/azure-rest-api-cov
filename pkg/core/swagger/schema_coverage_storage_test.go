@@ -83,7 +83,7 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store := NewSchemaCoverageStore()
+		store := NewSchemaCoverageStore(nil)
 		for idx2, prop := range c.propertiesToAdd {
 			require.NoError(t, store.Add(prop.addr, prop.prop), fmt.Sprintf("%d.%d", idx, idx2))
 		}

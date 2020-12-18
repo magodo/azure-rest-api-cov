@@ -21,11 +21,17 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 	}{
 		{
 			path: grantBaseDir,
-			expect: map[SchemaAddr]SchemaGrant{
-				{SwaggerRelPath: "a/b/c/grant.json", Name: "schema1"}: {
+			expect: map[string]SchemaGrant{
+				SchemaMetaInfo{
+					Name:           "schema1",
+					SwaggerRelPath: "a/b/c/grant.json",
+				}.Ref(): {
 					Comment: "granted",
 				},
-				{SwaggerRelPath: "a/b/c/grant.json", Name: "schema2"}: {
+				SchemaMetaInfo{
+					Name:           "schema2",
+					SwaggerRelPath: "a/b/c/grant.json",
+				}.Ref(): {
 					Properties: map[string]string{
 						"prop1":         "granted",
 						"prop2.prop2_1": "granted",

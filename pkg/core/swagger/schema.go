@@ -14,18 +14,19 @@ import (
 
 const swaggerExtensionMSDiscriminatorValue = "x-ms-discriminator-value"
 
-type SchemaAddr struct {
-	SwaggerRelPath string `json:"swagger_rel_path"`
+type SchemaMetaInfo struct {
 	Name           string `json:"name"`
+	Version        string `json:"version"`
+	SwaggerRelPath string `json:"swagger_rel_path"`
 }
 
-func (a SchemaAddr) String() string {
-	s := a.SwaggerRelPath + "#/definitions/" + a.Name
-	return s
+// Ref returns a hypothetical schema reference. It is mainly used as a unique ID of the schema, to be used in log message or map key.
+func (i SchemaMetaInfo) Ref() string {
+	return i.SwaggerRelPath + "#/definitions/" + i.Name
 }
 
 type Schema struct {
-	SchemaAddr
+	SchemaMetaInfo
 	Properties Properties `json:"properties"`
 
 	// Whether this property is granted to be not to implement in Terraform
@@ -52,9 +53,10 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 	normalizedSchemaRef := normalizePaths(ref.String(), swaggerURI)
 
 	swgSchema := &Schema{
-		SchemaAddr: SchemaAddr{
-			SwaggerRelPath: swaggerRelPath,
+		SchemaMetaInfo: SchemaMetaInfo{
 			Name:           schemaName,
+			Version:        swagger.Info.Version,
+			SwaggerRelPath: swaggerRelPath,
 		},
 		Properties: map[string]*Property{
 			"": {
@@ -299,7 +301,7 @@ func (s Schema) HasGrantedAny() bool {
 // NOTE: This has to be called before the schema goes under granting process.
 func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 	if s.HasGrantedAny() {
-		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.SchemaAddr)
+		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
 	}
 	var propagateToChild bool
 	for existRAddr, prop := range s.Properties {
@@ -338,10 +340,10 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 // NOTE: This has to be called before the schema goes under granting process.
 func (s *Schema) Merge(os Schema) error {
 	if s.HasGrantedAny() {
-		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.SchemaAddr)
+		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
 	}
-	if s.SchemaAddr != os.SchemaAddr {
-		return fmt.Errorf("trying to merge different schemas: %s and %s", s.SchemaAddr, os.SchemaAddr)
+	if s.Ref() != os.Ref() {
+		return fmt.Errorf("trying to merge different schemas: %s and %s", s.Ref(), os.Ref())
 	}
 
 	for pAddr, prop := range os.Properties {
@@ -357,7 +359,12 @@ func (s *Schema) Merge(os Schema) error {
 // CalcCoverage calculates the property coverage (<=1) of the schema/property.
 // Those granted properties are not counted during the calculation.
 func (s Schema) CalcCoverage() (*SchemaCoverageStore, error) {
-	store := NewSchemaCoverageStore()
+	metaInfo := &s.SchemaMetaInfo
+	emptyInfo := SchemaMetaInfo{}
+	if s.SchemaMetaInfo == emptyInfo {
+		metaInfo = nil
+	}
+	store := NewSchemaCoverageStore(metaInfo)
 	for propRAddr, prop := range s.Properties {
 		if err := store.Add(addr.MustParseProperty(propRAddr), *prop); err != nil {
 			return nil, fmt.Errorf("adding property %q: %v", propRAddr, err)
@@ -368,7 +375,7 @@ func (s Schema) CalcCoverage() (*SchemaCoverageStore, error) {
 
 // Grant inquiries the SchemaGrants to Add the granting information onto the Schema
 func (c *Schema) Grant(grants SchemaGrants) error {
-	grant, ok := grants[c.SchemaAddr]
+	grant, ok := grants[c.Ref()]
 	if !ok {
 		// There is no grants for this schema
 		return nil
@@ -382,7 +389,7 @@ func (c *Schema) Grant(grants SchemaGrants) error {
 	for propRelAddr, grantComment := range grant.Properties {
 		property, ok := c.Properties[propRelAddr]
 		if !ok {
-			return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propRelAddr, c.SchemaAddr)
+			return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propRelAddr, c.Ref())
 		}
 		property.PropertyState = NewPropertyState(PropStateGranted, grantComment)
 	}

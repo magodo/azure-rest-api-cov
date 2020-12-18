@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type SchemaGrants map[SchemaAddr]SchemaGrant
+type SchemaGrants map[string]SchemaGrant // key is the Schema.Ref()
 
 type SchemaGrant struct {
 	// The grant comment why the schema is granted.
@@ -25,7 +25,7 @@ func (g SchemaGrant) IsSchemaGranted() bool {
 // NewGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
 // folder layout as defined by the SchemaAddr.
 func NewSchemaGrantsFromFiles(grantBaseDir string) (SchemaGrants, error) {
-	var swgGrant SchemaGrants = map[SchemaAddr]SchemaGrant{}
+	var swgGrant = SchemaGrants{}
 	return swgGrant, filepath.Walk(grantBaseDir, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() ||
 			(!strings.HasSuffix(info.Name(), ".json") &&
@@ -50,7 +50,10 @@ func NewSchemaGrantsFromFiles(grantBaseDir string) (SchemaGrants, error) {
 		}
 
 		for schemaName, schemaGrant := range infileGrants {
-			swgGrant[SchemaAddr{relPath, schemaName}] = schemaGrant
+			swgGrant[SchemaMetaInfo{
+				Name:           schemaName,
+				SwaggerRelPath: relPath,
+			}.Ref()] = schemaGrant
 		}
 		return nil
 	})

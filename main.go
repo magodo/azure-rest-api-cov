@@ -42,7 +42,7 @@ func main() {
 	}
 
 	// Initialize the workspace, which will return the repo and repo index.
-	repo, index, err := workspace.Init(*workspaceDir, workspace.InitOption{
+	_, index, err := workspace.Init(*workspaceDir, workspace.InitOption{
 		Force:    *force,
 		RepoHash: *repoHash,
 	})

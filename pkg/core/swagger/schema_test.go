@@ -68,9 +68,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_foo",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_foo",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"foo": {
@@ -96,9 +97,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_regular",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_regular",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop_primitive": {
@@ -157,9 +159,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_prop_in_file_ref",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_prop_in_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop": {
@@ -185,9 +188,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_prop_cross_file_ref",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_prop_cross_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop": {
@@ -213,9 +217,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_prop_self_ref",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_prop_self_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop": {
@@ -241,9 +246,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_array_ref",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_array_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"foo": {
@@ -270,9 +276,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_in_file_ref",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_in_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"foo": {
@@ -299,9 +306,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_cross_file_ref",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_cross_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"bar": {
@@ -328,9 +336,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_self_ref",
 			err:         nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_self_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"": {
@@ -355,9 +364,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "foo.json",
 			schemaName:  "def_all_of",
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_all_of",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop_nested": {
@@ -431,9 +441,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "foo.json",
 			schemaName:  "def_base",
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_base",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"{def_variant1}": {
@@ -469,9 +480,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "foo.json",
 			schemaName:  "def_to_def_base",
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_to_def_base",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop": {
@@ -506,9 +518,10 @@ func TestSchema(t *testing.T) {
 			schemaName:  "def_base_template",
 			repeat:      10, // repeat multiple times to ensure the result is consistent
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_base_template",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"{def_variant1}": {
@@ -544,9 +557,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "foo.json",
 			schemaName:  "def_parent",
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_parent",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"{def_child1}": {
@@ -582,9 +596,10 @@ func TestSchema(t *testing.T) {
 			specRelPath: "nested_discriminator.json",
 			schemaName:  "def_a",
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "nested_discriminator.json",
 					Name:           "def_a",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"{def_b}": {
@@ -688,9 +703,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("foo"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_foo",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"foo": {
@@ -719,9 +735,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			},
 			err: nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_foo",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"foo": {
@@ -750,9 +767,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			},
 			err: nil,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_regular",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop_primitive": {
@@ -812,9 +830,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_prop_in_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop/foo": {
@@ -842,9 +861,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_prop_self_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop": {
@@ -871,9 +891,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_prop_cross_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop/bar": {
@@ -901,9 +922,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("foo"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_in_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"foo": {
@@ -931,9 +953,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("bar"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_cross_file_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"bar": {
@@ -961,9 +984,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty(""),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_self_ref",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"": {
@@ -990,9 +1014,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("{def_variant1}"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_base",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"{def_variant1}/type": {
@@ -1030,9 +1055,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("prop"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_to_def_base",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop{def_variant1}": {
@@ -1073,9 +1099,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			},
 			repeat: 10, // ensure the result is consistent
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_to_def_base_template",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"prop{def_variant1}": {
@@ -1115,9 +1142,10 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				addr.MustParseProperty("{def_child1}"),
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_parent",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"{def_child1}/type": {
@@ -1199,9 +1227,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("p1"),
 					expect: Schema{
-						SchemaAddr: SchemaAddr{
+						SchemaMetaInfo: SchemaMetaInfo{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_cov",
+							Version:        "2020-12-01",
 						},
 						Properties: map[string]*Property{
 							"p1": {
@@ -1235,9 +1264,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("p1"),
 					expect: Schema{
-						SchemaAddr: SchemaAddr{
+						SchemaMetaInfo: SchemaMetaInfo{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_cov",
+							Version:        "2020-12-01",
 						},
 						Properties: map[string]*Property{
 							"p1": {
@@ -1278,9 +1308,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("p2/p2_1"),
 					expect: Schema{
-						SchemaAddr: SchemaAddr{
+						SchemaMetaInfo: SchemaMetaInfo{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_cov",
+							Version:        "2020-12-01",
 						},
 						Properties: map[string]*Property{
 							"p1": {
@@ -1324,9 +1355,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("p2"),
 					expect: Schema{
-						SchemaAddr: SchemaAddr{
+						SchemaMetaInfo: SchemaMetaInfo{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_cov",
+							Version:        "2020-12-01",
 						},
 						Properties: map[string]*Property{
 							"p1": {
@@ -1378,9 +1410,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("p2"),
 					expect: Schema{
-						SchemaAddr: SchemaAddr{
+						SchemaMetaInfo: SchemaMetaInfo{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_cov",
+							Version:        "2020-12-01",
 						},
 						Properties: map[string]*Property{
 							"p1": {
@@ -1413,9 +1446,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("p2/p2_1"),
 					expect: Schema{
-						SchemaAddr: SchemaAddr{
+						SchemaMetaInfo: SchemaMetaInfo{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_cov",
+							Version:        "2020-12-01",
 						},
 						Properties: map[string]*Property{
 							"p1": {
@@ -1467,9 +1501,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				{
 					swgPropAddr: addr.MustParseProperty("{def_variant1}/type"),
 					expect: Schema{
-						SchemaAddr: SchemaAddr{
+						SchemaMetaInfo: SchemaMetaInfo{
 							SwaggerRelPath: "foo.json",
 							Name:           "def_base",
+							Version:        "2020-12-01",
 						},
 						Properties: map[string]*Property{
 							"{def_variant1}/type": {
@@ -1540,6 +1575,7 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_regular",
+	"version": "2020-12-01",
     "properties": {
         "prop_array_of_primitive": {
 		  "state": "Uncovered"
@@ -1562,6 +1598,7 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_prop_in_file_ref",
+	"version": "2020-12-01",
     "properties": {
         "prop": {
 		  "state": "Uncovered"
@@ -1575,6 +1612,7 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_all_of",
+	"version": "2020-12-01",
     "properties": {
 		"prop_nested": {
 		  "state": "Uncovered"
@@ -1604,6 +1642,7 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_cov",
+	"version": "2020-12-01",
     "properties": {
 		"p1": {
 		  "state": "Uncovered"
@@ -1640,6 +1679,7 @@ func TestSchema_Unmarshal(t *testing.T) {
 			input: `{
    "swagger_rel_path": "foo.json",
    "name": "def_cov",
+   "version": "2020-12-01",
    "properties": {
 		"p1": {
 		  "state": "Uncovered"
@@ -1653,9 +1693,10 @@ func TestSchema_Unmarshal(t *testing.T) {
     }
 }`,
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_cov",
+					Version:        "2020-12-01",
 				},
 				Properties: Properties{
 					"p1": &Property{
@@ -1758,9 +1799,10 @@ func TestSchema_Merge(t *testing.T) {
 		{
 			schemas: []Schema{
 				{
-					SchemaAddr: SchemaAddr{
+					SchemaMetaInfo: SchemaMetaInfo{
 						SwaggerRelPath: "foo.json",
 						Name:           "def_base",
+						Version:        "2020-12-01",
 					},
 					Properties: map[string]*Property{
 						"{def_variant1}/type": {
@@ -1772,9 +1814,10 @@ func TestSchema_Merge(t *testing.T) {
 					},
 				},
 				{
-					SchemaAddr: SchemaAddr{
+					SchemaMetaInfo: SchemaMetaInfo{
 						SwaggerRelPath: "foo.json",
 						Name:           "def_base",
+						Version:        "2020-12-01",
 					},
 					Properties: map[string]*Property{
 						"{def_variant1}/type": {
@@ -1787,9 +1830,10 @@ func TestSchema_Merge(t *testing.T) {
 				},
 			},
 			expect: Schema{
-				SchemaAddr: SchemaAddr{
+				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_base",
+					Version:        "2020-12-01",
 				},
 				Properties: map[string]*Property{
 					"{def_variant1}/type": {
@@ -1824,18 +1868,27 @@ func TestSchema_Grant(t *testing.T) {
 	}{
 		{
 			schema: Schema{
-				SchemaAddr: SchemaAddr{"path", "schema1"},
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "path",
+					Name:           "schema1",
+				},
 				Properties: map[string]*Property{
 					"prop1": {},
 				},
 			},
-			grants: map[SchemaAddr]SchemaGrant{
-				{SwaggerRelPath: "path", Name: "schema1"}: {
+			grants: SchemaGrants{
+				SchemaMetaInfo{
+					SwaggerRelPath: "path",
+					Name:           "schema1",
+				}.Ref(): {
 					Comment: "granted",
 				},
 			},
 			expectSchema: Schema{
-				SchemaAddr: SchemaAddr{"path", "schema1"},
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "path",
+					Name:           "schema1",
+				},
 				Properties: map[string]*Property{
 					"prop1": {},
 				},
@@ -1845,7 +1898,10 @@ func TestSchema_Grant(t *testing.T) {
 		},
 		{
 			schema: Schema{
-				SchemaAddr: SchemaAddr{"path", "schema1"},
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "path",
+					Name:           "schema1",
+				},
 				Properties: map[string]*Property{
 					"prop1":   {},
 					"prop2":   {},
@@ -1853,8 +1909,11 @@ func TestSchema_Grant(t *testing.T) {
 					"prop3":   {},
 				},
 			},
-			grants: map[SchemaAddr]SchemaGrant{
-				{SwaggerRelPath: "path", Name: "schema1"}: {
+			grants: map[string]SchemaGrant{
+				SchemaMetaInfo{
+					SwaggerRelPath: "path",
+					Name:           "schema1",
+				}.Ref(): {
 					Properties: map[string]string{
 						"prop2_2": "granted",
 						"prop3":   "granted",
@@ -1862,7 +1921,10 @@ func TestSchema_Grant(t *testing.T) {
 				},
 			},
 			expectSchema: Schema{
-				SchemaAddr: SchemaAddr{"path", "schema1"},
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "path",
+					Name:           "schema1",
+				},
 				Properties: map[string]*Property{
 					"prop1": {},
 					"prop2": {},

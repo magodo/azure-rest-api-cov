@@ -8,14 +8,15 @@ import (
 )
 
 type SchemaCoverageStore struct {
-	SchemaAddr SchemaAddr           `json:"schema_addr"`
-	Node       PropertyCoverageNode `json:"node"`
+	*SchemaMetaInfo
+	Node PropertyCoverageNode `json:"node"`
 }
 
-func NewSchemaCoverageStore() SchemaCoverageStore {
+func NewSchemaCoverageStore(info *SchemaMetaInfo) SchemaCoverageStore {
 	return SchemaCoverageStore{
+		SchemaMetaInfo: info,
 		Node: PropertyCoverageNode{
-			Children: map[addr.PropertySegment]*PropertyCoverageNode{},
+			Children: PropertyCoverageNodes{},
 		},
 	}
 }
