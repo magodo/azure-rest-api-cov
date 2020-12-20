@@ -1,174 +1,87 @@
-package addr
+package addr_test
 
 import (
 	"testing"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+
 	"github.com/stretchr/testify/require"
 )
 
-func TestParseProperty(t *testing.T) {
-	cases := []struct {
-		input  string
-		expect Property
-		error  bool
-	}{
-		// 0
-		{
-			input:  "",
-			expect: nil,
-		},
-		// 1
-		{
-			input:  "p1",
-			expect: Property{{name: "p1"}},
-		},
-		// 2
-		{
-			input:  "p1/p2",
-			expect: Property{{name: "p1"}, {name: "p2"}},
-		},
-		// 3
-		{
-			input:  "p1/p2{v1}",
-			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
-		},
-		// 4
-		{
-			input:  `p1\//p2`,
-			expect: Property{{name: "p1/"}, {name: "p2"}},
-		},
-		// 5
-		{
-			input:  `p1\\//p2`,
-			expect: Property{{name: `p1\`}, {}, {name: "p2"}},
-		},
-		// 6
-		{
-			input:  `p1\\/p2`,
-			expect: Property{{name: `p1\`}, {name: "p2"}},
-		},
-		// 7
-		{
-			input:  `p1\{/p2`,
-			expect: Property{{name: `p1{`}, {name: "p2"}},
-		},
-		// 8
-		{
-			input:  `p1\}/p2`,
-			expect: Property{{name: `p1}`}, {name: "p2"}},
-		},
-		// 9
-		{
-			input:  `p1/p2{v1\}}`,
-			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1}`}},
-		},
-		// 10
-		{
-			input:  `p1/p2{v1\{}`,
-			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1{`}},
-		},
-		// 11
-		{
-			input:  `p1/p2{v1\/}`,
-			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1/`}},
-		},
-		// 12
-		{
-			input:  `p1/p2{v1\\}`,
-			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1\`}},
-		},
-		// 13
-		{
-			input: "p1/p2}",
-			error: true,
-		},
-	}
-
-	for idx, c := range cases {
-		actual, err := ParseProperty(c.input)
-		if c.error {
-			require.Error(t, err, idx)
-			continue
-		}
-		require.NoError(t, err, idx)
-		require.Equal(t, c.expect, actual, idx)
-	}
-}
-
 func TestProperty_Contains(t *testing.T) {
 	cases := []struct {
-		addr     Property
-		oaddr    Property
+		addr     addr.Property
+		oaddr    addr.Property
 		contains bool
 	}{
 		// 0
 		{
 			addr: nil,
-			oaddr: Property{
-				{name: "p1"},
+			oaddr: addr.Property{
+				{Name: "p1"},
 			},
 			contains: true,
 		},
 		// 1
 		{
-			addr: Property{
-				{name: "p1"},
+			addr: addr.Property{
+				{Name: "p1"},
 			},
-			oaddr: Property{
-				{name: "p1"},
-				{name: "p2"},
+			oaddr: addr.Property{
+				{Name: "p1"},
+				{Name: "p2"},
 			},
 			contains: true,
 		},
 		// 2
 		{
-			addr: Property{
-				{name: "p1"},
-				{name: "p2"},
+			addr: addr.Property{
+				{Name: "p1"},
+				{Name: "p2"},
 			},
-			oaddr: Property{
-				{name: "p1"},
+			oaddr: addr.Property{
+				{Name: "p1"},
 			},
 			contains: false,
 		},
 		// 3
 		{
-			addr: Property{
-				{name: "p1"},
+			addr: addr.Property{
+				{Name: "p1"},
 			},
-			oaddr: Property{
-				{name: "p1", discriminatorValue: "v1"},
+			oaddr: addr.Property{
+				{Name: "p1", DiscriminatorValue: "v1"},
 			},
 			contains: true,
 		},
 		// 4
 		{
-			addr: Property{
-				{name: "p1", discriminatorValue: "v1"},
+			addr: addr.Property{
+				{Name: "p1", DiscriminatorValue: "v1"},
 			},
-			oaddr: Property{
-				{name: "p1", discriminatorValue: "v1"},
+			oaddr: addr.Property{
+				{Name: "p1", DiscriminatorValue: "v1"},
 			},
 			contains: false,
 		},
 		// 5
 		{
-			addr: Property{
-				{name: "p1", discriminatorValue: "v1"},
+			addr: addr.Property{
+				{Name: "p1", DiscriminatorValue: "v1"},
 			},
-			oaddr: Property{
-				{name: "p1", discriminatorValue: "v2"},
+			oaddr: addr.Property{
+				{Name: "p1", DiscriminatorValue: "v2"},
 			},
 			contains: false,
 		},
 		// 6
 		{
-			addr: Property{
-				{name: "p1"},
+			addr: addr.Property{
+				{Name: "p1"},
 			},
-			oaddr: Property{
-				{name: "p1", discriminatorValue: "v2"},
-				{name: "p2"},
+			oaddr: addr.Property{
+				{Name: "p1", DiscriminatorValue: "v2"},
+				{Name: "p2"},
 			},
 			contains: true,
 		},
@@ -180,31 +93,31 @@ func TestProperty_Contains(t *testing.T) {
 
 func TestProperty_Equals(t *testing.T) {
 	cases := []struct {
-		addr  Property
-		oaddr Property
+		addr  addr.Property
+		oaddr addr.Property
 		equal bool
 	}{
 		{
-			addr:  Property{},
-			oaddr: Property{},
+			addr:  addr.Property{},
+			oaddr: addr.Property{},
 			equal: true,
 		},
 		{
-			addr: Property{
-				{name: "p1"},
+			addr: addr.Property{
+				{Name: "p1"},
 			},
-			oaddr: Property{
-				{name: "p1"},
+			oaddr: addr.Property{
+				{Name: "p1"},
 			},
 			equal: true,
 		},
 		{
-			addr: Property{
-				{name: "p1"},
-				{name: "p2"},
+			addr: addr.Property{
+				{Name: "p1"},
+				{Name: "p2"},
 			},
-			oaddr: Property{
-				{name: "p1"},
+			oaddr: addr.Property{
+				{Name: "p1"},
 			},
 			equal: false,
 		},
@@ -216,73 +129,73 @@ func TestProperty_Equals(t *testing.T) {
 
 func TestProperty_String(t *testing.T) {
 	cases := []struct {
-		input  Property
+		input  addr.Property
 		expect string
 	}{
 		// 0
 		{
-			input:  Property{},
+			input:  addr.Property{},
 			expect: "",
 		},
 		// 1
 		{
-			input:  Property{{name: "p1"}},
+			input:  addr.Property{{Name: "p1"}},
 			expect: "p1",
 		},
 		// 2
 		{
-			input:  Property{{name: "p1"}, {name: "p2"}},
+			input:  addr.Property{{Name: "p1"}, {Name: "p2"}},
 			expect: "p1/p2",
 		},
 		// 3
 		{
-			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
+			input:  addr.Property{{Name: "p1"}, {Name: "p2", DiscriminatorValue: "v1"}},
 			expect: "p1/p2{v1}",
 		},
 		// 4
 		{
-			input:  Property{{name: "p1/"}, {name: "p2"}},
+			input:  addr.Property{{Name: "p1/"}, {Name: "p2"}},
 			expect: `p1\//p2`,
 		},
 		// 5
 		{
-			input:  Property{{name: `p1\`}, {}, {name: "p2"}},
+			input:  addr.Property{{Name: `p1\`}, {}, {Name: "p2"}},
 			expect: `p1\\//p2`,
 		},
 		// 6
 		{
-			input:  Property{{name: `p1\`}, {name: "p2"}},
+			input:  addr.Property{{Name: `p1\`}, {Name: "p2"}},
 			expect: `p1\\/p2`,
 		},
 		// 7
 		{
-			input:  Property{{name: `p1{`}, {name: "p2"}},
+			input:  addr.Property{{Name: `p1{`}, {Name: "p2"}},
 			expect: `p1\{/p2`,
 		},
 		// 8
 		{
-			input:  Property{{name: `p1}`}, {name: "p2"}},
-			expect: `p1\}/p2`,
+			input:  addr.Property{{Name: `p1}`}, {Name: "p2"}},
+			expect: `p1}/p2`,
 		},
 		// 9
 		{
-			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1}`}},
+			input:  addr.Property{{Name: "p1"}, {Name: "p2", DiscriminatorValue: `v1}`}},
 			expect: `p1/p2{v1\}}`,
 		},
 		// 10
 		{
-			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1{`}},
-			expect: `p1/p2{v1\{}`,
+			input:  addr.Property{{Name: "p1"}, {Name: "p2", DiscriminatorValue: `v1{`}},
+			expect: `p1/p2{v1{}`,
 		},
 		// 11
 		{
-			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1/`}},
-			expect: `p1/p2{v1\/}`,
+			input:  addr.Property{{Name: "p1"}, {Name: "p2", DiscriminatorValue: `v1/`}},
+			expect: `p1/p2{v1/}`,
 		},
 		// 12
 		{
 			expect: `p1/p2{v1\\}`,
-			input:  Property{{name: "p1"}, {name: "p2", discriminatorValue: `v1\`}},
+			input:  addr.Property{{Name: "p1"}, {Name: "p2", DiscriminatorValue: `v1\`}},
 		},
 	}
 	for idx, c := range cases {
@@ -292,19 +205,19 @@ func TestProperty_String(t *testing.T) {
 
 func TestProperty_MarshalJSON(t *testing.T) {
 	cases := []struct {
-		addr   Property
+		addr   addr.Property
 		expect string
 	}{
 		{
-			addr:   Property{},
+			addr:   addr.Property{},
 			expect: `""`,
 		},
 		{
-			addr:   Property{{name: "p1"}, {name: "p2"}},
+			addr:   addr.Property{{Name: "p1"}, {Name: "p2"}},
 			expect: `"p1/p2"`,
 		},
 		{
-			addr:   Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
+			addr:   addr.Property{{Name: "p1"}, {Name: "p2", DiscriminatorValue: "v1"}},
 			expect: `"p1/p2{v1}"`,
 		},
 	}
@@ -323,7 +236,7 @@ func TestProperty_MarshalJSON(t *testing.T) {
 func TestProperty_UnmarshalJSON(t *testing.T) {
 	cases := []struct {
 		input  string
-		expect Property
+		expect addr.Property
 	}{
 		{
 			input:  `""`,
@@ -331,15 +244,15 @@ func TestProperty_UnmarshalJSON(t *testing.T) {
 		},
 		{
 			input:  `"p1/p2"`,
-			expect: Property{{name: "p1"}, {name: "p2"}},
+			expect: addr.Property{{Name: "p1"}, {Name: "p2"}},
 		},
 		{
 			input:  `"p1/p2{v1}"`,
-			expect: Property{{name: "p1"}, {name: "p2", discriminatorValue: "v1"}},
+			expect: addr.Property{{Name: "p1"}, {Name: "p2", DiscriminatorValue: "v1"}},
 		},
 	}
 	for idx, c := range cases {
-		var addr Property
+		var addr addr.Property
 		err := addr.UnmarshalJSON([]byte(c.input))
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, addr, idx)

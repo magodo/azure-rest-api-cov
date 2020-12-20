@@ -2,14 +2,8 @@ package addr
 
 import (
 	"encoding/json"
-	"fmt"
-	"regexp"
 	"strings"
 )
-
-const PropertyAddrSep = "/"
-const propertyDiscriminatorStartMark = "{"
-const propertyDiscriminatorEndMark = "}"
 
 type Property []PropertySegment
 
@@ -20,33 +14,6 @@ func MustParseProperty(addr string) Property {
 	}
 
 	return a
-}
-
-func ParseProperty(addr string) (Property, error) {
-	if strings.Trim(addr, " ") == "" {
-		return nil, nil
-	}
-	potentialSplits := strings.Split(addr, PropertyAddrSep)
-	var splits []string
-	var crossProp string
-	for i, prop := range potentialSplits {
-		p := regexp.MustCompile(`(\\+)$`)
-		if m := p.FindStringSubmatch(prop); i != len(potentialSplits)-1 && len(m) == 2 && len(m[1])%2 == 1 {
-			crossProp += prop + `/`
-			continue
-		}
-		splits = append(splits, crossProp+prop)
-		crossProp = ""
-	}
-	var props Property
-	for _, prop := range splits {
-		segment, err := ParsePropertySegment(prop)
-		if err != nil {
-			return Property{}, err
-		}
-		props = append(props, segment)
-	}
-	return props, nil
 }
 
 func (addr Property) Contains(oaddr Property) bool {
@@ -61,7 +28,7 @@ func (addr Property) Contains(oaddr Property) bool {
 		}
 		addrLastProp := addr[lastIdx]
 		oaddrLastProp := oaddr[lastIdx]
-		if addrLastProp.discriminatorValue != "" || oaddrLastProp.discriminatorValue == "" {
+		if addrLastProp.DiscriminatorValue != "" || oaddrLastProp.DiscriminatorValue == "" {
 			return false
 		}
 	}
@@ -69,12 +36,12 @@ func (addr Property) Contains(oaddr Property) bool {
 	for i := range addr {
 		addrProp := addr[i]
 		oaddrProp := oaddr[i]
-		if addrProp.name != oaddrProp.name {
+		if addrProp.Name != oaddrProp.Name {
 			return false
 		}
 
-		if addrProp.discriminatorValue != "" && oaddrProp.discriminatorValue == "" ||
-			addrProp.discriminatorValue != "" && oaddrProp.discriminatorValue != "" && addrProp.discriminatorValue != oaddrProp.discriminatorValue {
+		if addrProp.DiscriminatorValue != "" && oaddrProp.DiscriminatorValue == "" ||
+			addrProp.DiscriminatorValue != "" && oaddrProp.DiscriminatorValue != "" && addrProp.DiscriminatorValue != oaddrProp.DiscriminatorValue {
 			return false
 		}
 	}
@@ -90,10 +57,10 @@ func (addr Property) Equals(oaddr Property) bool {
 	for i := range addr {
 		addrProp := addr[i]
 		oaddrProp := oaddr[i]
-		if addrProp.name != oaddrProp.name {
+		if addrProp.Name != oaddrProp.Name {
 			return false
 		}
-		if addrProp.discriminatorValue != oaddrProp.discriminatorValue {
+		if addrProp.DiscriminatorValue != oaddrProp.DiscriminatorValue {
 			return false
 		}
 	}
@@ -118,12 +85,12 @@ func (addr Property) AsVariant(v string) Property {
 	if len(newAddr) == 0 {
 		newAddr = Property{
 			{
-				discriminatorValue: v,
+				DiscriminatorValue: v,
 			},
 		}
 		return newAddr
 	}
-	newAddr[len(newAddr)-1].discriminatorValue = v
+	newAddr[len(newAddr)-1].DiscriminatorValue = v
 	return newAddr
 }
 
@@ -140,7 +107,7 @@ func (addr Property) String() string {
 		props = append(props, prop.String())
 	}
 
-	return strings.Join(props, PropertyAddrSep)
+	return strings.Join(props, string(PropertyDelim))
 }
 
 func (addr Property) MarshalJSON() ([]byte, error) {
@@ -158,69 +125,10 @@ func (addr *Property) UnmarshalJSON(b []byte) error {
 }
 
 type PropertySegment struct {
-	name string
+	Name string
 
-	// discriminatorValue is non-empty only when the property is a derived model.
-	discriminatorValue string
-}
-
-func ParsePropertySegment(addr string) (PropertySegment, error) {
-
-	findDiscriminatorMarkIndex := func(mark string) (int, error) {
-		p1 := regexp.MustCompile(fmt.Sprintf(`(([^%[1]s\\]*)|(\\+))(%[1]s)`, mark))
-		matches := p1.FindAllStringSubmatchIndex(addr, -1)
-		discStartIdx := -1
-		for _, m := range matches {
-			idx := -1
-			if m[6] != -1 {
-				backSlashes := addr[m[6]:m[7]]
-				if len(backSlashes)%2 == 0 {
-					idx = m[8]
-				}
-			} else {
-				idx = m[8]
-			}
-			if idx != -1 {
-				if discStartIdx != -1 {
-					return 0, fmt.Errorf(`invalid property notation: multiple unescaped %ss: %q`,
-						addr, mark)
-				}
-				discStartIdx = idx
-			}
-		}
-		return discStartIdx, nil
-	}
-
-	discStartIdx, err := findDiscriminatorMarkIndex(propertyDiscriminatorStartMark)
-	if err != nil {
-		return PropertySegment{}, err
-	}
-	discEndIdx, err := findDiscriminatorMarkIndex(propertyDiscriminatorEndMark)
-	if err != nil {
-		return PropertySegment{}, err
-	}
-	if discStartIdx == -1 && discEndIdx == -1 {
-		return PropertySegment{name: unEscapeProperty(addr)}, nil
-	}
-
-	if discStartIdx == -1 {
-		return PropertySegment{}, fmt.Errorf(`invalid property notation: no paring discriminator start mark: %q`, addr)
-	}
-	if discEndIdx == -1 {
-		return PropertySegment{}, fmt.Errorf(`invalid property notation: no paring discriminator end mark: %q`, addr)
-	}
-	if discEndIdx != len(addr)-1 {
-		return PropertySegment{}, fmt.Errorf(`invalid property notation: content after discriminator end mark: %q`, addr)
-	}
-	if discStartIdx >= discEndIdx {
-		return PropertySegment{}, fmt.Errorf(`invalid property notation: discriminator start mark (%d) after discriminator end mark (%d): %q`,
-			discStartIdx, discEndIdx, addr)
-	}
-
-	return PropertySegment{
-		name:               unEscapeProperty(unEscapeProperty(addr[:discStartIdx])),
-		discriminatorValue: unEscapeProperty(unEscapeProperty(addr[discStartIdx+1 : discEndIdx])),
-	}, nil
+	// DiscriminatorValue is non-empty only when the property is a derived model.
+	DiscriminatorValue string
 }
 
 func MustParsePropertySegment(addr string) PropertySegment {
@@ -233,32 +141,39 @@ func MustParsePropertySegment(addr string) PropertySegment {
 }
 
 func (prop PropertySegment) String() string {
-	v := EscapeProperty(prop.name)
-	if prop.discriminatorValue != "" {
-		v += EncloseVariant(EscapeProperty(prop.discriminatorValue))
+	v := EscapePropertyName(prop.Name)
+	if prop.DiscriminatorValue != "" {
+		v += EncloseVariant(EscapeDiscriminatorValue(prop.DiscriminatorValue))
 	}
 	return v
 }
 
 func EncloseVariant(v string) string {
-	return propertyDiscriminatorStartMark + v + propertyDiscriminatorEndMark
+	return string(leftDiscriminatorDelim) + v + string(rightDiscriminatorDelim)
 }
 
-func EscapeProperty(v string) string {
-	v = strings.ReplaceAll(v, `\`, `\\`)
-	v = strings.ReplaceAll(v, propertyDiscriminatorStartMark, `\`+propertyDiscriminatorStartMark)
-	v = strings.ReplaceAll(v, propertyDiscriminatorEndMark, `\`+propertyDiscriminatorEndMark)
-	v = strings.ReplaceAll(v, PropertyAddrSep, `\`+PropertyAddrSep)
+func EscapeDiscriminatorValue(v string) string {
+	v = strings.ReplaceAll(v, string(escapeCharacter), strings.Repeat(string(escapeCharacter), 2))
+	v = strings.ReplaceAll(v, string(rightDiscriminatorDelim), string(escapeCharacter)+string(rightDiscriminatorDelim))
 	return v
 }
 
-func unEscapeProperty(v string) string {
-	p1 := regexp.MustCompile(`([^\\]|^)(\\)` + propertyDiscriminatorStartMark)
-	p2 := regexp.MustCompile(`([^\\]|^)(\\)` + propertyDiscriminatorEndMark)
-	p3 := regexp.MustCompile(`([^\\]|^)(\\)` + PropertyAddrSep)
-	v = p1.ReplaceAllString(v, "$1"+propertyDiscriminatorStartMark)
-	v = p2.ReplaceAllString(v, "$1"+propertyDiscriminatorEndMark)
-	v = p3.ReplaceAllString(v, "$1"+PropertyAddrSep)
-	v = strings.ReplaceAll(v, `\\`, `\`)
+func UnescapeDiscriminatorValue(v string) string {
+	v = strings.ReplaceAll(v, string(escapeCharacter)+string(rightDiscriminatorDelim), string(rightDiscriminatorDelim))
+	v = strings.ReplaceAll(v, strings.Repeat(string(escapeCharacter), 2), string(escapeCharacter))
+	return v
+}
+
+func EscapePropertyName(v string) string {
+	v = strings.ReplaceAll(v, string(escapeCharacter), strings.Repeat(string(escapeCharacter), 2))
+	v = strings.ReplaceAll(v, string(leftDiscriminatorDelim), string(escapeCharacter)+string(leftDiscriminatorDelim))
+	v = strings.ReplaceAll(v, string(PropertyDelim), string(escapeCharacter)+string(PropertyDelim))
+	return v
+}
+
+func UnescapePropertyName(v string) string {
+	v = strings.ReplaceAll(v, string(escapeCharacter)+string(leftDiscriminatorDelim), string(leftDiscriminatorDelim))
+	v = strings.ReplaceAll(v, string(escapeCharacter)+string(PropertyDelim), string(PropertyDelim))
+	v = strings.ReplaceAll(v, strings.Repeat(string(escapeCharacter), 2), string(escapeCharacter))
 	return v
 }
