@@ -140,9 +140,6 @@
           "$ref": "./bar.json#/definitions/def_bar"
         },
         {
-          "$ref": "#/definitions/def_all_of"
-        },
-        {
           "$ref": "#/definitions/def_all_of2"
         },
         {

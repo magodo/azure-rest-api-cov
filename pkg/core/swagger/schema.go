@@ -14,6 +14,8 @@ import (
 
 const swaggerExtensionMSDiscriminatorValue = "x-ms-discriminator-value"
 
+const rootProp = ""
+
 type SchemaMetaInfo struct {
 	Name           string `json:"name"`
 	SwaggerRelPath string `json:"swagger_rel_path"`
@@ -56,22 +58,37 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 			Name:           schemaName,
 			SwaggerRelPath: swaggerRelPath,
 		},
-		Properties: map[string]*Property{
-			"": {
-				PropertyState: NewPropertyState(PropStateUncovered, ""),
-				schema:        schema,
-				fromRef: &openapispec.Ref{
-					Ref: jsonreference.MustCreateRef(normalizedSchemaRef),
-				},
-				swaggerURI: swaggerURI,
-			},
-		},
 		swaggerURI: swaggerURI,
 		swagger:    swagger,
 	}
 
+	rootProperty, err := buildProperty(
+		NewPropertyState(PropStateUncovered, ""),
+		swaggerURI,
+		schema,
+		map[string]interface{}{},
+		&openapispec.Ref{
+			Ref: jsonreference.MustCreateRef(normalizedSchemaRef),
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	swgSchema.Properties = map[string]*Property{
+		rootProp: rootProperty,
+	}
+
+	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
+	if err != nil {
+		return nil, err
+	}
+	isDiscriminator, _, err := rootProperty.checkDiscriminator(swaggerURI, allAllOfs)
+	if err != nil {
+		return nil, err
+	}
+
 	// Consider this schemas itself as resolved reference only when it is not a discriminator schema
-	if schema.Discriminator == "" {
+	if !isDiscriminator {
 		swgSchema.Properties[""].resolvedRefs = map[string]interface{}{
 			normalizedSchemaRef: struct{}{},
 		}
@@ -97,7 +114,6 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 			currentAddr := addr.MustParseProperty(currentRAddr)
 			if propAddr.Contains(currentAddr) {
 				delete(s.Properties, raddr)
-				return
 			}
 		}
 	}()
@@ -121,7 +137,10 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 	levelProperties := Properties{}
 
 	// expand direct top level properties
-	directTopSWGProperties := s.expandSubProperties(propAddr, prop)
+	directTopSWGProperties, err := s.expandSubProperties(propAddr, prop)
+	if err != nil {
+		return fmt.Errorf("failed to expand direct top level properties for %q: %v", propAddr.String(), err)
+	}
 
 	// expand AllOf properties
 	allOfSWGProperties, err := s.expandAllOfProperties(propAddr, prop)
@@ -132,68 +151,23 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 	levelProperties.Merge(directTopSWGProperties)
 	levelProperties.Merge(allOfSWGProperties)
 
-	discriminator := prop.schema.Discriminator
-	if discriminator == "" {
+	// For non-pure discriminator, because itself can be instantiated, so we will add the expanded properties also.
+	if !prop.isPureDiscriminator {
 		s.addProperties(levelProperties)
+	}
+
+	// In case current property is a discriminator schema, we will expand it into its variants/children.
+	// Otherwise, we will simply return here and do not doing the expanding to variants below.
+	if !prop.isDiscriminator {
 		return nil
 	}
 
-	// If the property to be expanded is a discriminator, we will expand it into its variants
-	levelNamedProperties := map[string]openapispec.Schema{}
-	for raddrStr, prop := range levelProperties {
-		raddr := addr.MustParseProperty(raddrStr)
-		propName := raddr[len(raddr)-1].String()
-		levelNamedProperties[propName] = prop.schema
+	_, resolved := prop.resolvedRefs[prop.fromRef.String()]
+	if resolved {
+		return nil
 	}
 
-	// In Azure rest api spec, if there is a "allOf" hierarchy, then all the derived schema should be considered as derived
-	// from the root schema. In other word, we should flatten this hierarchy into one level.
-
-	// {schemaName -> {refString, ...}, ...}
-	allAllOfs := map[string]map[string]struct{}{}
-	for name, schema := range s.swagger.Definitions {
-		if len(schema.AllOf) == 0 {
-			continue
-		}
-		allOfRefs := map[string]struct{}{}
-		allAllOfs[name] = allOfRefs
-		for _, allOf := range schema.AllOf {
-			if ref := allOf.Ref; ref.String() != "" {
-				normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
-				allOfRefs[normalizedRef.String()] = struct{}{}
-			}
-		}
-	}
-
-	baseSchemaRef := prop.fromRef.String()
-	potentialBaseRefSet := map[string]struct{}{baseSchemaRef: {}}
-	var stop bool
-	for !stop {
-		oldPotentialBaseRefSet := potentialBaseRefSet
-		potentialBaseRefSet = make(map[string]struct{}, len(oldPotentialBaseRefSet))
-		for k := range oldPotentialBaseRefSet {
-			potentialBaseRefSet[k] = struct{}{}
-		}
-
-		for baseRef := range oldPotentialBaseRefSet {
-			for name, refs := range allAllOfs {
-				if _, ok := refs[baseRef]; !ok {
-					continue
-				}
-				ref := SchemaNameToRef(name, "")
-				normalizedRef := normalizeFileRef(&ref, prop.swaggerURI)
-				potentialBaseRefSet[normalizedRef.String()] = struct{}{}
-			}
-		}
-
-		stop = len(potentialBaseRefSet) == len(oldPotentialBaseRefSet)
-	}
-
-	// Remove the base schema ref from the potential base ref set, then the remaining potential base refs represent
-	// the complete set of variant schemas' ref.
-	delete(potentialBaseRefSet, baseSchemaRef)
-
-	for variantRef := range potentialBaseRefSet {
+	for variantRef := range prop.childRefSet {
 		ref := openapispec.MustCreateRef(variantRef)
 		name, _ := SchemaInfoFromRef(ref)
 
@@ -210,20 +184,50 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 			resolvedRefs[k] = v
 		}
 		normalizedRef := openapispec.Ref{
-			Ref: jsonreference.MustCreateRef(normalizePaths(ref.String(), s.swaggerURI)),
+			Ref: jsonreference.MustCreateRef(normalizePaths(variantRef, prop.swaggerURI)),
 		}
 		resolvedRefs[normalizedRef.String()] = struct{}{}
 
-		p := buildProperty(prop.PropertyState, s.swagger.Definitions[name], resolvedRefs, prop.swaggerURI, &normalizedRef)
+		p, err := buildProperty(prop.PropertyState, prop.swaggerURI, s.swagger.Definitions[name], resolvedRefs, &normalizedRef)
+		if err != nil {
+			return err
+		}
 		s.addProperty(propAddr.AsVariant(descValue), *p)
 	}
 
 	return nil
 }
 
+// Construct all the "allOf"s of the schemas in current spec.
+// {normRef: {normRef1, normRef2,...}, ...}
+func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error) {
+	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
+	if err != nil {
+		return nil, err
+	}
+	allAllOfs := map[string]map[string]struct{}{}
+	for name, schema := range swagger.Definitions {
+		if len(schema.AllOf) == 0 {
+			continue
+		}
+		ref := SchemaNameToRef(name, "")
+		normRef := normalizeFileRef(&ref, swaggerURI).String()
+		allOfRefs := map[string]struct{}{}
+		allAllOfs[normRef] = allOfRefs
+
+		for _, allOf := range schema.AllOf {
+			if ref := allOf.Ref; ref.String() != "" {
+				normalizedRef := normalizeFileRef(&ref, swaggerURI)
+				allOfRefs[normalizedRef.String()] = struct{}{}
+			}
+		}
+	}
+	return allAllOfs, nil
+}
+
 // expandSubProperties expand the directly contained sub-properties of the property (prop) in the specified address (addr)
 // Especially, if the property is an array to object, it will expand to the sub-properties of the object item instead.
-func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) Properties {
+func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) (Properties, error) {
 	output := Properties{}
 	var properties openapispec.SchemaProperties
 	if prop.schema.Items != nil {
@@ -232,11 +236,14 @@ func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) Pro
 		properties = prop.schema.Properties
 	}
 	for propName, propSchema := range properties {
-		p := buildProperty(prop.PropertyState, propSchema, prop.resolvedRefs, prop.swaggerURI, prop.fromRef)
+		p, err := buildProperty(prop.PropertyState, prop.swaggerURI, propSchema, prop.resolvedRefs, prop.fromRef)
+		if err != nil {
+			return nil, err
+		}
 		propAddr := propAddr.Append(addr.MustParseProperty(propName))
 		output[propAddr.String()] = p
 	}
-	return output
+	return output, nil
 }
 
 // expandAllOfProperties recursively expand containing "allOf" properties for property (prop) in the specified address (addr)
@@ -246,7 +253,10 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 
 		// We construct a temp Property here (as it has no object/property related) to expand it into a concrete schemas.
 		// Then we will iterate that schemas's property which by concept is the top level property of this parent property.
-		tmpProp := buildProperty(prop.PropertyState, schema, prop.resolvedRefs, prop.swaggerURI, prop.fromRef)
+		tmpProp, err := buildProperty(prop.PropertyState, prop.swaggerURI, schema, prop.resolvedRefs, prop.fromRef)
+		if err != nil {
+			return nil, err
+		}
 
 		// AllOf contains refs, then need to expand the reference properties first.
 		if tmpProp.schema.Ref.String() != "" {
@@ -267,7 +277,11 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 			return nil, fmt.Errorf("failed to expand nested allOf Properties for %q: %v", propAddr.String(), err)
 		}
 		output.Merge(nestedAllOfProperties)
-		output.Merge(s.expandSubProperties(propAddr, tmpProp))
+		subProps, err := s.expandSubProperties(propAddr, tmpProp)
+		if err != nil {
+			return nil, err
+		}
+		output.Merge(subProps)
 	}
 
 	return output, nil
