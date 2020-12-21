@@ -107,7 +107,7 @@ func (addr Property) String() string {
 		props = append(props, prop.String())
 	}
 
-	return strings.Join(props, string(PropertyDelim))
+	return strings.Join(props, string(propertyDelim))
 }
 
 func (addr Property) MarshalJSON() ([]byte, error) {
@@ -152,6 +152,10 @@ func EncloseVariant(v string) string {
 	return string(leftDiscriminatorDelim) + v + string(rightDiscriminatorDelim)
 }
 
+func EncloseProperties(props []string) string {
+	return strings.Join(props, string(propertyDelim))
+}
+
 func EscapeDiscriminatorValue(v string) string {
 	v = strings.ReplaceAll(v, string(escapeCharacter), strings.Repeat(string(escapeCharacter), 2))
 	v = strings.ReplaceAll(v, string(rightDiscriminatorDelim), string(escapeCharacter)+string(rightDiscriminatorDelim))
@@ -167,13 +171,13 @@ func UnescapeDiscriminatorValue(v string) string {
 func EscapePropertyName(v string) string {
 	v = strings.ReplaceAll(v, string(escapeCharacter), strings.Repeat(string(escapeCharacter), 2))
 	v = strings.ReplaceAll(v, string(leftDiscriminatorDelim), string(escapeCharacter)+string(leftDiscriminatorDelim))
-	v = strings.ReplaceAll(v, string(PropertyDelim), string(escapeCharacter)+string(PropertyDelim))
+	v = strings.ReplaceAll(v, string(propertyDelim), string(escapeCharacter)+string(propertyDelim))
 	return v
 }
 
 func UnescapePropertyName(v string) string {
 	v = strings.ReplaceAll(v, string(escapeCharacter)+string(leftDiscriminatorDelim), string(leftDiscriminatorDelim))
-	v = strings.ReplaceAll(v, string(escapeCharacter)+string(PropertyDelim), string(PropertyDelim))
+	v = strings.ReplaceAll(v, string(escapeCharacter)+string(propertyDelim), string(propertyDelim))
 	v = strings.ReplaceAll(v, strings.Repeat(string(escapeCharacter), 2), string(escapeCharacter))
 	return v
 }

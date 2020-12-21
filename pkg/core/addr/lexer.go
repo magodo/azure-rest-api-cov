@@ -39,7 +39,7 @@ const (
 )
 
 const (
-	PropertyDelim           rune = '/'
+	propertyDelim           rune = '/'
 	leftDiscriminatorDelim       = '{'
 	rightDiscriminatorDelim      = '}'
 	escapeCharacter              = '\\'
@@ -151,7 +151,7 @@ func lexPropertyName(l *lexer) stateFn {
 			l.next()
 			l.next()
 			continue
-		case PropertyDelim:
+		case propertyDelim:
 			l.emit(itemPropertyName)
 			return lexPropertyDelim
 		case leftDiscriminatorDelim:
@@ -168,7 +168,7 @@ func lexPropertyName(l *lexer) stateFn {
 }
 
 func lexPropertyDelim(l *lexer) stateFn {
-	l.pos += Pos(len(string(PropertyDelim)))
+	l.pos += Pos(len(string(propertyDelim)))
 	l.emit(itemPropertyDelim)
 	l.ignore()
 	return lexPropertyName
@@ -208,7 +208,7 @@ func lexRightDiscriminatorDelim(l *lexer) stateFn {
 	l.ignore()
 	next := l.peek()
 	switch next {
-	case PropertyDelim:
+	case propertyDelim:
 		return lexPropertyDelim
 	case eof:
 		l.emit(itemEOF)
