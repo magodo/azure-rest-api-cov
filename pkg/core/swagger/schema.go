@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-openapi/jsonreference"
-
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
 
 	openapispec "github.com/go-openapi/spec"
@@ -45,11 +43,6 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 		return nil, err
 	}
 
-	schema, ok := swagger.Definitions[schemaName]
-	if !ok {
-		return nil, fmt.Errorf("schema %q is not found in swagger spec %q", schemaName, swaggerURI)
-	}
-
 	ref := SchemaNameToRef(schemaName, "")
 	normalizedSchemaRef := normalizePaths(ref.String(), swaggerURI)
 
@@ -64,26 +57,15 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 
 	rootProperty, err := buildProperty(
 		NewPropertyState(PropStateUncovered, ""),
-		swaggerURI,
-		schema,
 		map[string]interface{}{},
-		nil,
-		&openapispec.Ref{
-			Ref: jsonreference.MustCreateRef(normalizedSchemaRef),
-		})
+		openapispec.MustCreateRef(normalizedSchemaRef),
+	)
 	if err != nil {
 		return nil, err
 	}
 
 	swgSchema.Properties = map[string]*Property{
 		rootProp: rootProperty,
-	}
-
-	// Consider this schemas itself as resolved reference only when it is not a discriminator schema
-	if !rootProperty.isDiscriminator || rootProperty.isLeafVariant() {
-		swgSchema.Properties[""].resolvedRefs = map[string]interface{}{
-			normalizedSchemaRef: struct{}{},
-		}
 	}
 
 	// Expand the root level properties of the schemas
@@ -159,44 +141,17 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		s.addProperties(levelProperties)
 		return nil
 	default:
-		// Both a variant and a discriminator, we shall check whether it has been resolved yet.
+		// A non-leaf variant, we shall check whether it has been resolved yet.
 		// If it is resolved, it means the variant has been expanded along the expansion of current property,
-		// then we shall stop expanding its children variants and stop here.
-		_, resolved := prop.resolvedRefs[prop.fromRef.String()]
+		// then we shall stop expanding its children variants and set its properties here.
+		_, resolved := prop.resolvedRefs[prop.ownerSchemaRef.String()]
 		if resolved {
 			s.addProperties(levelProperties)
 			return nil
 		}
 	}
 
-	//_, resolved := prop.resolvedRefs[prop.fromRef.String()]
-	//if !prop.isPureDiscriminator {
-	//	// In case that the current prop is a variant, we should only add its properties after this variant is expanded.
-	//	if prop.isDiscriminator {
-	//		if resolved {
-	//			s.addProperties(levelProperties)
-	//		}
-	//		//if prop.childRefSet != nil {
-	//		//	if _, ok := prop.childRefSet[prop.fromRef.String()]; !ok {
-	//		//		s.addProperties(levelProperties)
-	//		//	}
-	//	} else {
-	//		s.addProperties(levelProperties)
-	//	}
-	//	//if prop.isDiscriminator {
-	//	//	if len(prop.childRefSet) == 1 {
-	//	//		s.addProperties(levelProperties)
-	//	//	}
-	//	//} else {
-	//	//	s.addProperties(levelProperties)
-	//	//}
-	//}
-	//
-	//if !prop.isDiscriminator || resolved {
-	//	return nil
-	//}
-
-	for variantRef := range prop.childRefSet {
+	for variantRef := range prop.variantRefSet {
 		if _, resolved := prop.resolvedRefs[variantRef]; resolved {
 			continue
 		}
@@ -215,12 +170,10 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		for k, v := range prop.resolvedRefs {
 			resolvedRefs[k] = v
 		}
-		normalizedRef := openapispec.Ref{
-			Ref: jsonreference.MustCreateRef(normalizePaths(variantRef, prop.swaggerURI)),
-		}
-		resolvedRefs[normalizedRef.String()] = struct{}{}
+		normVariantRef := openapispec.MustCreateRef(variantRef)
+		resolvedRefs[variantRef] = struct{}{}
 
-		p, err := buildProperty(prop.PropertyState, normalizedRef.GetURL().Path, s.swagger.Definitions[name], resolvedRefs, nil, &normalizedRef)
+		p, err := buildProperty(prop.PropertyState, resolvedRefs, normVariantRef)
 		if err != nil {
 			return err
 		}
@@ -228,33 +181,6 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 	}
 
 	return nil
-}
-
-// Construct all the "allOf"s of the schemas in current spec.
-// {normRef: {normRef1, normRef2,...}, ...}
-func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error) {
-	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
-	if err != nil {
-		return nil, err
-	}
-	allAllOfs := map[string]map[string]struct{}{}
-	for name, schema := range swagger.Definitions {
-		if len(schema.AllOf) == 0 {
-			continue
-		}
-		ref := SchemaNameToRef(name, "")
-		normRef := normalizeFileRef(&ref, swaggerURI).String()
-		allOfRefs := map[string]struct{}{}
-		allAllOfs[normRef] = allOfRefs
-
-		for _, allOf := range schema.AllOf {
-			if ref := allOf.Ref; ref.String() != "" {
-				normalizedRef := normalizeFileRef(&ref, swaggerURI)
-				allOfRefs[normalizedRef.String()] = struct{}{}
-			}
-		}
-	}
-	return allAllOfs, nil
 }
 
 // expandSubProperties expand the directly contained sub-properties of the property (prop) in the specified address (addr)
@@ -268,10 +194,7 @@ func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) (Pr
 		properties = prop.schema.Properties
 	}
 	for propName, propSchema := range properties {
-		p, err := buildProperty(prop.PropertyState, prop.swaggerURI, propSchema, prop.resolvedRefs, prop.fromRef, nil)
-		if err != nil {
-			return nil, err
-		}
+		p := prop.propagateProperty(propSchema)
 		propAddr := propAddr.Append(addr.MustParseProperty(propName))
 		output[propAddr.String()] = p
 	}
@@ -285,10 +208,7 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 
 		// We construct a temp Property here (as it has no object/property related) to expand it into a concrete schemas.
 		// Then we will iterate that schemas's property which by concept is the top level property of this parent property.
-		tmpProp, err := buildProperty(prop.PropertyState, prop.swaggerURI, schema, prop.resolvedRefs, prop.fromRef, nil)
-		if err != nil {
-			return nil, err
-		}
+		tmpProp := prop.propagateProperty(schema)
 
 		// AllOf contains refs, then need to expand the reference properties first.
 		if tmpProp.schema.Ref.String() != "" {

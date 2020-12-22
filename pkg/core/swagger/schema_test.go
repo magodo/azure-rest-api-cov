@@ -58,7 +58,7 @@ func TestSchema(t *testing.T) {
 		specRelPath string
 		schemaName  string
 		repeat      int
-		err         error
+		err         bool
 		expect      Schema
 	}{
 		// 0
@@ -66,7 +66,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_foo",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -79,7 +78,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_foo": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_foo")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -94,7 +93,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_regular",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -107,7 +105,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_regular")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -118,7 +116,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_regular")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -129,7 +127,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_regular")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -140,7 +138,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_regular")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -155,7 +153,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_prop_in_file_ref",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -168,7 +165,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_prop_in_file_ref": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_prop_in_file_ref")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -183,7 +180,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_prop_cross_file_ref",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -196,7 +192,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_prop_cross_file_ref": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_prop_cross_file_ref")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -211,7 +207,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_prop_self_ref",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -224,7 +219,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_prop_self_ref": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_prop_self_ref")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -239,7 +234,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_array_ref",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -254,7 +248,7 @@ func TestSchema(t *testing.T) {
 							specFooPathLocal + "#/definitions/def_array_ref": struct{}{},
 						},
 						swaggerURI: specFooPathLocal,
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_foo")),
 						},
 					},
@@ -268,7 +262,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_in_file_ref",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -282,7 +275,7 @@ func TestSchema(t *testing.T) {
 							specFooPathLocal + "#/definitions/def_in_file_ref": struct{}{},
 							specFooPathLocal + "#/definitions/def_foo":         struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_foo")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -297,7 +290,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_cross_file_ref",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -311,7 +303,7 @@ func TestSchema(t *testing.T) {
 							specFooPathLocal + "#/definitions/def_cross_file_ref": struct{}{},
 							specBarPathLocal + "#/definitions/def_bar":            struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specBarPathLocal, "def_bar")),
 						},
 						swaggerURI: specBarPathLocal,
@@ -326,7 +318,6 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "def_self_ref",
-			err:         nil,
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
@@ -339,7 +330,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_self_ref": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_self_ref")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -366,7 +357,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_all_of": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_all_of")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -379,7 +370,7 @@ func TestSchema(t *testing.T) {
 							specFooPathLocal + "#/definitions/def_all_of2": struct{}{},
 							specFooPathLocal + "#/definitions/def_foo":     struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_foo")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -391,7 +382,7 @@ func TestSchema(t *testing.T) {
 							specFooPathLocal + "#/definitions/def_all_of": struct{}{},
 							specBarPathLocal + "#/definitions/def_bar":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specBarPathLocal, "def_bar")),
 						},
 						swaggerURI: specBarPathLocal,
@@ -404,7 +395,7 @@ func TestSchema(t *testing.T) {
 							specBazPathLocal + "#/definitions/def_all_of": struct{}{},
 							specBazPathLocal + "#/definitions/def_baz":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specBazPathLocal, "def_baz")),
 						},
 						swaggerURI: specBazPathLocal,
@@ -415,7 +406,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_all_of": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_all_of")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -442,14 +433,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_variant1": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant1")),
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant1"): {},
-						},
 					},
 					"{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -457,14 +445,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/variant2_def": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "variant2_def")),
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "variant2_def"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPathLocal,
@@ -488,7 +473,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_to_def_base": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_to_def_base")),
 						},
 						swaggerURI: specFooPathLocal,
@@ -503,7 +488,7 @@ func TestSchema(t *testing.T) {
 			specBaseURL: specBasePathLocal,
 			specRelPath: "foo.json",
 			schemaName:  "non_existent_schema",
-			err:         fmt.Errorf("schema %q is not found in swagger spec %q", "non_existent_schema", specBasePathLocal+"/foo.json"),
+			err:         true,
 		},
 		// 13
 		// The "def_base_template" uses the same discriminator values as "def_base",
@@ -525,14 +510,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_variant1_template": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant1_template")),
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant1_template"): {},
-						},
 					},
 					"{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -540,14 +522,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_variant2_template": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant2_template")),
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant2_template"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPathLocal,
@@ -571,14 +550,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_child1": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child1")),
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child1"): {},
-						},
 					},
 					"{def_child2}": {
 						PropertyState: propStateUncovered,
@@ -586,14 +562,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPathLocal + "#/definitions/def_child2": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child2")),
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child2"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPathLocal,
@@ -617,12 +590,12 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
@@ -633,14 +606,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
-						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -664,12 +634,12 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
@@ -680,14 +650,11 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
-						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -711,7 +678,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_wrap_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -738,7 +705,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_wrap_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -765,7 +732,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -776,7 +743,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -787,7 +754,7 @@ func TestSchema(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -814,7 +781,7 @@ func TestSchema(t *testing.T) {
 		//				resolvedRefs: map[string]interface{}{
 		//					specRemoteFileURL + "#/definitions/def_foo": struct{}{},
 		//				},
-		//				fromRef: &openapispec.Ref{
+		//				ownerSchemaRef: &openapispec.Ref{
 		//					Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_all_of")),
 		//				},
 		//				swaggerURI: specRemoteFileURL,
@@ -833,10 +800,12 @@ func TestSchema(t *testing.T) {
 		msg := fmt.Sprintf("(%d) %s: %s", idx, filepath.Join(c.specBaseURL, c.specRelPath), c.schemaName)
 		for i := 0; i <= c.repeat; i++ {
 			actual, err := NewEmptySchema(c.specBaseURL, c.specRelPath, c.schemaName)
-			require.Equal(t, c.err, err, msg)
-			if err == nil {
-				require.Equal(t, c.expect, *actual, msg)
+			if c.err {
+				require.Errorf(t, err, msg)
+				continue
 			}
+			require.NoErrorf(t, err, msg)
+			require.Equal(t, c.expect, *actual, msg)
 		}
 	}
 }
@@ -889,7 +858,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_foo": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
 						},
 						swaggerURI: specFooPath,
@@ -921,7 +890,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_foo": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
 						},
 						swaggerURI: specFooPath,
@@ -953,7 +922,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
 						},
 						swaggerURI: specFooPath,
@@ -964,7 +933,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
 						},
 						swaggerURI: specFooPath,
@@ -975,7 +944,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
 						},
 						swaggerURI: specFooPath,
@@ -986,7 +955,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_regular": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
 						},
 						swaggerURI: specFooPath,
@@ -1017,7 +986,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_prop_in_file_ref": struct{}{},
 							specFooPath + "#/definitions/def_foo":              struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
 						},
 						swaggerURI: specFooPath,
@@ -1047,7 +1016,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_prop_self_ref": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_prop_self_ref")),
 						},
 						swaggerURI: specFooPath,
@@ -1078,7 +1047,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_prop_cross_file_ref": struct{}{},
 							specBarPath + "#/definitions/def_bar":                 struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specBarPath, "def_bar")),
 						},
 						swaggerURI: specBarPath,
@@ -1109,7 +1078,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_in_file_ref": struct{}{},
 							specFooPath + "#/definitions/def_foo":         struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
 						},
 						swaggerURI: specFooPath,
@@ -1140,7 +1109,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_cross_file_ref": struct{}{},
 							specBarPath + "#/definitions/def_bar":            struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specBarPath, "def_bar")),
 						},
 						swaggerURI: specBarPath,
@@ -1170,7 +1139,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_self_ref": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_self_ref")),
 						},
 						swaggerURI: specFooPath,
@@ -1200,7 +1169,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_variant1": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
 						},
 						swaggerURI: specFooPath,
@@ -1211,14 +1180,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/variant2_def": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1246,14 +1212,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_to_def_base": struct{}{},
 							specFooPath + "#/definitions/def_variant1":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1")),
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
-						},
 					},
 					"prop{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -1262,14 +1225,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_to_def_base": struct{}{},
 							specFooPath + "#/definitions/variant2_def":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1298,7 +1258,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_to_def_base": struct{}{},
 							specFooPath + "#/definitions/def_variant1":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
 						},
 						swaggerURI: specFooPath,
@@ -1310,14 +1270,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_to_def_base": struct{}{},
 							specFooPath + "#/definitions/variant2_def":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1346,14 +1303,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_to_def_base_template": struct{}{},
 							specFooPath + "#/definitions/def_variant1_template":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template")),
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template"): {},
-						},
 					},
 					"prop{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -1362,14 +1316,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_to_def_base_template": struct{}{},
 							specFooPath + "#/definitions/def_variant2_template":    struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template")),
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1396,7 +1347,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_child1": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_parent")),
 						},
 						swaggerURI: specFooPath,
@@ -1407,14 +1358,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_child2": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2")),
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2"): {},
-						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1441,12 +1389,12 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
@@ -1457,7 +1405,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1468,7 +1416,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1479,7 +1427,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1510,12 +1458,12 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
@@ -1527,14 +1475,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
-						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1563,7 +1508,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1575,7 +1520,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1587,14 +1532,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
-						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1623,12 +1565,12 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
@@ -1640,7 +1582,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1652,7 +1594,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1664,7 +1606,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1697,7 +1639,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1709,7 +1651,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1721,7 +1663,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1733,7 +1675,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1745,7 +1687,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_a": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1776,12 +1718,12 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
@@ -1793,14 +1735,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
-						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1829,12 +1768,12 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
@@ -1846,7 +1785,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1858,7 +1797,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1870,7 +1809,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1902,7 +1841,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1914,7 +1853,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1926,14 +1865,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
-						childRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
-						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1963,7 +1899,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1975,7 +1911,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1987,7 +1923,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -1999,7 +1935,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2011,7 +1947,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2042,7 +1978,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_c": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2054,7 +1990,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_c": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2066,7 +2002,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_c": struct{}{},
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2097,7 +2033,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2108,7 +2044,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2119,7 +2055,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2130,7 +2066,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2141,7 +2077,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
 						},
-						fromRef: &openapispec.Ref{
+						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
@@ -2217,7 +2153,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2228,7 +2164,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2253,7 +2189,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2264,7 +2200,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2296,7 +2232,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2307,7 +2243,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2318,7 +2254,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2342,7 +2278,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2353,7 +2289,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2364,7 +2300,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2396,7 +2332,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2407,7 +2343,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2431,7 +2367,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2442,7 +2378,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2453,7 +2389,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_cov": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 								},
 								swaggerURI: specFooPath,
@@ -2485,7 +2421,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/def_variant1": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
 								},
 								swaggerURI: specFooPath,
@@ -2496,14 +2432,11 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								resolvedRefs: map[string]interface{}{
 									specFooPath + "#/definitions/variant2_def": struct{}{},
 								},
-								fromRef: &openapispec.Ref{
+								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 								},
 								swaggerURI:      specFooPath,
 								isDiscriminator: true,
-								childRefSet: map[string]struct{}{
-									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
-								},
 							},
 						},
 						swaggerURI: specFooPath,
