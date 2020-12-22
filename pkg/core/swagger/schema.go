@@ -67,6 +67,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 		swaggerURI,
 		schema,
 		map[string]interface{}{},
+		nil,
 		&openapispec.Ref{
 			Ref: jsonreference.MustCreateRef(normalizedSchemaRef),
 		})
@@ -219,7 +220,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		}
 		resolvedRefs[normalizedRef.String()] = struct{}{}
 
-		p, err := buildProperty(prop.PropertyState, prop.swaggerURI, s.swagger.Definitions[name], resolvedRefs, &normalizedRef)
+		p, err := buildProperty(prop.PropertyState, normalizedRef.GetURL().Path, s.swagger.Definitions[name], resolvedRefs, nil, &normalizedRef)
 		if err != nil {
 			return err
 		}
@@ -267,7 +268,7 @@ func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) (Pr
 		properties = prop.schema.Properties
 	}
 	for propName, propSchema := range properties {
-		p, err := buildProperty(prop.PropertyState, prop.swaggerURI, propSchema, prop.resolvedRefs, prop.fromRef)
+		p, err := buildProperty(prop.PropertyState, prop.swaggerURI, propSchema, prop.resolvedRefs, prop.fromRef, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -284,7 +285,7 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 
 		// We construct a temp Property here (as it has no object/property related) to expand it into a concrete schemas.
 		// Then we will iterate that schemas's property which by concept is the top level property of this parent property.
-		tmpProp, err := buildProperty(prop.PropertyState, prop.swaggerURI, schema, prop.resolvedRefs, prop.fromRef)
+		tmpProp, err := buildProperty(prop.PropertyState, prop.swaggerURI, schema, prop.resolvedRefs, prop.fromRef, nil)
 		if err != nil {
 			return nil, err
 		}

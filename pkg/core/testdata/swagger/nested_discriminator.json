@@ -21,7 +21,9 @@
       }
     },
     "def_b": {
-      "properties": {},
+      "properties": {
+        "prop_b": {}
+      },
       "allOf": [
         {
           "$ref": "#/definitions/def_a"
@@ -29,7 +31,9 @@
       ]
     },
     "def_c": {
-      "properties": {},
+      "properties": {
+        "prop_c": {}
+      },
       "allOf": [
         {
           "$ref": "#/definitions/def_b"

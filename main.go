@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
+
 	"github.com/magodo/azure-rest-api-cov/pkg/core/coverage"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/schemainput"
@@ -18,6 +20,17 @@ import (
 )
 
 const usage = `azure-rest-api-cov <option>`
+
+type Schemas map[workspace.SchemaLocator]swagger.Schema
+
+func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Schema) error {
+	existing, ok := schemas[locator]
+	if !ok {
+		schemas[locator] = s
+		return nil
+	}
+	return existing.Merge(s)
+}
 
 func main() {
 	flag.Usage = func() {
@@ -36,6 +49,7 @@ func main() {
 	force := flag.Bool("f", false, "whether to force create the workspace")
 	regenIndex := flag.Bool("r", false, "whether to force regenerate the repository index in the workspace")
 	repoHash := flag.String("c", "", "The azure-rest-api-spec repo commit hash to checkout")
+	all := flag.Bool("a", false, "whether to export the RP level coverage")
 
 	flag.Parse()
 
@@ -63,8 +77,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cov := coverage.NewEmptyRepoCoverageStore(*index)
-
+	schemas := Schemas{}
 	for _, schemaInput := range schemaInputs {
 		msg := fmt.Sprintf("Processing: %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
 		if schemaInput.Variant != "" {
@@ -80,7 +93,30 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if err := cov.AddSchema(*schema, schemaInput.SchemaLocator); err != nil {
+		if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if !*all {
+		for _, schema := range schemas {
+			cov, err := coverage.NewSchemaCoverageStore(schema)
+			if err != nil {
+				log.Fatal(err)
+			}
+			b, err = json.MarshalIndent(cov, "", "  ")
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(string(b))
+		}
+		return
+	}
+
+	// All
+	cov := coverage.NewEmptyRepoCoverageStore(*index)
+	for locator, schema := range schemas {
+		if err := cov.AddSchema(schema, locator); err != nil {
 			log.Fatal(err)
 		}
 	}

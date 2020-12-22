@@ -96,7 +96,7 @@ func (p Properties) Merge(o Properties) {
 	}
 }
 
-func buildProperty(state PropertyState, swaggerURI string, schema openapispec.Schema, resolvedRefs map[string]interface{}, fromRef *openapispec.Ref) (*Property, error) {
+func buildProperty(state PropertyState, swaggerURI string, schema openapispec.Schema, resolvedRefs map[string]interface{}, fromRef *openapispec.Ref, newFromRef *openapispec.Ref) (*Property, error) {
 	newResolvedRefs := map[string]interface{}{}
 	if len(resolvedRefs) != 0 {
 		for k, v := range resolvedRefs {
@@ -111,6 +111,12 @@ func buildProperty(state PropertyState, swaggerURI string, schema openapispec.Sc
 		swaggerURI:    swaggerURI,
 		fromRef:       fromRef,
 	}
+
+	if newFromRef == nil {
+		return prop, nil
+	}
+
+	prop.fromRef = newFromRef
 
 	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
 	if err != nil {
@@ -202,7 +208,7 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 		return false, fmt.Errorf("resolve reference %s: %w", ref.String(), err)
 	}
 
-	refProp, err := buildProperty(prop.PropertyState, normalizedRef.GetURL().Path, *schema, prop.resolvedRefs, normalizedRef)
+	refProp, err := buildProperty(prop.PropertyState, normalizedRef.GetURL().Path, *schema, prop.resolvedRefs, prop.fromRef, normalizedRef)
 	if err != nil {
 		return false, err
 	}
