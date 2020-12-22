@@ -447,6 +447,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant1"): {},
+						},
 					},
 					"{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -459,6 +462,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPathLocal,
@@ -524,6 +530,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant1_template"): {},
+						},
 					},
 					"{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -536,6 +545,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_variant2_template"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPathLocal,
@@ -564,6 +576,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child1"): {},
+						},
 					},
 					"{def_child2}": {
 						PropertyState: propStateUncovered,
@@ -576,6 +591,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specFooPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_child2"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPathLocal,
@@ -605,6 +623,7 @@ func TestSchema(t *testing.T) {
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
 						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
 					},
@@ -619,6 +638,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -636,14 +658,21 @@ func TestSchema(t *testing.T) {
 					Name:           "def_b",
 				},
 				Properties: map[string]*Property{
-					"type": {
+					"{def_b}": {
 						PropertyState: propStateUncovered,
-						schema:        specNestedDiscriminator.Definitions["def_a"].Properties["type"],
-						resolvedRefs:  map[string]interface{}{},
-						fromRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
+						schema:        specNestedDiscriminator.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
 						},
-						swaggerURI: specNestedDiscriminatorPathLocal,
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
+						},
+						swaggerURI:      specNestedDiscriminatorPathLocal,
+						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
 					},
 					"{def_c}": {
 						PropertyState: propStateUncovered,
@@ -656,6 +685,9 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
@@ -708,6 +740,33 @@ func TestSchema(t *testing.T) {
 						},
 						fromRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_wrap_b")),
+						},
+						swaggerURI: specNestedDiscriminatorPathLocal,
+					},
+				},
+				swaggerURI: specNestedDiscriminatorPathLocal,
+				swagger:    specNestedDiscriminator,
+			},
+		},
+		// 19
+		{
+			specBaseURL: specBasePathLocal,
+			specRelPath: "nested_discriminator.json",
+			schemaName:  "def_c",
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "nested_discriminator.json",
+					Name:           "def_c",
+				},
+				Properties: map[string]*Property{
+					"type": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_a"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_c": struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
 						},
 						swaggerURI: specNestedDiscriminatorPathLocal,
 					},
@@ -1132,6 +1191,9 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1164,6 +1226,9 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+						},
 					},
 					"prop{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -1177,6 +1242,9 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1222,6 +1290,9 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1255,6 +1326,9 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template"): {},
+						},
 					},
 					"prop{def_variant2}": {
 						PropertyState: propStateUncovered,
@@ -1268,6 +1342,9 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1310,6 +1387,9 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specFooPath,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1317,48 +1397,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			},
 		},
 		// 14
-		{
-			name:           `Expand "def_parent" (schema itself is a discriminator)`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_parent",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("{def_child1}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_parent",
-				},
-				Properties: map[string]*Property{
-					"{def_child1}/type": {
-						PropertyState: propStateUncovered,
-						schema:        specFoo.Definitions["def_parent"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_child1": struct{}{},
-						},
-						fromRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_parent")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"{def_child2}": {
-						PropertyState: propStateUncovered,
-						schema:        specFoo.Definitions["def_child2"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_child2": struct{}{},
-						},
-						fromRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2")),
-						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
-					},
-				},
-				swaggerURI: specFooPath,
-				swagger:    specFoo,
-			},
-		},
-		// 15
 		{
 			name:           `Expand "def_b" (schema is a in-direct discriminator)`,
 			swaggerRelPath: "nested_discriminator.json",
@@ -1372,14 +1410,21 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					Name:           "def_b",
 				},
 				Properties: map[string]*Property{
-					"type": {
+					"{def_b}": {
 						PropertyState: propStateUncovered,
-						schema:        specNestedDiscriminator.Definitions["def_a"].Properties["type"],
-						resolvedRefs:  map[string]interface{}{},
-						fromRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
+						schema:        specNestedDiscriminator.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_b": struct{}{},
 						},
-						swaggerURI: specNestedDiscriminatorPathLocal,
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
+						},
+						swaggerURI:      specNestedDiscriminatorPathLocal,
+						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
 					},
 					"{def_c}/type": {
 						PropertyState: propStateUncovered,
@@ -1397,7 +1442,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				swagger:    specNestedDiscriminator,
 			},
 		},
-		// 16
+		// 15
 		{
 			name:           `Expand "def_wrap_a" (property is a multi-level discriminator)`,
 			swaggerRelPath: "nested_discriminator.json",
@@ -1424,6 +1469,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
 						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
 					},
@@ -1439,13 +1485,16 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
 				swagger:    specNestedDiscriminator,
 			},
 		},
-		// 17
+		// 16
 		{
 			name:           `Expand "def_wrap_a" to its variant property (property is a multi-level discriminator)`,
 			swaggerRelPath: "nested_discriminator.json",
@@ -1484,13 +1533,16 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
 				swagger:    specNestedDiscriminator,
 			},
 		},
-		// 18
+		// 17
 		{
 			name:           `Expand "def_wrap_a" to its variant property (property is a multi-level discriminator)`,
 			swaggerRelPath: "nested_discriminator.json",
@@ -1518,6 +1570,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
 						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
 						},
 					},
@@ -1538,7 +1591,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				swagger:    specNestedDiscriminator,
 			},
 		},
-		// 19
+		// 18
 		{
 			name:           `Expand "def_wrap_a" to its variant property (property is a multi-level discriminator)`,
 			swaggerRelPath: "nested_discriminator.json",
@@ -1583,7 +1636,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				swagger:    specNestedDiscriminator,
 			},
 		},
-		// 20
+		// 19
 		{
 			name:           `Expand "def_wrap_b" (property is a indirect discriminator)`,
 			swaggerRelPath: "nested_discriminator.json",
@@ -1597,11 +1650,114 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					Name:           "def_wrap_b",
 				},
 				Properties: map[string]*Property{
-					"b/type": {
+					"b{def_b}": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
+							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
+						},
+						swaggerURI:      specNestedDiscriminatorPathLocal,
+						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
+					},
+					"b{def_c}": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_c"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
+							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c")),
+						},
+						swaggerURI:      specNestedDiscriminatorPathLocal,
+						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
+					},
+				},
+				swaggerURI: specNestedDiscriminatorPathLocal,
+				swagger:    specNestedDiscriminator,
+			},
+		},
+		// 20
+		{
+			name:           `Expand "def_wrap_b" to its leaf variant property (property is a indirect discriminator)`,
+			swaggerRelPath: "nested_discriminator.json",
+			schemaName:     "def_wrap_b",
+			expandAddrs: []addr.Property{
+				addr.MustParseProperty("b"),
+				addr.MustParseProperty("b{def_c}"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "nested_discriminator.json",
+					Name:           "def_wrap_b",
+				},
+				Properties: map[string]*Property{
+					"b{def_b}": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
+							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b")),
+						},
+						swaggerURI:      specNestedDiscriminatorPathLocal,
+						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
+					},
+					"b{def_c}/type": {
 						PropertyState: propStateUncovered,
 						schema:        specNestedDiscriminator.Definitions["def_a"].Properties["type"],
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
+							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
+						},
+						swaggerURI: specNestedDiscriminatorPathLocal,
+					},
+				},
+				swaggerURI: specNestedDiscriminatorPathLocal,
+				swagger:    specNestedDiscriminator,
+			},
+		},
+		// 21
+		{
+			name:           `Expand "def_wrap_b" to its middle variant property (property is a indirect discriminator)`,
+			swaggerRelPath: "nested_discriminator.json",
+			schemaName:     "def_wrap_b",
+			expandAddrs: []addr.Property{
+				addr.MustParseProperty("b"),
+				addr.MustParseProperty("b{def_b}"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "nested_discriminator.json",
+					Name:           "def_wrap_b",
+				},
+				Properties: map[string]*Property{
+					"b{def_b}/type": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_a"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
+							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
 						fromRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
@@ -1620,19 +1776,23 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPathLocal,
 						isDiscriminator: true,
+						childRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
 				swagger:    specNestedDiscriminator,
 			},
 		},
-		// 21
+		// 22
 		{
-			name:           `Expand "def_wrap_b" to its variant property (property is a indirect discriminator)`,
+			name:           `Expand "def_wrap_b" all variant properties (property is a indirect discriminator)`,
 			swaggerRelPath: "nested_discriminator.json",
 			schemaName:     "def_wrap_b",
 			expandAddrs: []addr.Property{
 				addr.MustParseProperty("b"),
+				addr.MustParseProperty("b{def_b}"),
 				addr.MustParseProperty("b{def_c}"),
 			},
 			expect: Schema{
@@ -1641,11 +1801,12 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					Name:           "def_wrap_b",
 				},
 				Properties: map[string]*Property{
-					"b/type": {
+					"b{def_b}/type": {
 						PropertyState: propStateUncovered,
 						schema:        specNestedDiscriminator.Definitions["def_a"].Properties["type"],
 						resolvedRefs: map[string]interface{}{
 							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_b": struct{}{},
+							specNestedDiscriminatorPathLocal + "#/definitions/def_b":      struct{}{},
 						},
 						fromRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
@@ -1669,10 +1830,41 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				swagger:    specNestedDiscriminator,
 			},
 		},
+		// 23
+		{
+			name:           `Expand "def_wrap_c" all variant properties (property is a leaf variant)`,
+			swaggerRelPath: "nested_discriminator.json",
+			schemaName:     "def_wrap_c",
+			expandAddrs: []addr.Property{
+				addr.MustParseProperty("c"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "nested_discriminator.json",
+					Name:           "def_wrap_c",
+				},
+				Properties: map[string]*Property{
+					"c/type": {
+						PropertyState: propStateUncovered,
+						schema:        specNestedDiscriminator.Definitions["def_a"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPathLocal + "#/definitions/def_wrap_c": struct{}{},
+							specNestedDiscriminatorPathLocal + "#/definitions/def_c":      struct{}{},
+						},
+						fromRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPathLocal, "def_a")),
+						},
+						swaggerURI: specNestedDiscriminatorPathLocal,
+					},
+				},
+				swaggerURI: specNestedDiscriminatorPathLocal,
+				swagger:    specNestedDiscriminator,
+			},
+		},
 	}
 
 	for idx, c := range cases {
-		//if idx != 19 {
+		//if idx >= 18 {
 		//	continue
 		//}
 		for i := 0; i <= c.repeat; i++ {
@@ -2019,6 +2211,9 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								},
 								swaggerURI:      specFooPath,
 								isDiscriminator: true,
+								childRefSet: map[string]struct{}{
+									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+								},
 							},
 						},
 						swaggerURI: specFooPath,

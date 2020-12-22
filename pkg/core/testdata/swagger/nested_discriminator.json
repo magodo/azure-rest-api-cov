@@ -49,6 +49,13 @@
           "$ref": "#/definitions/def_b"
         }
       }
+    },
+    "def_wrap_c": {
+      "properties": {
+        "c": {
+          "$ref": "#/definitions/def_c"
+        }
+      }
     }
   }
 }

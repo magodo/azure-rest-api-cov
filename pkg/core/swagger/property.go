@@ -147,7 +147,9 @@ func buildProperty(state PropertyState, swaggerURI string, schema openapispec.Sc
 		}
 		// Remove the this schema ref from the child ref set.
 		// The remaining potential base refs represent the complete set of variant schemas' ref.
-		delete(childRefSet, thisSchemaRef)
+		if prop.isPureDiscriminator {
+			delete(childRefSet, thisSchemaRef)
+		}
 
 		if len(childRefSet) != 0 {
 			prop.childRefSet = childRefSet
@@ -208,12 +210,22 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	// Specifically, we need to avoid track the discriminator base schemas as they will not be exactly referenced
 	// (only its variants are referenced). This allows us to reference the base schema's properties in the
 	// `allOf` from the variant's schema.
-	if !refProp.isDiscriminator {
+	if !refProp.isDiscriminator || refProp.isLeafVariant() {
 		refProp.resolvedRefs[normalizedRefURI] = struct{}{}
 	}
 	*prop = *refProp
 
 	return prop.expandRefPropertyInPlace()
+}
+
+func (prop *Property) isLeafVariant() bool {
+	if prop.childRefSet == nil {
+		return false
+	}
+	if prop.isPureDiscriminator {
+		return false
+	}
+	return len(prop.childRefSet) == 1
 }
 
 // checkDiscriminator tells whether the schema corresponds to this property is a discriminator.

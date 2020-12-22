@@ -78,17 +78,8 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 		rootProp: rootProperty,
 	}
 
-	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
-	if err != nil {
-		return nil, err
-	}
-	isDiscriminator, _, err := rootProperty.checkDiscriminator(swaggerURI, allAllOfs)
-	if err != nil {
-		return nil, err
-	}
-
 	// Consider this schemas itself as resolved reference only when it is not a discriminator schema
-	if !isDiscriminator {
+	if !rootProperty.isDiscriminator || rootProperty.isLeafVariant() {
 		swgSchema.Properties[""].resolvedRefs = map[string]interface{}{
 			normalizedSchemaRef: struct{}{},
 		}
@@ -152,22 +143,62 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 	levelProperties.Merge(allOfSWGProperties)
 
 	// For non-pure discriminator, because itself can be instantiated, so we will add the expanded properties also.
-	if !prop.isPureDiscriminator {
-		s.addProperties(levelProperties)
-	}
 
 	// In case current property is a discriminator schema, we will expand it into its variants/children.
 	// Otherwise, we will simply return here and do not doing the expanding to variants below.
 	if !prop.isDiscriminator {
+		s.addProperties(levelProperties)
 		return nil
 	}
 
-	_, resolved := prop.resolvedRefs[prop.fromRef.String()]
-	if resolved {
+	switch {
+	case prop.isPureDiscriminator:
+		// continue
+	case prop.isLeafVariant():
+		s.addProperties(levelProperties)
 		return nil
+	default:
+		// Both a variant and a discriminator, we shall check whether it has been resolved yet.
+		// If it is resolved, it means the variant has been expanded along the expansion of current property,
+		// then we shall stop expanding its children variants and stop here.
+		_, resolved := prop.resolvedRefs[prop.fromRef.String()]
+		if resolved {
+			s.addProperties(levelProperties)
+			return nil
+		}
 	}
+
+	//_, resolved := prop.resolvedRefs[prop.fromRef.String()]
+	//if !prop.isPureDiscriminator {
+	//	// In case that the current prop is a variant, we should only add its properties after this variant is expanded.
+	//	if prop.isDiscriminator {
+	//		if resolved {
+	//			s.addProperties(levelProperties)
+	//		}
+	//		//if prop.childRefSet != nil {
+	//		//	if _, ok := prop.childRefSet[prop.fromRef.String()]; !ok {
+	//		//		s.addProperties(levelProperties)
+	//		//	}
+	//	} else {
+	//		s.addProperties(levelProperties)
+	//	}
+	//	//if prop.isDiscriminator {
+	//	//	if len(prop.childRefSet) == 1 {
+	//	//		s.addProperties(levelProperties)
+	//	//	}
+	//	//} else {
+	//	//	s.addProperties(levelProperties)
+	//	//}
+	//}
+	//
+	//if !prop.isDiscriminator || resolved {
+	//	return nil
+	//}
 
 	for variantRef := range prop.childRefSet {
+		if _, resolved := prop.resolvedRefs[variantRef]; resolved {
+			continue
+		}
 		ref := openapispec.MustCreateRef(variantRef)
 		name, _ := SchemaInfoFromRef(ref)
 
