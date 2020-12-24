@@ -251,7 +251,6 @@
         }
       }
     },
-
     "def_parent": {
       "discriminator": "type",
       "properties": {
@@ -280,6 +279,13 @@
       "properties": {
         "prop": {
           "$ref": "#/definitions/def_parent"
+        }
+      }
+    },
+    "def_to_remote_discriminator": {
+      "properties": {
+        "properties": {
+          "$ref": "./remote/discriminator.json#/definitions/base"
         }
       }
     }

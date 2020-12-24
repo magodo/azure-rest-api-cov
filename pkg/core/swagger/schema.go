@@ -32,16 +32,11 @@ type Schema struct {
 	IsGranted    bool   `json:",omitempty"`
 	GrantComment string `json:",omitempty"`
 
-	swagger    *openapispec.Swagger
 	swaggerURI string
 }
 
 func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
-	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
-	if err != nil {
-		return nil, err
-	}
 
 	ref := SchemaNameToRef(schemaName, "")
 	normalizedSchemaRef := normalizePaths(ref.String(), swaggerURI)
@@ -52,7 +47,6 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 			SwaggerRelPath: swaggerRelPath,
 		},
 		swaggerURI: swaggerURI,
-		swagger:    swagger,
 	}
 
 	rootProperty, err := buildProperty(
@@ -160,7 +154,11 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 
 		descValue := name
 		// If the 'x-ms-discriminator-value' is defined for the variant schemas, then it will take priority.
-		if v, ok := s.swagger.Definitions[name].Extensions[swaggerExtensionMSDiscriminatorValue].(string); ok {
+		swagger, err := swaggerloader.LoadSwagger(prop.swaggerURI)
+		if err != nil {
+			return err
+		}
+		if v, ok := swagger.Definitions[name].Extensions[swaggerExtensionMSDiscriminatorValue].(string); ok {
 			descValue = v
 		}
 

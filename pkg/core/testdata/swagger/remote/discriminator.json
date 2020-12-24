@@ -1,0 +1,31 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Discriminator"
+  },
+  "host": "management.azure.com",
+  "schemes": [
+    "https"
+  ],
+  "definitions": {
+    "base": {
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "v1": {
+      "x-ms-discriminator-value": "1",
+      "properties": {
+        "p1": {}
+      },
+      "allOf": [
+        {
+          "$ref": "#/definitions/base"
+        }
+      ]
+    }
+  }
+}

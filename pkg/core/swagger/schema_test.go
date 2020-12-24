@@ -32,6 +32,7 @@ func TestSchema(t *testing.T) {
 	specBazPathLocal := filepath.Join(specBasePathLocal, "baz", "baz.json")
 	specRemotePathLocal := filepath.Join(specBasePathLocal, "remote.json")
 	specNestedDiscriminatorPathLocal := filepath.Join(specBasePathLocal, "nested_discriminator.json")
+	specRemoteDiscPathLocal := filepath.Join(specBasePathLocal, "remote", "discriminator.json")
 
 	specFoo, err := swaggerloader.LoadSwagger(specFooPathLocal)
 	require.NoError(t, err)
@@ -43,6 +44,8 @@ func TestSchema(t *testing.T) {
 	require.NoError(t, err)
 	specNestedDiscriminator, err := swaggerloader.LoadSwagger(specNestedDiscriminatorPathLocal)
 	require.NoError(t, err)
+	specRemoteDisc, err := swaggerloader.LoadSwagger(specRemoteDiscPathLocal)
+	require.NoError(t, err)
 
 	specRemoteBaseURL := "https://gist.githubusercontent.com/magodo/f054bb1c2e7a1c74fd78f65eb42a17bb/raw/8308d9295287bc590be9b431ea0353b626da7ada"
 	specRemoteFileURL := specRemoteBaseURL + "/remote.json"
@@ -52,6 +55,7 @@ func TestSchema(t *testing.T) {
 	_ = specBaz
 	_ = specRemote
 	_ = specRemoteFileURL
+	_ = specRemoteDisc
 
 	cases := []struct {
 		specBaseURL string
@@ -85,7 +89,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 1
@@ -145,7 +148,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 2
@@ -172,7 +174,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 3
@@ -199,7 +200,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 4
@@ -226,7 +226,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 5
@@ -254,7 +253,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 6
@@ -282,7 +280,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 7
@@ -310,7 +307,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 8
@@ -337,7 +333,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 9
@@ -413,7 +408,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 10
@@ -453,7 +447,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 11
@@ -480,7 +473,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 12
@@ -530,7 +522,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 14
@@ -570,7 +561,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPathLocal,
-				swagger:    specFoo,
 			},
 		},
 		// 15
@@ -614,7 +604,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 16
@@ -658,7 +647,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 17
@@ -685,7 +673,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 18
@@ -712,7 +699,6 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 19
@@ -761,7 +747,32 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
+			},
+		},
+		// 20
+		{
+			specBaseURL: specBasePathLocal,
+			specRelPath: "foo.json",
+			schemaName:  "def_to_remote_discriminator",
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_to_remote_discriminator",
+				},
+				Properties: map[string]*Property{
+					"properties": {
+						PropertyState: propStateUncovered,
+						schema:        specFoo.Definitions["def_to_remote_discriminator"].Properties["properties"],
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPathLocal, "def_to_remote_discriminator")),
+						},
+						resolvedRefs: map[string]interface{}{
+							specFooPathLocal + "#/definitions/def_to_remote_discriminator": struct{}{},
+						},
+						swaggerURI: specFooPathLocal,
+					},
+				},
+				swaggerURI: specFooPathLocal,
 			},
 		},
 		//
@@ -794,7 +805,7 @@ func TestSchema(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		//if idx != 19 {
+		//if idx != 20 {
 		//	continue
 		//}
 		msg := fmt.Sprintf("(%d) %s: %s", idx, filepath.Join(c.specBaseURL, c.specRelPath), c.schemaName)
@@ -819,12 +830,18 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 	specFooPath := filepath.Join(specBasePath, "foo.json")
 	specBarPath := filepath.Join(specBasePath, "bar.json")
 	specNestedDiscriminatorPathLocal := filepath.Join(specBasePath, "nested_discriminator.json")
+	specRemoteDiscPath := filepath.Join(specBasePath, "remote", "discriminator.json")
+
 	specFoo, err := swaggerloader.LoadSwagger(specFooPath)
 	specBar, err := swaggerloader.LoadSwagger(specBarPath)
 	specNestedDiscriminator, err := swaggerloader.LoadSwagger(specNestedDiscriminatorPathLocal)
+	specRemoteDisc, err := swaggerloader.LoadSwagger(specRemoteDiscPath)
+
 	_ = specBar
 	_ = specFoo
 	_ = specNestedDiscriminator
+	_ = specRemoteDisc
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -865,7 +882,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 1
@@ -897,7 +913,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 2
@@ -962,7 +977,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 3
@@ -993,7 +1007,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 4
@@ -1023,7 +1036,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 5
@@ -1054,7 +1066,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 6
@@ -1085,7 +1096,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 7
@@ -1116,7 +1126,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 8
@@ -1146,7 +1155,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 9
@@ -1188,7 +1196,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 10
@@ -1233,7 +1240,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 11
@@ -1278,7 +1284,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 12
@@ -1324,7 +1329,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 13
@@ -1366,7 +1370,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
-				swagger:    specFoo,
 			},
 		},
 		// 14
@@ -1434,7 +1437,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 15
@@ -1483,7 +1485,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 16
@@ -1540,7 +1541,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 17
@@ -1613,7 +1613,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 18
@@ -1694,7 +1693,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 19
@@ -1743,7 +1741,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 20
@@ -1816,7 +1813,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 21
@@ -1873,7 +1869,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 22
@@ -1954,7 +1949,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 23
@@ -2009,7 +2003,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
 			},
 		},
 		// 24
@@ -2084,13 +2077,86 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPathLocal,
-				swagger:    specNestedDiscriminator,
+			},
+		},
+		// 25
+		{
+			name:           `Expand to ref to remote discriminator schema`,
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_to_remote_discriminator",
+			expandAddrs: []addr.Property{
+				addr.MustParseProperty("properties"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_to_remote_discriminator",
+				},
+				Properties: map[string]*Property{
+					"properties{1}": {
+						PropertyState: propStateUncovered,
+						schema:        specRemoteDisc.Definitions["v1"],
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "v1")),
+						},
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
+							specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
+						},
+						swaggerURI:      specRemoteDiscPath,
+						isDiscriminator: true,
+					},
+				},
+				swaggerURI: specFooPath,
+			},
+		},
+		// 26
+		{
+			name:           `Expand all of ref to remote discriminator schema`,
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_to_remote_discriminator",
+			expandAddrs: []addr.Property{
+				addr.MustParseProperty("properties"),
+				addr.MustParseProperty("properties{1}"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_to_remote_discriminator",
+				},
+				Properties: map[string]*Property{
+					"properties{1}/type": {
+						PropertyState: propStateUncovered,
+						schema:        specRemoteDisc.Definitions["base"].Properties["type"],
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "base")),
+						},
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
+							specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
+						},
+						swaggerURI: specRemoteDiscPath,
+					},
+					"properties{1}/p1": {
+						PropertyState: propStateUncovered,
+						schema:        specRemoteDisc.Definitions["v1"].Properties["p1"],
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "v1")),
+						},
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
+							specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
+						},
+						swaggerURI: specRemoteDiscPath,
+					},
+				},
+				swaggerURI: specFooPath,
 			},
 		},
 	}
 
 	for idx, c := range cases {
-		//if idx >= 18 {
+		//if idx != 25 {
 		//	continue
 		//}
 		for i := 0; i <= c.repeat; i++ {
@@ -2171,7 +2237,6 @@ func TestSchema_AddCovProperty(t *testing.T) {
 							},
 						},
 						swaggerURI: specFooPath,
-						swagger:    specFoo,
 					},
 				},
 				// Add a second tf link to the same swg property should have no change
@@ -2207,7 +2272,6 @@ func TestSchema_AddCovProperty(t *testing.T) {
 							},
 						},
 						swaggerURI: specFooPath,
-						swagger:    specFoo,
 					},
 				},
 			},
@@ -2261,7 +2325,6 @@ func TestSchema_AddCovProperty(t *testing.T) {
 							},
 						},
 						swaggerURI: specFooPath,
-						swagger:    specFoo,
 					},
 				},
 				{
@@ -2307,7 +2370,6 @@ func TestSchema_AddCovProperty(t *testing.T) {
 							},
 						},
 						swaggerURI: specFooPath,
-						swagger:    specFoo,
 					},
 				},
 			},
@@ -2350,7 +2412,6 @@ func TestSchema_AddCovProperty(t *testing.T) {
 							},
 						},
 						swaggerURI: specFooPath,
-						swagger:    specFoo,
 					},
 				},
 				{
@@ -2396,7 +2457,6 @@ func TestSchema_AddCovProperty(t *testing.T) {
 							},
 						},
 						swaggerURI: specFooPath,
-						swagger:    specFoo,
 					},
 				},
 			},
@@ -2440,7 +2500,6 @@ func TestSchema_AddCovProperty(t *testing.T) {
 							},
 						},
 						swaggerURI: specFooPath,
-						swagger:    specFoo,
 					},
 				},
 			},
