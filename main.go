@@ -19,7 +19,7 @@ import (
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
 )
 
-const usage = `azure-rest-api-cov <option>`
+const usage = `azure-rest-api-cov -i <schema input> <option>`
 
 type Schemas map[workspace.SchemaLocator]swagger.Schema
 
