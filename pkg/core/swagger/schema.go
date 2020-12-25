@@ -32,10 +32,11 @@ type Schema struct {
 	IsGranted    bool   `json:",omitempty"`
 	GrantComment string `json:",omitempty"`
 
+	// The full URI of the Swagger file that defines this schema.
 	swaggerURI string
 }
 
-func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*Schema, error) {
+func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, forResponse bool) (*Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
 
 	ref := SchemaNameToRef(schemaName, "")
@@ -50,9 +51,10 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string) (*
 	}
 
 	rootProperty, err := buildProperty(
-		NewPropertyState(PropStateUncovered, ""),
+		PropertyStateUncovered,
 		map[string]interface{}{},
 		openapispec.MustCreateRef(normalizedSchemaRef),
+		forResponse,
 	)
 	if err != nil {
 		return nil, err
@@ -171,7 +173,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		normVariantRef := openapispec.MustCreateRef(variantRef)
 		resolvedRefs[variantRef] = struct{}{}
 
-		p, err := buildProperty(prop.PropertyState, resolvedRefs, normVariantRef)
+		p, err := buildProperty(prop.PropertyState, resolvedRefs, normVariantRef, prop.forResponse)
 		if err != nil {
 			return err
 		}
@@ -252,7 +254,8 @@ func (s Schema) HasGrantedAny() bool {
 		return true
 	}
 	for _, prop := range s.Properties {
-		if prop.IsGranted() {
+		// We allow auto grantings
+		if prop.IsGranted() && prop.PropertyState != PropertyStateGrantedForReqROProp {
 			return true
 		}
 	}
@@ -277,12 +280,12 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 		// Then we will mark the existing properties as covered also.
 		if propAddr.Contains(existPropAddr) {
 			propagateToChild = true
-			prop.PropertyState = NewPropertyState(PropStateCovered, "")
+			prop.PropertyState = PropertyStateCovered
 			continue
 		}
 
 		if existPropAddr.Equals(propAddr) {
-			prop.PropertyState = NewPropertyState(PropStateCovered, "")
+			prop.PropertyState = PropertyStateCovered
 			return nil
 		}
 

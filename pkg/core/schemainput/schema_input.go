@@ -18,7 +18,7 @@ func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex) (*swagg
 		return nil, err
 	}
 
-	schema, err := swagger.NewEmptySchema(index.SpecRootDir, relPath, name)
+	schema, err := swagger.NewEmptySchema(index.SpecRootDir, relPath, name, schemaInput.Operation == workspace.OperationKindGet)
 	if err != nil {
 		return nil, err
 	}

@@ -288,6 +288,34 @@
           "$ref": "./remote/discriminator.json#/definitions/base"
         }
       }
+    },
+    "def_contain_ro": {
+      "properties": {
+        "p_primitive": {},
+        "p_primitive_ro": {
+          "readOnly": true
+        },
+        "p_obj_array": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/def_foo"
+          }
+        },
+        "p_obj_array_ro": {
+          "readOnly": true,
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/def_foo"
+          }
+        },
+        "p_obj": {
+          "$ref": "#/definitions/def_foo"
+        },
+        "p_obj_ro": {
+          "readOnly": true,
+          "$ref": "#/definitions/def_foo"
+        }
+      }
     }
   }
 }

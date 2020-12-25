@@ -26,19 +26,19 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 				{
 					addr: addr.MustParseProperty("prop1/not_covered"),
 					prop: swagger.Property{
-						PropertyState: swagger.NewPropertyState(swagger.PropStateUncovered, ""),
+						PropertyState: swagger.PropertyStateUncovered,
 					},
 				},
 				{
 					addr: addr.MustParseProperty("prop1/covered"),
 					prop: swagger.Property{
-						PropertyState: swagger.NewPropertyState(swagger.PropStateCovered, ""),
+						PropertyState: swagger.PropertyStateCovered,
 					},
 				},
 				{
 					addr: addr.MustParseProperty("prop2/covered"),
 					prop: swagger.Property{
-						PropertyState: swagger.NewPropertyState(swagger.PropStateCovered, ""),
+						PropertyState: swagger.PropertyStateCovered,
 					},
 				},
 				{
@@ -237,13 +237,13 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 			schema: swagger.Schema{
 				Properties: swagger.Properties{
 					"prop1/covered": &swagger.Property{
-						PropertyState: swagger.NewPropertyState(swagger.PropStateCovered, ""),
+						PropertyState: swagger.PropertyStateCovered,
 					},
 					"prop1/not_covered": {
-						PropertyState: swagger.NewPropertyState(swagger.PropStateUncovered, ""),
+						PropertyState: swagger.PropertyStateUncovered,
 					},
 					"prop2/covered": {
-						PropertyState: swagger.NewPropertyState(swagger.PropStateCovered, ""),
+						PropertyState: swagger.PropertyStateCovered,
 					},
 					"prop2/granted": {
 						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
