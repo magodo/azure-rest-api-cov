@@ -23,48 +23,54 @@ const (
 	PropStateGranted             = "Granted"
 )
 
+var (
+	PropertyStateUncovered           = NewPropertyState(PropStateUncovered, "")
+	PropertyStateCovered             = NewPropertyState(PropStateCovered, "")
+	PropertyStateGrantedForReqROProp = NewPropertyState(PropStateGranted, "read-only property wouldn't show up in the request payload")
+)
+
 func NewPropertyState(state PropState, grantMsg string) PropertyState {
 	switch state {
 	case PropStateCovered:
-		return PropertyStateCovered{State: state}
+		return propertyStateCovered{State: state}
 	case PropStateUncovered:
-		return PropertyStateUncovered{State: state}
+		return propertyStateUncovered{State: state}
 	case PropStateGranted:
-		return PropertyStateGranted{State: state, GrantComment: grantMsg}
+		return propertyStateGranted{State: state, GrantComment: grantMsg}
 	default:
 		panic("will not happen")
 	}
 }
 
-type PropertyStateCovered struct {
+type propertyStateCovered struct {
 	State PropState `json:",omitempty"`
 }
 
-func (s PropertyStateCovered) IsCovered() bool      { return true }
-func (s PropertyStateCovered) IsUncovered() bool    { return false }
-func (s PropertyStateCovered) IsGranted() bool      { return false }
-func (s PropertyStateCovered) GrantMessage() string { panic("Covered property has no grant message") }
+func (s propertyStateCovered) IsCovered() bool      { return true }
+func (s propertyStateCovered) IsUncovered() bool    { return false }
+func (s propertyStateCovered) IsGranted() bool      { return false }
+func (s propertyStateCovered) GrantMessage() string { panic("Covered property has no grant message") }
 
-type PropertyStateUncovered struct {
+type propertyStateUncovered struct {
 	State PropState `json:",omitempty"`
 }
 
-func (s PropertyStateUncovered) IsCovered() bool   { return false }
-func (s PropertyStateUncovered) IsUncovered() bool { return true }
-func (s PropertyStateUncovered) IsGranted() bool   { return false }
-func (s PropertyStateUncovered) GrantMessage() string {
+func (s propertyStateUncovered) IsCovered() bool   { return false }
+func (s propertyStateUncovered) IsUncovered() bool { return true }
+func (s propertyStateUncovered) IsGranted() bool   { return false }
+func (s propertyStateUncovered) GrantMessage() string {
 	panic("Uncovered property has no grant message")
 }
 
-type PropertyStateGranted struct {
+type propertyStateGranted struct {
 	State        PropState `json:",omitempty"`
 	GrantComment string    `json:",omitempty"`
 }
 
-func (s PropertyStateGranted) IsCovered() bool      { return false }
-func (s PropertyStateGranted) IsUncovered() bool    { return false }
-func (s PropertyStateGranted) IsGranted() bool      { return true }
-func (s PropertyStateGranted) GrantMessage() string { return s.GrantComment }
+func (s propertyStateGranted) IsCovered() bool      { return false }
+func (s propertyStateGranted) IsUncovered() bool    { return false }
+func (s propertyStateGranted) IsGranted() bool      { return true }
+func (s propertyStateGranted) GrantMessage() string { return s.GrantComment }
 
 type Property struct {
 	PropertyState `json:"state"`
@@ -85,6 +91,12 @@ type Property struct {
 
 	// The URI of the schema file
 	swaggerURI string
+
+	// Whether this property is part of a response payload.
+	// If false, we will automatically grant the read-only properties, since they are meaningless
+	// in context of a request payload.
+	// See: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#fixed-fields-13
+	forResponse bool
 
 	// Whether the schema of this property is a discriminator (either pure or derived schema)
 	isDiscriminator bool
@@ -109,7 +121,7 @@ func (p Properties) Merge(o Properties) {
 }
 
 // propagateProperty propagates a new property which is directly defined by the schema
-// of the current property (i.e. not via `allOf`)
+// of the current property.
 func (prop Property) propagateProperty(schema openapispec.Schema) *Property {
 	newResolvedRefs := map[string]interface{}{}
 	if len(prop.resolvedRefs) != 0 {
@@ -118,12 +130,17 @@ func (prop Property) propagateProperty(schema openapispec.Schema) *Property {
 		}
 	}
 
+	state := prop.PropertyState
+	if !prop.forResponse && schema.ReadOnly {
+		state = PropertyStateGrantedForReqROProp
+	}
 	return &Property{
-		PropertyState:  prop.PropertyState,
+		PropertyState:  state,
 		schema:         schema,
+		ownerSchemaRef: prop.ownerSchemaRef,
 		resolvedRefs:   newResolvedRefs,
 		swaggerURI:     prop.swaggerURI,
-		ownerSchemaRef: prop.ownerSchemaRef,
+		forResponse:    prop.forResponse,
 	}
 }
 
@@ -131,7 +148,7 @@ func (prop Property) propagateProperty(schema openapispec.Schema) *Property {
 // It is useful when initiating the root property or building a property by following a reference to a new schema.
 // The "resolvedRefs" keeps track about resolved refs at this point. In case that the schema of this property is
 // a non-discriminator schema or leaf variant, current schema's ref will be added to resolvedRefs of the new property.
-func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, normSchemaRef openapispec.Ref) (*Property, error) {
+func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, normSchemaRef openapispec.Ref, forResponse bool) (*Property, error) {
 	schema, err := openapispec.ResolveRefWithBase(nil, &normSchemaRef, nil)
 	if err != nil {
 		return nil, err
@@ -145,12 +162,16 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 		}
 	}
 
+	if !forResponse && schema.ReadOnly {
+		state = PropertyStateGrantedForReqROProp
+	}
 	prop := &Property{
 		PropertyState:  state,
 		schema:         *schema,
+		ownerSchemaRef: &normSchemaRef,
 		resolvedRefs:   newResolvedRefs,
 		swaggerURI:     swaggerURI,
-		ownerSchemaRef: &normSchemaRef,
+		forResponse:    forResponse,
 	}
 
 	isDiscriminator, pure, err := checkDiscriminatorSchema(normSchemaRef)
@@ -338,7 +359,7 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 		return true, nil
 	}
 
-	refProp, err := buildProperty(prop.PropertyState, prop.resolvedRefs, *normalizedRef)
+	refProp, err := buildProperty(prop.PropertyState, prop.resolvedRefs, *normalizedRef, prop.forResponse)
 	if err != nil {
 		return false, err
 	}
@@ -364,11 +385,11 @@ func (props Properties) MarshalJSON() ([]byte, error) {
 		mm := map[string]interface{}{}
 		m[k] = mm
 		switch state := prop.PropertyState.(type) {
-		case PropertyStateCovered:
+		case propertyStateCovered:
 			mm["state"] = state.State
-		case PropertyStateUncovered:
+		case propertyStateUncovered:
 			mm["state"] = state.State
-		case PropertyStateGranted:
+		case propertyStateGranted:
 			mm["state"] = state.State
 			mm["grant_comment"] = state.GrantComment
 		default:
