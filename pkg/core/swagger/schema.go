@@ -254,7 +254,8 @@ func (s Schema) HasGrantedAny() bool {
 		return true
 	}
 	for _, prop := range s.Properties {
-		if prop.IsGranted() {
+		// We allow auto grantings
+		if prop.IsGranted() && prop.PropertyState != PropertyStateGrantedForReqROProp {
 			return true
 		}
 	}
