@@ -1,9 +1,7 @@
 package coverage
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
 
@@ -17,20 +15,15 @@ type RepoCoverageStore struct {
 	ResourceProviders ResourceProviders `json:"resource_providers"`
 }
 
-type ResourceProviders map[ResourceProvider]Operations
+type ResourceProviders map[ResourceProvider]APIPaths
 
 type ResourceProvider string
 
-type Operations map[Operation]APIVersions
+type APIPaths map[string]Operations
 
-type Operation struct {
-	APIPath       string                  `json:"api_path"`
-	OperationKind workspace.OperationKind `json:"operation_kind"`
-}
+type Operations map[string]APIVersions
 
-type APIVersions map[APIVersion]*SchemaCoverageStore
-
-type APIVersion string
+type APIVersions map[string]*SchemaCoverageStore
 
 func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore {
 	coverage := RepoCoverageStore{
@@ -39,23 +32,27 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore
 	}
 
 	for rp, versions := range index.ResourceProviders {
-		covOps := Operations{}
-		coverage.ResourceProviders[ResourceProvider(rp)] = covOps
-
+		paths := APIPaths{}
+		coverage.ResourceProviders[ResourceProvider(rp)] = paths
 		for version, specs := range versions {
 			for _, apiPaths := range specs {
 				for apiPath, ops := range apiPaths {
+
+					covOps, ok := paths[string(apiPath)]
+					if !ok {
+						covOps = Operations{}
+						paths[string(apiPath)] = covOps
+					}
+
 					for op := range ops {
-						covOp := Operation{
-							APIPath:       string(apiPath),
-							OperationKind: op,
-						}
-						covVersions, ok := covOps[covOp]
+
+						covVersions, ok := covOps[string(op)]
 						if !ok {
 							covVersions = APIVersions{}
-							covOps[covOp] = covVersions
+							covOps[string(op)] = covVersions
 						}
-						covVersions[APIVersion(version)] = nil
+
+						covVersions[string(version)] = nil
 					}
 				}
 			}
@@ -78,54 +75,21 @@ func (repoCov *RepoCoverageStore) AddSchema(s swagger.Schema, locator workspace.
 	}
 
 	rp := ResourceProvider(pathInfo.ResourceProvider)
-	ops, ok := repoCov.ResourceProviders[rp]
+	paths, ok := repoCov.ResourceProviders[rp]
 	if !ok {
 		return fmt.Errorf("no resource provider %q found", rp)
 	}
 
-	op := Operation{
-		APIPath:       locator.ApiPath,
-		OperationKind: locator.Operation,
-	}
-	versions, ok := ops[op]
+	ops, ok := paths[locator.ApiPath]
 	if !ok {
-		return fmt.Errorf("no operation %q found for resource provider %q", op, rp)
+		return fmt.Errorf("no API path %q found for resource provider %q", locator.ApiPath, rp)
 	}
 
-	versions[APIVersion(locator.ApiVersion)] = schemaCov
-	return nil
-}
-
-func (op Operation) String() string {
-	return fmt.Sprintf("%s:%s", op.APIPath, op.OperationKind)
-}
-
-func ParseOperation(s string) Operation {
-	l := strings.Split(s, ":")
-	return Operation{
-		APIPath:       l[0],
-		OperationKind: workspace.OperationKind(l[1]),
+	versions, ok := ops[string(locator.Operation)]
+	if !ok {
+		return fmt.Errorf("no operation %q found for API path %q, resource provider %q", locator.Operation, locator.ApiPath, rp)
 	}
-}
 
-func (ops Operations) MarshalJSON() ([]byte, error) {
-	m := map[string]interface{}{}
-	for op, apis := range ops {
-		m[op.String()] = apis
-	}
-	return json.Marshal(m)
-}
-
-func (ops *Operations) UnmarshalJSON(b []byte) error {
-	var m map[string]APIVersions
-	if err := json.Unmarshal(b, &m); err != nil {
-		return err
-	}
-	tmpOperations := Operations{}
-	for k, v := range m {
-		op := ParseOperation(k)
-		tmpOperations[op] = v
-	}
-	*ops = tmpOperations
+	versions[locator.ApiVersion] = schemaCov
 	return nil
 }
