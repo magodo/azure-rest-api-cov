@@ -25,30 +25,25 @@ func TestNewEmptyRepoCoverageStore(t *testing.T) {
 	expect := coverage.RepoCoverageStore{
 		Commit: "xxx",
 		ResourceProviders: coverage.ResourceProviders{
-			"dummy": coverage.Operations{
-				coverage.Operation{
-					APIPath:       "/{host}/{foo}/def_base",
-					OperationKind: "PUT",
-				}: coverage.APIVersions{
-					"2020-12-01": nil,
+			"dummy": coverage.APIPaths{
+				"/{host}/{bar}": coverage.Operations{},
+				"/{host}/{foo}/def_base": coverage.Operations{
+					"PUT": coverage.APIVersions{
+						"2020-12-01": nil,
+					},
 				},
-				coverage.Operation{
-					APIPath:       "/{host}/{foo}/def_bar",
-					OperationKind: "POST",
-				}: coverage.APIVersions{
-					"2020-12-01": nil,
+				"/{host}/{foo}/def_bar": coverage.Operations{
+					"POST": coverage.APIVersions{
+						"2020-12-01": nil,
+					},
 				},
-				coverage.Operation{
-					APIPath:       "/{host}/{foo}/def_regular",
-					OperationKind: "GET",
-				}: coverage.APIVersions{
-					"2020-12-01": nil,
-				},
-				coverage.Operation{
-					APIPath:       "/{host}/{foo}/def_regular",
-					OperationKind: "PUT",
-				}: coverage.APIVersions{
-					"2020-12-01": nil,
+				"/{host}/{foo}/def_regular": coverage.Operations{
+					"GET": coverage.APIVersions{
+						"2020-12-01": nil,
+					},
+					"PUT": coverage.APIVersions{
+						"2020-12-01": nil,
+					},
 				},
 			},
 		},
@@ -78,40 +73,47 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
   "commit": "",
   "resource_providers": {
     "dummy": {
-      "/{host}/{foo}/def_bar:POST": {
-        "2020-12-01": null
+      "/{host}/{bar}": {},
+      "/{host}/{foo}/def_bar": {
+	    "POST": {
+          "2020-12-01": null
+        }
       },
-      "/{host}/{foo}/def_base:PUT": {
-        "2020-12-01": {
-          "name": "def_base",
-          "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
-          "node": {
-            "total_amount": 2,
-            "covered_amount": 1,
-            "children": {
-              "{def_variant1}": {
-                "total_amount": 1,
-                "covered_amount": 1,
-                "children": {
-                  "type": {
-                    "total_amount": 1,
-                    "covered_amount": 1
+      "/{host}/{foo}/def_base": {
+       "PUT": {
+          "2020-12-01": {
+            "name": "def_base",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "node": {
+              "total_amount": 2,
+              "covered_amount": 1,
+              "children": {
+                "{def_variant1}": {
+                  "total_amount": 1,
+                  "covered_amount": 1,
+                  "children": {
+                    "type": {
+                      "total_amount": 1,
+                      "covered_amount": 1
+                    }
                   }
+                },
+                "{def_variant2}": {
+                  "total_amount": 1,
+                  "covered_amount": 0
                 }
-              },
-              "{def_variant2}": {
-                "total_amount": 1,
-                "covered_amount": 0
               }
             }
           }
         }
       },
-      "/{host}/{foo}/def_regular:GET": {
-        "2020-12-01": null
-      },
-      "/{host}/{foo}/def_regular:PUT": {
-        "2020-12-01": null
+      "/{host}/{foo}/def_regular": {
+        "GET": {
+          "2020-12-01": null
+        },
+        "PUT": {
+          "2020-12-01": null
+        }
       }
     }
   }
@@ -153,22 +155,21 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
 			input: coverage.RepoCoverageStore{
 				Commit: "xxx",
 				ResourceProviders: coverage.ResourceProviders{
-					"rp1": coverage.Operations{
-						coverage.Operation{
-							APIPath:       "path1",
-							OperationKind: "PUT",
-						}: coverage.APIVersions{
-							"version1": &coverage.SchemaCoverageStore{
-								SchemaMetaInfo: swagger.SchemaMetaInfo{
-									Name:           "schema1",
-									SwaggerRelPath: "foo/bar.json",
+					"rp1": coverage.APIPaths{
+						"path1": coverage.Operations{
+							"PUT": coverage.APIVersions{
+								"version1": &coverage.SchemaCoverageStore{
+									SchemaMetaInfo: swagger.SchemaMetaInfo{
+										Name:           "schema1",
+										SwaggerRelPath: "foo/bar.json",
+									},
+									Node: coverage.PropertyCoverageNode{
+										TotalAmount:   1,
+										CoveredAmount: 1,
+									},
 								},
-								Node: coverage.PropertyCoverageNode{
-									TotalAmount:   1,
-									CoveredAmount: 1,
-								},
+								"version2": nil,
 							},
-							"version2": nil,
 						},
 					},
 				},
@@ -178,16 +179,18 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
   "commit": "xxx",
   "resource_providers": {
     "rp1": {
-      "path1:PUT": {
-        "version1": {
-          "name": "schema1",
-          "swagger_rel_path": "foo/bar.json",
-          "node": {
-            "total_amount": 1,
-            "covered_amount": 1
-          }
-        },
-        "version2": null
+      "path1": {
+		"PUT": {
+          "version1": {
+            "name": "schema1",
+            "swagger_rel_path": "foo/bar.json",
+            "node": {
+              "total_amount": 1,
+              "covered_amount": 1
+            }
+          },
+          "version2": null
+		}
       }
     }
   }
@@ -214,16 +217,18 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
   "commit": "xxx",
   "resource_providers": {
     "rp1": {
-      "path1:PUT": {
-        "version1": {
-          "name": "schema1",
-          "swagger_rel_path": "foo/bar.json",
-          "node": {
-            "total_amount": 1,
-            "covered_amount": 1
-          }
-        },
-        "version2": null
+      "path1": {
+		"PUT": {
+          "version1": {
+            "name": "schema1",
+            "swagger_rel_path": "foo/bar.json",
+            "node": {
+              "total_amount": 1,
+              "covered_amount": 1
+            }
+          },
+          "version2": null
+		}
       }
     }
   }
@@ -232,22 +237,21 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
 			expect: coverage.RepoCoverageStore{
 				Commit: "xxx",
 				ResourceProviders: coverage.ResourceProviders{
-					"rp1": coverage.Operations{
-						coverage.Operation{
-							APIPath:       "path1",
-							OperationKind: "PUT",
-						}: coverage.APIVersions{
-							"version1": &coverage.SchemaCoverageStore{
-								SchemaMetaInfo: swagger.SchemaMetaInfo{
-									Name:           "schema1",
-									SwaggerRelPath: "foo/bar.json",
+					"rp1": coverage.APIPaths{
+						"path1": coverage.Operations{
+							"PUT": coverage.APIVersions{
+								"version1": &coverage.SchemaCoverageStore{
+									SchemaMetaInfo: swagger.SchemaMetaInfo{
+										Name:           "schema1",
+										SwaggerRelPath: "foo/bar.json",
+									},
+									Node: coverage.PropertyCoverageNode{
+										TotalAmount:   1,
+										CoveredAmount: 1,
+									},
 								},
-								Node: coverage.PropertyCoverageNode{
-									TotalAmount:   1,
-									CoveredAmount: 1,
-								},
+								"version2": nil,
 							},
-							"version2": nil,
 						},
 					},
 				},
