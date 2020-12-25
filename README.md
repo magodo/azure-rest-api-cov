@@ -37,7 +37,7 @@ The tool will setup a workspace (controlled by `-w` option, which by default is 
 
 Note that you should ensure that the commit of the [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) from which you generate the [schema input](#schema-input-format) is the same as the one you run against this tool, via `-c` option.
 
-If `-a` is set, the output will contain all existing resource providers in the  [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs), together with its API paths, versions and operations, no matter whether they appears in the  [schema input](##schema-input-format).
+If `-a` is set, the output will contain all existing resource providers in the  [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs), together with its API paths, versions and operations, no matter whether they appears in the  [schema input](#schema-input-format).
 
 ## Schema Input Format
 
