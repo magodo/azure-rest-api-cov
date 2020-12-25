@@ -1,6 +1,6 @@
 # azure-rest-api-cov
 
-A tool consumes [schema input](##schema-input-format) and compare against [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) to get property covereage report.
+A tool consumes [schema input](#schema-input-format) and compare against [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) to get property covereage report.
 
 ## Install
 
@@ -35,7 +35,7 @@ azure-rest-api-cov -i <schema input> <options>
 
 The tool will setup a workspace (controlled by `-w` option, which by default is the [user cache directory](https://golang.org/pkg/os/#UserCacheDir)) that will hold the [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) repository and some index files for accelaration.
 
-Note that you should ensure that the commit of the [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) from which you generate the [schema input](##schema-input-format) is the same as the one you run against this tool, via `-c` option.
+Note that you should ensure that the commit of the [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) from which you generate the [schema input](#schema-input-format) is the same as the one you run against this tool, via `-c` option.
 
 If `-a` is set, the output will contain all existing resource providers in the  [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs), together with its API paths, versions and operations, no matter whether they appears in the  [schema input](##schema-input-format).
 
@@ -69,7 +69,7 @@ The schema input is a json array, where each element is a json object of followi
     "variant": "AdlsGen1File",
     ```
 
-- `properties` (OPTIONAL): This is only optional for `DELETE`, but is required for the other operations. This is an array of [properties](###property-format) indicating those properties are covered
+- `properties` (OPTIONAL): This is only optional for `DELETE`, but is required for the other operations. This is an array of [properties](#property-format) indicating those properties are covered
 
     E.g.
 
