@@ -379,6 +379,18 @@ func (prop *Property) isLeafVariant() bool {
 	return prop.variantRefSet == nil
 }
 
+func (prop *Property) isLeafProperty() (bool, error) {
+	cyclic, err := prop.expandRefPropertyInPlace()
+	if err != nil {
+		return false, err
+	}
+	if cyclic {
+		return false, nil
+	}
+
+	return !prop.schema.Type.Contains("object"), nil
+}
+
 func (props Properties) MarshalJSON() ([]byte, error) {
 	m := map[string]interface{}{}
 	for k, prop := range props {

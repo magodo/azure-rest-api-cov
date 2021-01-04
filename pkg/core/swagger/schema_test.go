@@ -892,9 +892,6 @@ func TestSchema(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		if idx != 21 {
-			continue
-		}
 		msg := fmt.Sprintf("(%d) %s: %s", idx, filepath.Join(c.specBaseURL, c.specRelPath), c.schemaName)
 		for i := 0; i <= c.repeat; i++ {
 			actual, err := NewEmptySchema(c.specBaseURL, c.specRelPath, c.schemaName, c.forResponse)
@@ -2311,9 +2308,6 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		if idx != 27 {
-			continue
-		}
 		for i := 0; i <= c.repeat; i++ {
 			swgschema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
 			require.Equal(t, c.err, err, c.name, idx)

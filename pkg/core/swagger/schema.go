@@ -277,15 +277,20 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 		}
 
 		// If the property to Add is a parent property of any existing properties.
-		// Then we will mark the existing properties as covered also.
+		// We will throw that property since we will only regard leaf property as covered.
 		if propAddr.Contains(existPropAddr) {
-			propagateToChild = true
-			prop.PropertyState = PropertyStateCovered
-			continue
+			return nil
 		}
 
 		if existPropAddr.Equals(propAddr) {
-			prop.PropertyState = PropertyStateCovered
+			// We will need to further ensure whether the property is a leaf property.
+			isLeaf, err := prop.isLeafProperty()
+			if err != nil {
+				return err
+			}
+			if isLeaf {
+				prop.PropertyState = PropertyStateCovered
+			}
 			return nil
 		}
 
