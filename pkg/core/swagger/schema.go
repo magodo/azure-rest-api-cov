@@ -194,7 +194,8 @@ func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) (Pr
 		properties = prop.schema.Properties
 	}
 	for propName, propSchema := range properties {
-		p := prop.propagateProperty(propSchema)
+		p := prop.copy()
+		p.transformToSubProp(propSchema)
 		propAddr := propAddr.Append(addr.MustParseProperty(propName))
 		output[propAddr.String()] = p
 	}
@@ -208,7 +209,8 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 
 		// We construct a temp Property here (as it has no object/property related) to expand it into a concrete schemas.
 		// Then we will iterate that schemas's property which by concept is the top level property of this parent property.
-		tmpProp := prop.propagateProperty(schema)
+		tmpProp := prop.copy()
+		tmpProp.transformToSubProp(schema)
 
 		// AllOf contains refs, then need to expand the reference properties first.
 		if tmpProp.schema.Ref.String() != "" {
