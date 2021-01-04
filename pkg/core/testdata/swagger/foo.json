@@ -248,6 +248,14 @@
             "p2_1": {},
             "p2_2": {}
           }
+        },
+        "tags": {
+          "type" : "object",
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
         }
       }
     },

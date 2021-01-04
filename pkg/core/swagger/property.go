@@ -120,28 +120,30 @@ func (p Properties) Merge(o Properties) {
 	}
 }
 
-// propagateProperty propagates a new property which is directly defined by the schema
-// of the current property.
-func (prop Property) propagateProperty(schema openapispec.Schema) *Property {
+func (prop Property) copy() *Property {
 	newResolvedRefs := map[string]interface{}{}
 	if len(prop.resolvedRefs) != 0 {
 		for k, v := range prop.resolvedRefs {
 			newResolvedRefs[k] = v
 		}
 	}
-
-	state := prop.PropertyState
-	if !prop.forResponse && schema.ReadOnly {
-		state = PropertyStateGrantedForReqROProp
-	}
 	return &Property{
-		PropertyState:  state,
-		schema:         schema,
+		PropertyState:  prop.PropertyState,
+		schema:         prop.schema,
 		ownerSchemaRef: prop.ownerSchemaRef,
 		resolvedRefs:   newResolvedRefs,
 		swaggerURI:     prop.swaggerURI,
 		forResponse:    prop.forResponse,
 	}
+}
+
+// transformToSubProp expands current property to be one of its sub property by the sub property's schema
+func (prop *Property) transformToSubProp(schema openapispec.Schema) {
+	if !prop.forResponse && schema.ReadOnly {
+		prop.PropertyState = PropertyStateGrantedForReqROProp
+	}
+
+	prop.schema = schema
 }
 
 // buildProperty build a new property by providing all the needed information about this property.
@@ -369,7 +371,7 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	return prop.expandRefPropertyInPlace()
 }
 
-func (prop *Property) isLeafVariant() bool {
+func (prop Property) isLeafVariant() bool {
 	if !prop.isDiscriminator {
 		return false
 	}
@@ -377,6 +379,28 @@ func (prop *Property) isLeafVariant() bool {
 		return false
 	}
 	return prop.variantRefSet == nil
+}
+
+func (prop Property) isLeafProperty() (bool, error) {
+	p := prop.copy()
+	cyclic, err := p.expandRefPropertyInPlace()
+	if err != nil {
+		return false, err
+	}
+	if cyclic {
+		return false, nil
+	}
+
+	// Model with Map/Dictionary properties needs special handling
+	// See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#model-with-mapdictionary-properties
+	schema := p.schema
+	if schema.Type.Contains("object") {
+		if _, ok := schema.Properties["additionalProperties"]; ok {
+			return true, nil
+		}
+	}
+
+	return len(p.schema.AllOf) == 0 && p.schema.Properties == nil, nil
 }
 
 func (props Properties) MarshalJSON() ([]byte, error) {
