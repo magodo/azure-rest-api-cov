@@ -256,7 +256,7 @@ func (s Schema) HasGrantedAny() bool {
 		return true
 	}
 	for _, prop := range s.Properties {
-		// We allow auto grantings
+		// We allow auto grants
 		if prop.IsGranted() && prop.PropertyState != PropertyStateGrantedForReqROProp {
 			return true
 		}
@@ -270,7 +270,6 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 	if s.HasGrantedAny() {
 		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
 	}
-	var propagateToChild bool
 	for existRAddr, prop := range s.Properties {
 		existPropAddr := addr.MustParseProperty(existRAddr)
 
@@ -285,14 +284,20 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 		}
 
 		if existPropAddr.Equals(propAddr) {
-			// We will need to further ensure whether the property is a leaf property.
+			// Ensure whether the property is a leaf property.
 			isLeaf, err := prop.isLeafProperty()
 			if err != nil {
 				return err
 			}
 			if isLeaf {
+				// Ensure the property NOT is or belongs to a read-only property. Otherwise, just ignore it.
+				if prop.PropertyState == PropertyStateGrantedForReqROProp {
+					return nil
+				}
+
 				prop.PropertyState = PropertyStateCovered
 			}
+
 			return nil
 		}
 
@@ -301,9 +306,6 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 			return fmt.Errorf("expanding top level property for %s: %w", existPropAddr, err)
 		}
 		return s.AddCovProperty(propAddr)
-	}
-	if propagateToChild {
-		return nil
 	}
 	return fmt.Errorf("property %s doesn't belong to schemas %s (%s)", propAddr, s.Name, s.swaggerURI)
 }

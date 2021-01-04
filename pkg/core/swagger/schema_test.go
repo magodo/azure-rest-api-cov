@@ -2736,6 +2736,94 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				},
 			},
 		},
+		// 6
+		{
+			name:           "Add property whose parent property is RO",
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_contain_ro",
+			steps: []step{
+				{
+					swgPropAddr: addr.MustParseProperty("p_obj_ro/foo"),
+
+					expect: Schema{
+						SchemaMetaInfo: SchemaMetaInfo{
+							SwaggerRelPath: "foo.json",
+							Name:           "def_contain_ro",
+						},
+						Properties: map[string]*Property{
+							"p_primitive": {
+								PropertyState: PropertyStateUncovered,
+								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive"],
+								ownerSchemaRef: &openapispec.Ref{
+									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
+								},
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/def_contain_ro": struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+							"p_primitive_ro": {
+								PropertyState: PropertyStateGrantedForReqROProp,
+								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive_ro"],
+								ownerSchemaRef: &openapispec.Ref{
+									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
+								},
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/def_contain_ro": struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+							"p_obj_array": {
+								PropertyState: PropertyStateUncovered,
+								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj_array"],
+								ownerSchemaRef: &openapispec.Ref{
+									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
+								},
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/def_contain_ro": struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+							"p_obj_array_ro": {
+								PropertyState: PropertyStateGrantedForReqROProp,
+								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj_array_ro"],
+								ownerSchemaRef: &openapispec.Ref{
+									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
+								},
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/def_contain_ro": struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+							"p_obj": {
+								PropertyState: PropertyStateUncovered,
+								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj"],
+								ownerSchemaRef: &openapispec.Ref{
+									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
+								},
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/def_contain_ro": struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+							"p_obj_ro/foo": {
+								PropertyState: PropertyStateGrantedForReqROProp,
+								schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
+								ownerSchemaRef: &openapispec.Ref{
+									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
+								},
+								resolvedRefs: map[string]interface{}{
+									specFooPath + "#/definitions/def_contain_ro": struct{}{},
+									specFooPath + "#/definitions/def_foo":        struct{}{},
+								},
+								swaggerURI: specFooPath,
+							},
+						},
+						swaggerURI: specFooPath,
+					},
+				},
+			},
+		},
 	}
 
 	for idx, c := range cases {
