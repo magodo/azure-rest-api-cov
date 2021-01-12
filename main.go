@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
@@ -167,14 +169,21 @@ func main() {
 				}
 				log.Fatal(err)
 			}
+
 			pathInfo, err := specPath.PathInfo()
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			currentVersion := pathInfo.Version
+			swg, err := swaggerloader.LoadSwagger(filepath.Join(index.SpecRootDir, string(specPath)))
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
+
 			var newApiVersions []workspace.APIVersion
-			for apiVersion := range index.ResourceProviders[workspace.ResourceProvider(pathInfo.ResourceProvider)] {
+			for apiVersion := range index.ResourceProviders[workspace.ResourceProvider(rp)] {
 				if string(apiVersion) > currentVersion {
 					// Modify the API version to shift to the newer ones
 					schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
