@@ -62,11 +62,52 @@ type APIVersion string
 
 type Specs map[specpath.Path]APIPaths
 
-type APIPaths map[APIPath]APIOperations
-
-type APIPath string
+type APIPaths map[string]APIOperations
 
 type APIOperations map[OperationKind]*SchemaInfo
+
+type APIPath struct {
+	raw string
+}
+
+func NewAPIPath(path string) APIPath {
+	return APIPath{raw: path}
+}
+
+func (p APIPath) String() string {
+	return p.raw
+}
+
+// Provider returns the first provider component value that is defined in its API path
+func (p APIPath) Provider() (string, error) {
+	path := p.raw
+
+	path = strings.TrimPrefix(path, "/")
+	path = strings.TrimSuffix(path, "/")
+
+	components := strings.Split(path, "/")
+
+	if len(components)%2 != 0 {
+		components = components[:len(components)-1]
+	}
+
+	for current := 0; current < len(components); current += 2 {
+		key := components[current]
+		value := components[current+1]
+
+		// Check key/value for empty strings.
+		if key == "" || value == "" {
+			return "", fmt.Errorf("Key/Value cannot be empty strings. Key: '%s', Value: '%s'", key, value)
+		}
+
+		// Catch the subscriptionID before it can be overwritten by another "subscriptions"
+		// value in the ID which is the case for the Service Bus subscription resource
+		if key == "providers" {
+			return value, nil
+		}
+	}
+	return "", fmt.Errorf("API path %q has no `provider` component", path)
+}
 
 type SchemaInfo struct {
 	Name        string        `json:"name"`
@@ -146,9 +187,9 @@ func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp Res
 	specs[specPathDefAPIPath] = apiPaths
 
 	for path, pathItem := range swg.Paths.Paths {
-		apiPath := APIPath(path)
+		apiPath := NewAPIPath(path)
 		operations := APIOperations{}
-		apiPaths[apiPath] = operations
+		apiPaths[apiPath.String()] = operations
 
 		infos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, string(specPathDefAPIPath), apiPath, pathItem)
 		if err != nil {
@@ -317,7 +358,7 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 				for apiPath := range apiPaths {
 					locator := SpecLocator{
 						ApiVersion: string(version),
-						ApiPath:    string(apiPath),
+						ApiPath:    apiPath,
 					}
 					// The locator should end up with one and only one match. If there are ambiguous ones,
 					// we will just ignore them for now.
@@ -333,15 +374,36 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 			}
 		}
 	}
-	// For those ambiguous locators, we have to avoid process them.
-	for loc, appears := range ambiguousLocators {
-		ambigs := []string{}
-		for _, appear := range appears {
-			ambigs = append(ambigs, string(appear))
+	// For those ambiguous locators, try to automatically find the origin swagger file by comparing the resource provider
+	// and the one defined in the path, together with the version.
+	for loc, ambigPaths := range ambiguousLocators {
+		locProvider, err := NewAPIPath(loc.ApiPath).Provider()
+		locVersion := loc.ApiVersion
+		if err != nil {
+			log.Warnln(err)
+			continue
 		}
-		sort.Strings(ambigs)
+
+		var ambigPathStrings []string
+		var maybeOriginPath []specpath.Path
+		for _, ambigPath := range ambigPaths {
+			ambigPathStrings = append(ambigPathStrings, string(ambigPath))
+
+			ambigPathInfo, _ := ambigPath.PathInfo() // guaranteed during index build phase
+			if strings.EqualFold(ambigPathInfo.ResourceProviderMS, locProvider) &&
+				strings.EqualFold(ambigPathInfo.Version, locVersion) {
+				maybeOriginPath = append(maybeOriginPath, ambigPath)
+			}
+		}
+
+		if len(maybeOriginPath) == 1 {
+			index.specLookupView[loc] = maybeOriginPath[0]
+			continue
+		}
+
+		sort.Strings(ambigPathStrings)
 		log.Warnf(` removing ambiguous spec locator: (%q, %q), appears in:
-%s`, loc.ApiPath, loc.ApiVersion, strings.Join(ambigs, "\n"))
+%s`, loc.ApiPath, loc.ApiVersion, strings.Join(ambigPathStrings, "\n"))
 		delete(index.specLookupView, loc)
 	}
 	return
@@ -384,7 +446,7 @@ func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (schemaName str
 	}
 
 	pathItem := swg.Paths.Paths[locator.ApiPath]
-	schemaInfos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), APIPath(locator.ApiPath), pathItem)
+	schemaInfos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
 	if err != nil {
 		return "", "", err
 	}
