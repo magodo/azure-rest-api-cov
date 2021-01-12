@@ -9,6 +9,29 @@
     "https"
   ],
   "paths": {
+    "/{host}/{foo}/def_foo": {
+      "get": {
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/def_foo"
+            }
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "name": "foo",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/def_foo"
+            }
+          }
+        ]
+      }
+    },
+
     "/{host}/{foo}/def_bar": {
       "post": {
         "parameters": [

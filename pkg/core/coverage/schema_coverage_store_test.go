@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewPropertyCoverageStore_Add(t *testing.T) {
+func TestSchemaCoverageStore_Add(t *testing.T) {
 	type swgproperty struct {
 		addr addr.Property
 		prop swagger.Property
@@ -99,7 +99,7 @@ func TestNewPropertyCoverageStore_Add(t *testing.T) {
 	}
 }
 
-func TestNewPropertyCoverageStore_FindCoverage(t *testing.T) {
+func TestSchemaCoverageStore_FindCoverage(t *testing.T) {
 	type result struct {
 		total   int
 		covered int
@@ -254,6 +254,7 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 				},
 			},
 			expect: &coverage.SchemaCoverageStore{
+				Active: true,
 				Node: coverage.PropertyCoverageNode{
 					TotalAmount:   3,
 					CoveredAmount: 2,
@@ -292,7 +293,7 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store, err := coverage.NewSchemaCoverageStore(c.schema)
+		store, err := coverage.NewSchemaCoverageStore(c.schema, true)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, store, idx)
 	}

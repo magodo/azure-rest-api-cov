@@ -6,9 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
+	"sort"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
 
@@ -21,12 +23,47 @@ import (
 
 const usage = `azure-rest-api-cov -i <schema input> <option>`
 
-type Schemas map[workspace.SchemaLocator]swagger.Schema
+type SchemaKey struct {
+	Active        bool
+	SchemaLocator workspace.SchemaLocator
+}
 
-func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Schema) error {
-	existing, ok := schemas[locator]
+type SchemaKeys []SchemaKey
+
+func (keys SchemaKeys) Len() int {
+	return len(keys)
+}
+
+func (keys SchemaKeys) Less(i, j int) bool {
+	if keys[i].SchemaLocator.ApiPath < keys[j].SchemaLocator.ApiPath {
+		return true
+	}
+	if keys[i].SchemaLocator.ApiPath > keys[j].SchemaLocator.ApiPath {
+		return false
+	}
+	if keys[i].SchemaLocator.ApiVersion < keys[j].SchemaLocator.ApiVersion {
+		return true
+	}
+	if keys[i].SchemaLocator.ApiVersion > keys[j].SchemaLocator.ApiVersion {
+		return false
+	}
+	return keys[i].SchemaLocator.Operation < keys[j].SchemaLocator.Operation
+}
+
+func (keys SchemaKeys) Swap(i, j int) {
+	keys[i], keys[j] = keys[j], keys[i]
+}
+
+type Schemas map[SchemaKey]swagger.Schema
+
+func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Schema, active bool) error {
+	schemaKey := SchemaKey{
+		Active:        active,
+		SchemaLocator: locator,
+	}
+	existing, ok := schemas[schemaKey]
 	if !ok {
-		schemas[locator] = s
+		schemas[schemaKey] = s
 		return nil
 	}
 	return existing.Merge(s)
@@ -42,16 +79,36 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	workspaceDir := flag.String("w", filepath.Join(cacheDir, "azure-rest-api-cov"),
-		"The path to the workspace for caching the azure-rest-api repository and other stuffs")
+	// Required options
 	inputPath := flag.String("i", "",
 		"The path to the schema input file, which is expected to hold a JSON array of input schemas")
+
+	// Workspace related options
+	workspaceDir := flag.String("w", filepath.Join(cacheDir, "azure-rest-api-cov"),
+		"The path to the workspace for caching the azure-rest-api repository and other stuffs")
 	force := flag.Bool("f", false, "whether to force create the workspace")
 	regenIndex := flag.Bool("r", false, "whether to force regenerate the repository index in the workspace")
 	repoHash := flag.String("c", "", "The azure-rest-api-spec repo commit hash to checkout")
-	all := flag.Bool("a", false, "whether to export the RP level coverage")
 
+	// Behavior options
+	all := flag.Bool("a", false, "whether to export the RP level coverage")
+	predictVersion := flag.Bool("p", false, "whether to predict coverage for newer API versions")
+
+	// Other options
+	debug := flag.Bool("d", false, "Whether to show debug log")
+
+	// Parse flag
 	flag.Parse()
+
+	// Initialize logger
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 
 	if *inputPath == "" {
 		flag.Usage()
@@ -79,44 +136,107 @@ func main() {
 
 	schemas := Schemas{}
 	for _, schemaInput := range schemaInputs {
-		msg := fmt.Sprintf("Processing: %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
-		if schemaInput.Variant != "" {
-			msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
-		}
-		log.Println(msg)
-
-		schema, err := schemaInput.ToSchema(index)
+		logCurrentProcessingSchemaInput(schemaInput, false)
+		schema, err := schemaInput.ToSchema(index, true)
 		if err != nil {
 			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
+				log.Warn(err)
 				continue
 			}
 			log.Fatal(err)
 		}
 
-		if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
+		if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema, true); err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if !*all {
-		for _, schema := range schemas {
-			cov, err := coverage.NewSchemaCoverageStore(schema)
-			if err != nil {
-				log.Fatal(err)
-			}
-			b, err = json.MarshalIndent(cov, "", "  ")
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Println(string(b))
+	if *predictVersion {
+		explicitSchemas := map[workspace.SchemaLocator]bool{}
+		for _, schemaInput := range schemaInputs {
+			explicitSchemas[schemaInput.SchemaLocator] = true
 		}
+
+	loop:
+		for _, schemaInput := range schemaInputs {
+			specPath, err := index.LocateSpec(schemaInput.SpecLocator)
+			if err != nil {
+				if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
+					log.Warn(err)
+					continue
+				}
+				log.Fatal(err)
+			}
+			pathInfo, err := specPath.PathInfo()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			currentVersion := pathInfo.Version
+			var newApiVersions []workspace.APIVersion
+			for apiVersion := range index.ResourceProviders[workspace.ResourceProvider(pathInfo.ResourceProvider)] {
+				if string(apiVersion) > currentVersion {
+					// Modify the API version to shift to the newer ones
+					schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
+
+					// If at least one newer version has already been explicitly specified via schemaInput files, then skip prediction based on current
+					// schemaInput. We should use the latest existing schemaInput to do the prediction on newer versions.
+					if explicitSchemas[schemaInput.SchemaLocator] {
+						continue loop
+					}
+					newApiVersions = append(newApiVersions, apiVersion)
+				}
+			}
+
+			for _, apiVersion := range newApiVersions {
+				// Modify the API version to shift to the newer ones
+				schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
+
+				logCurrentProcessingSchemaInput(schemaInput, true)
+				schema, err := schemaInput.ToSchema(index, false)
+				if err != nil {
+					if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
+						log.Warn(err)
+						continue
+					}
+					log.Fatal(err)
+				}
+				if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema, false); err != nil {
+					log.Fatal(err)
+				}
+			}
+		}
+	}
+
+	if !*all {
+		var keys SchemaKeys
+		for k := range schemas {
+			keys = append(keys, k)
+		}
+		sort.Sort(keys)
+
+		var covs []*coverage.SchemaCoverageStore
+		for _, k := range keys {
+			schema := schemas[k]
+			cov, err := coverage.NewSchemaCoverageStore(schema, k.Active)
+			if err != nil {
+				log.Fatal(err)
+			}
+			covs = append(covs, cov)
+		}
+
+		b, err = json.MarshalIndent(covs, "", "  ")
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(b))
 		return
 	}
 
 	// All
 	cov := coverage.NewEmptyRepoCoverageStore(*index)
-	for locator, schema := range schemas {
-		if err := cov.AddSchema(schema, locator); err != nil {
+	for k, schema := range schemas {
+		if err := cov.AddSchema(schema, k.SchemaLocator, k.Active); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -126,4 +246,16 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println(string(b))
+}
+
+func logCurrentProcessingSchemaInput(schemaInput schemainput.SchemaInput, predict bool) {
+	decoration := ""
+	if predict {
+		decoration = " (predict)"
+	}
+	msg := fmt.Sprintf("Processing%s: %s (%s - %s)", decoration, schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
+	if schemaInput.Variant != "" {
+		msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
+	}
+	log.Infoln(msg)
 }

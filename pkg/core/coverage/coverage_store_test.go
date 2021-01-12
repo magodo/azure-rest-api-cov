@@ -27,9 +27,13 @@ func TestNewEmptyRepoCoverageStore(t *testing.T) {
 		ResourceProviders: coverage.ResourceProviders{
 			"dummy": coverage.APIPaths{
 				"/{host}/{bar}": coverage.Operations{},
-				"/{host}/{foo}/def_base": coverage.Operations{
+				"/{host}/{foo}/def_foo": coverage.Operations{
 					"PUT": coverage.APIVersions{
 						"2020-12-01": nil,
+					},
+					"GET": coverage.APIVersions{
+						"2020-12-01": nil,
+						"2021-01-01": nil,
 					},
 				},
 				"/{host}/{foo}/def_bar": coverage.Operations{
@@ -37,12 +41,20 @@ func TestNewEmptyRepoCoverageStore(t *testing.T) {
 						"2020-12-01": nil,
 					},
 				},
+				"/{host}/{foo}/def_base": coverage.Operations{
+					"PUT": coverage.APIVersions{
+						"2020-12-01": nil,
+						"2021-01-01": nil,
+					},
+				},
 				"/{host}/{foo}/def_regular": coverage.Operations{
 					"GET": coverage.APIVersions{
 						"2020-12-01": nil,
+						"2021-01-01": nil,
 					},
 					"PUT": coverage.APIVersions{
 						"2020-12-01": nil,
+						"2021-01-01": nil,
 					},
 				},
 			},
@@ -74,6 +86,15 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
   "resource_providers": {
     "dummy": {
       "/{host}/{bar}": {},
+      "/{host}/{foo}/def_foo": {
+	    "GET": {
+          "2020-12-01": null,
+          "2021-01-01": null
+        },
+	    "PUT": {
+          "2020-12-01": null
+        }
+      },
       "/{host}/{foo}/def_bar": {
 	    "POST": {
           "2020-12-01": null
@@ -82,6 +103,7 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
       "/{host}/{foo}/def_base": {
        "PUT": {
           "2020-12-01": {
+			"active": true,
             "name": "def_base",
             "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
             "node": {
@@ -104,15 +126,46 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
                 }
               }
             }
+          },
+          "2021-01-01": {
+			"active": false,
+            "name": "def_base",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+            "node": {
+              "total_amount": 3,
+              "covered_amount": 1,
+              "children": {
+                "{def_variant1}": {
+                  "total_amount": 2,
+                  "covered_amount": 1,
+                  "children": {
+					"new_prop": {
+                      "total_amount": 1,
+                      "covered_amount": 0
+					},
+                    "type": {
+                      "total_amount": 1,
+                      "covered_amount": 1
+                    }
+                  }
+                },
+                "{def_variant2}": {
+                  "total_amount": 1,
+                  "covered_amount": 0
+                }
+              }
+            }
           }
         }
       },
       "/{host}/{foo}/def_regular": {
         "GET": {
-          "2020-12-01": null
+          "2020-12-01": null,
+          "2021-01-01": null
         },
         "PUT": {
-          "2020-12-01": null
+          "2020-12-01": null,
+          "2021-01-01": null
         }
       }
     }
@@ -129,15 +182,22 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
+		cov := coverage.NewEmptyRepoCoverageStore(*index)
 		var schemaInput schemainput.SchemaInput
+
+		// Add active schemaInput
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		schema, err := schemaInput.ToSchema(index)
+		schema, err := schemaInput.ToSchema(index, true)
 		require.NoError(t, err, idx)
+		require.NoError(t, cov.AddSchema(*schema, schemaInput.SchemaLocator, true), idx)
 
-		cov := coverage.NewEmptyRepoCoverageStore(*index)
-		require.NoError(t, cov.AddSchema(*schema, schemaInput.SchemaLocator), idx)
+		// Add in-active schemaInput
+		schemaInput.ApiVersion = "2021-01-01"
+		schema, err = schemaInput.ToSchema(index, true)
+		require.NoError(t, err, idx)
+		require.NoError(t, cov.AddSchema(*schema, schemaInput.SchemaLocator, false), idx)
 
 		b, err = json.MarshalIndent(cov, "", "  ")
 		require.NoError(t, err, idx)
@@ -159,6 +219,7 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
 						"path1": coverage.Operations{
 							"PUT": coverage.APIVersions{
 								"version1": &coverage.SchemaCoverageStore{
+									Active: true,
 									SchemaMetaInfo: swagger.SchemaMetaInfo{
 										Name:           "schema1",
 										SwaggerRelPath: "foo/bar.json",
@@ -182,6 +243,7 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
       "path1": {
 		"PUT": {
           "version1": {
+			"active": true,
             "name": "schema1",
             "swagger_rel_path": "foo/bar.json",
             "node": {
@@ -220,6 +282,7 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
       "path1": {
 		"PUT": {
           "version1": {
+			"active": true,
             "name": "schema1",
             "swagger_rel_path": "foo/bar.json",
             "node": {
@@ -241,6 +304,7 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
 						"path1": coverage.Operations{
 							"PUT": coverage.APIVersions{
 								"version1": &coverage.SchemaCoverageStore{
+									Active: true,
 									SchemaMetaInfo: swagger.SchemaMetaInfo{
 										Name:           "schema1",
 										SwaggerRelPath: "foo/bar.json",

@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
 
@@ -21,6 +22,7 @@ import (
 
 var (
 	ErrFailedToLocateSwagger = errors.New("can't locate swagger spec")
+	ErrFailedToLocateSchema  = errors.New("can't locate schema")
 )
 
 type OperationKind string
@@ -44,10 +46,10 @@ type SchemaLocator struct {
 }
 
 type AzureRepoIndex struct {
-	SpecRootDir       string                 `json:"spec_root_dir"`
-	Commit            string                 `json:"commit"`
-	ResourceProviders ResourceProviders      `json:"resource_providers"`
-	specLookupView    map[SpecLocator]string // value is the spec rel path
+	SpecRootDir       string                        `json:"spec_root_dir"`
+	Commit            string                        `json:"commit"`
+	ResourceProviders ResourceProviders             `json:"resource_providers"`
+	specLookupView    map[SpecLocator]specpath.Path // value is the spec rel path
 }
 
 type ResourceProviders map[ResourceProvider]APIVersions
@@ -58,9 +60,7 @@ type APIVersions map[APIVersion]Specs
 
 type APIVersion string
 
-type Specs map[SpecPath]APIPaths
-
-type SpecPath string
+type Specs map[specpath.Path]APIPaths
 
 type APIPaths map[APIPath]APIOperations
 
@@ -69,8 +69,8 @@ type APIPath string
 type APIOperations map[OperationKind]*SchemaInfo
 
 type SchemaInfo struct {
-	Name        string `json:"name"`
-	SpecRelPath string `json:"spec_rel_path"` // The relative path to the spec that define this schema, which might be different that the SpecPath (defines the API Path)
+	Name        string        `json:"name"`
+	SpecRelPath specpath.Path `json:"spec_rel_path"` // The relative path to the spec that define this schema, which might be different that the SpecPath (defines the API Path)
 }
 
 func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, error) {
@@ -107,7 +107,7 @@ func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, erro
 
 			rp := ResourceProvider(pathInfo.ResourceProvider)
 
-			if err := index.recordSpec(SpecPath(relPath), rp); err != nil {
+			if err := index.recordSpec(specpath.Path(relPath), rp); err != nil {
 				return err
 			}
 			return nil
@@ -117,7 +117,7 @@ func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, erro
 	return index, nil
 }
 
-func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath SpecPath, rp ResourceProvider) error {
+func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp ResourceProvider) error {
 	apiVersions, ok := index.ResourceProviders[rp]
 	if !ok {
 		apiVersions = APIVersions{}
@@ -244,7 +244,7 @@ func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelP
 		}
 		return &SchemaInfo{
 			Name:        name,
-			SpecRelPath: relPath,
+			SpecRelPath: specpath.Path(relPath),
 		}, nil
 	}
 	return nil, nil
@@ -284,7 +284,7 @@ func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPa
 	}
 	return &SchemaInfo{
 		Name:        name,
-		SpecRelPath: relPath,
+		SpecRelPath: specpath.Path(relPath),
 	}, nil
 }
 
@@ -309,8 +309,8 @@ func (index AzureRepoIndex) Export(path string) error {
 }
 
 func (index *AzureRepoIndex) buildSpecLookupView() {
-	index.specLookupView = map[SpecLocator]string{}
-	ambiguousLocators := map[SpecLocator][]string{}
+	index.specLookupView = map[SpecLocator]specpath.Path{}
+	ambiguousLocators := map[SpecLocator][]specpath.Path{}
 	for _, versions := range index.ResourceProviders {
 		for version, specs := range versions {
 			for specPath, apiPaths := range specs {
@@ -323,27 +323,31 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 					// we will just ignore them for now.
 					if existPath, ok := index.specLookupView[locator]; ok {
 						if len(ambiguousLocators[locator]) == 0 {
-							ambiguousLocators[locator] = []string{existPath}
+							ambiguousLocators[locator] = []specpath.Path{existPath}
 						}
-						ambiguousLocators[locator] = append(ambiguousLocators[locator], string(specPath))
+						ambiguousLocators[locator] = append(ambiguousLocators[locator], specPath)
 						continue
 					}
-					index.specLookupView[locator] = string(specPath)
+					index.specLookupView[locator] = specPath
 				}
 			}
 		}
 	}
 	// For those ambiguous locators, we have to avoid process them.
 	for loc, appears := range ambiguousLocators {
-		sort.Strings(appears)
-		log.Printf(`[WARNING] removing ambiguous spec locator: (%q, %q), appears in:
-%s`, loc.ApiPath, loc.ApiVersion, strings.Join(appears, "\n"))
+		ambigs := []string{}
+		for _, appear := range appears {
+			ambigs = append(ambigs, string(appear))
+		}
+		sort.Strings(ambigs)
+		log.Warnf(` removing ambiguous spec locator: (%q, %q), appears in:
+%s`, loc.ApiPath, loc.ApiVersion, strings.Join(ambigs, "\n"))
 		delete(index.specLookupView, loc)
 	}
 	return
 }
 
-func (index *AzureRepoIndex) SpecLookupView() map[SpecLocator]string {
+func (index *AzureRepoIndex) SpecLookupView() map[SpecLocator]specpath.Path {
 	if index.specLookupView != nil {
 		return index.specLookupView
 	}
@@ -353,7 +357,7 @@ func (index *AzureRepoIndex) SpecLookupView() map[SpecLocator]string {
 
 // LocateSpec locates the Swagger Spec that defines the API path of the API version as defined in the locator.
 // On success, it returns the relative path to the swagger spec.
-func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (string, error) {
+func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (specpath.Path, error) {
 	p, ok := index.SpecLookupView()[locator]
 	if !ok {
 		return "", fmt.Errorf("can't locate swagger spec by (%q, %q), this might because this tuple ends up with multiple swagger specs: %w",
@@ -366,13 +370,13 @@ func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (string, error) {
 // or 200 response (for GET operation) on the API path of the API version as defined in the locator.
 // The spec path might be different that the one that defines the API path.
 // On success, it returns the schema name and the relative path to the swagger spec.
-func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (schemaName, swaggerRelPath string, err error) {
+func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (schemaName string, swaggerRelPath specpath.Path, err error) {
 	swaggerRelPathDefApiPath, err := index.LocateSpec(locator.SpecLocator)
 	if err != nil {
 		return "", "", err
 	}
 
-	swaggerPathDefApiPath := filepath.Join(index.SpecRootDir, swaggerRelPathDefApiPath)
+	swaggerPathDefApiPath := filepath.Join(index.SpecRootDir, string(swaggerRelPathDefApiPath))
 
 	swg, err := swaggerloader.LoadSwagger(swaggerPathDefApiPath)
 	if err != nil {
@@ -380,14 +384,14 @@ func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (schemaName, sw
 	}
 
 	pathItem := swg.Paths.Paths[locator.ApiPath]
-	schemaInfos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, swaggerRelPathDefApiPath, APIPath(locator.ApiPath), pathItem)
+	schemaInfos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), APIPath(locator.ApiPath), pathItem)
 	if err != nil {
 		return "", "", err
 	}
 
 	info, ok := schemaInfos[locator.Operation]
 	if !ok {
-		return "", "", fmt.Errorf("no schema info found for schema locator: %v", locator)
+		return "", "", fmt.Errorf("no schema info found for schema locator %v: %w", locator, ErrFailedToLocateSchema)
 	}
 
 	return info.Name, info.SpecRelPath, nil

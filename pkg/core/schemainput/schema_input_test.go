@@ -2,6 +2,7 @@ package schemainput_test
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -23,7 +24,9 @@ func TestToSchema(t *testing.T) {
 	schemaBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "schema_input")
 	cases := []struct {
 		schemaInput      string
+		shiftVersion     string
 		expectProperties string
+		err              error
 	}{
 		{
 			schemaInput: filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
@@ -53,6 +56,22 @@ func TestToSchema(t *testing.T) {
 	}
 }`,
 		},
+		// New API version removes some property in old API
+		{
+			schemaInput:  filepath.Join(schemaBasePath, "def_regular", "def_regular.json"),
+			shiftVersion: "2021-01-01",
+			expectProperties: `{
+	"prop_primitive": {
+		"state": "Covered"
+	},
+	"prop_array_of_object":{
+		"state":"Uncovered"
+	},
+	"prop_object":{
+		"state":"Uncovered"
+	}
+}`,
+		},
 		{
 			schemaInput: filepath.Join(schemaBasePath, "def_bar", "def_bar.json"),
 			expectProperties: `{
@@ -60,6 +79,26 @@ func TestToSchema(t *testing.T) {
 		"state": "Covered"
 	}
 }`,
+		},
+		// New API version removed the API path
+		{
+			schemaInput:  filepath.Join(schemaBasePath, "def_bar", "def_bar.json"),
+			shiftVersion: "2021-01-01",
+			err:          workspace.ErrFailedToLocateSwagger,
+		},
+		{
+			schemaInput: filepath.Join(schemaBasePath, "def_foo", "def_foo.json"),
+			expectProperties: `{
+	"foo": {
+		"state": "Covered"
+	}
+}`,
+		},
+		// New API version removed the API operation
+		{
+			schemaInput:  filepath.Join(schemaBasePath, "def_foo", "def_foo.json"),
+			shiftVersion: "2021-01-01",
+			err:          workspace.ErrFailedToLocateSchema,
 		},
 	}
 
@@ -74,8 +113,16 @@ func TestToSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		schema, err := schemaInput.ToSchema(index)
-		require.NoError(t, err, idx)
+		if c.shiftVersion != "" {
+			schemaInput.ApiVersion = c.shiftVersion
+		}
+		schema, err := schemaInput.ToSchema(index, c.shiftVersion != "")
+		if c.err == nil {
+			require.NoError(t, err, idx)
+		} else {
+			require.Condition(t, func() bool { return errors.Is(err, c.err) }, idx)
+			continue
+		}
 
 		b, err = schema.Properties.MarshalJSON()
 		require.NoError(t, err, idx)
