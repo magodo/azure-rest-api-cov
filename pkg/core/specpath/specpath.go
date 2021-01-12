@@ -7,14 +7,15 @@ import (
 )
 
 const schemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
-const schemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]sMicrosoft.\w+%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`
+const schemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]s(Microsoft.\w+)%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`
 
 type Path string
 
 type PathInfo struct {
-	ResourceProvider string
-	IsPreview        bool
-	Version          string
+	ResourceProvider   string
+	ResourceProviderMS string
+	IsPreview          bool
+	Version            string
 }
 
 func (p Path) PathInfo() (*PathInfo, error) {
@@ -24,9 +25,10 @@ func (p Path) PathInfo() (*PathInfo, error) {
 		return nil, fmt.Errorf("path %q is not a swagger spec path", p)
 	}
 	return &PathInfo{
-		ResourceProvider: match[1],
-		IsPreview:        match[2] == "preview",
-		Version:          match[3],
+		ResourceProvider:   match[1],
+		ResourceProviderMS: match[2],
+		IsPreview:          match[3] == "preview",
+		Version:            match[4],
 	}, nil
 }
 
