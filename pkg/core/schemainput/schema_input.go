@@ -12,13 +12,13 @@ type SchemaInput struct {
 	Properties []string `json:"properties"`
 }
 
-func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex) (*swagger.Schema, error) {
+func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex, strict bool) (*swagger.Schema, error) {
 	name, relPath, err := index.LocateSchema(schemaInput.SchemaLocator)
 	if err != nil {
 		return nil, err
 	}
 
-	schema, err := swagger.NewEmptySchema(index.SpecRootDir, relPath, name, schemaInput.Operation == workspace.OperationKindGet)
+	schema, err := swagger.NewEmptySchema(index.SpecRootDir, string(relPath), name, schemaInput.Operation == workspace.OperationKindGet)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex) (*swagg
 		if schemaInput.Variant != "" {
 			prop = addr.MustParseProperty("").AsVariant(schemaInput.Variant).Append(prop)
 		}
-		if err := schema.AddCovProperty(prop); err != nil {
+		if err := schema.AddCovProperty(prop, strict); err != nil {
 			return nil, err
 		}
 	}

@@ -29,6 +29,16 @@ func TestNewAzureRepoIndex(t *testing.T) {
       },
       "2020-12-01": {
         "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
+          "/{host}/{foo}/def_foo": {
+            "PUT": {
+              "name": "def_foo",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+            },
+            "GET": {
+              "name": "def_foo",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+            }
+          },
           "/{host}/{foo}/def_bar": {
             "POST": {
               "name": "def_bar",
@@ -49,6 +59,32 @@ func TestNewAzureRepoIndex(t *testing.T) {
             "PUT": {
               "name": "def_regular",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+            }
+          }
+        }
+      },
+      "2021-01-01": {
+        "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json": {
+          "/{host}/{foo}/def_foo": {
+            "GET": {
+              "name": "def_foo",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+            }
+          },
+          "/{host}/{foo}/def_base": {
+            "PUT": {
+              "name": "def_base",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+            }
+          },
+          "/{host}/{foo}/def_regular": {
+            "GET": {
+              "name": "def_regular",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+            },
+            "PUT": {
+              "name": "def_regular",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
             }
           }
         }
@@ -162,7 +198,7 @@ func TestAzureRepoIndexLocateSchema(t *testing.T) {
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, result{
 			schemaName:  name,
-			specRelPath: p,
+			specRelPath: string(p),
 		}, idx)
 	}
 }

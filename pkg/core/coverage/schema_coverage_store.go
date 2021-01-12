@@ -11,12 +11,14 @@ import (
 
 type SchemaCoverageStore struct {
 	swagger.SchemaMetaInfo
-	Node PropertyCoverageNode `json:"node"`
+	Active bool                 `json:"active"`
+	Node   PropertyCoverageNode `json:"node"`
 }
 
-func NewSchemaCoverageStore(s swagger.Schema) (*SchemaCoverageStore, error) {
+func NewSchemaCoverageStore(s swagger.Schema, active bool) (*SchemaCoverageStore, error) {
 	store := SchemaCoverageStore{
 		SchemaMetaInfo: s.SchemaMetaInfo,
+		Active:         active,
 		Node: PropertyCoverageNode{
 			Children: PropertyCoverageNodes{},
 		},
@@ -55,6 +57,9 @@ func (store *SchemaCoverageStore) SchemaCoverage() (covered, total int) {
 }
 
 func (store *SchemaCoverageStore) FindCoverage(prop addr.Property) (covered, total int, ok bool) {
+	if prop == nil {
+		return 0, 0, false
+	}
 	node := store.Node
 	for _, addrSeg := range prop {
 		tmpNode, ok := node.Children[addrSeg]

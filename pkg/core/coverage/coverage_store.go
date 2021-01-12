@@ -62,8 +62,8 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore
 	return coverage
 }
 
-func (repoCov *RepoCoverageStore) AddSchema(s swagger.Schema, locator workspace.SchemaLocator) error {
-	schemaCov, err := NewSchemaCoverageStore(s)
+func (repoCov *RepoCoverageStore) AddSchema(s swagger.Schema, locator workspace.SchemaLocator, active bool) error {
+	schemaCov, err := NewSchemaCoverageStore(s, active)
 	if err != nil {
 		return err
 	}

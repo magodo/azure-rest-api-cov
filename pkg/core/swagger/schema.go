@@ -66,15 +66,20 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, fo
 
 	// Expand the root level properties of the schemas
 	rootAddr := addr.Property{}
-	err = swgSchema.expandPropertyOneLevelDeep(rootAddr)
+	_, err = swgSchema.expandPropertyOneLevelDeep(rootAddr)
 	if err != nil {
 		return nil, fmt.Errorf("expanding schemas %s (%s): %w", schemaName, swaggerURI, err)
 	}
+
+	// Remove the rootProp no matter expand one level succeed or not.
+	// (If succeeded, the rootProp was already deleted. Otherwise, it means the schema is empty, we just delete the rootProp)
+	delete(swgSchema.Properties, rootProp)
+
 	return swgSchema, nil
 }
 
 // expandPropertyOneLevelDeep expand the specified swagger schemas property one level deep, with any allOf and $ref taken into consideration.
-func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
+func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, err error) {
 	raddr := propAddr.String()
 
 	defer func() {
@@ -90,17 +95,17 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 
 	prop, ok := s.Properties[raddr]
 	if !ok {
-		return fmt.Errorf("property %s does not exist in Schema %s (%s)", propAddr, s.Name, s.swaggerURI)
+		return false, fmt.Errorf("property %s does not exist in Schema %s (%s)", propAddr, s.Name, s.swaggerURI)
 	}
 
 	isCyclic, err := prop.expandRefPropertyInPlace()
 	if err != nil {
-		return fmt.Errorf("dereferencing property %s in Schema %s (%s): %w", propAddr, s.Name, s.swaggerURI, err)
+		return false, fmt.Errorf("dereferencing property %s in Schema %s (%s): %w", propAddr, s.Name, s.swaggerURI, err)
 	}
 
 	// If the property to be expanded is a cyclic reference, we will do nothing but keep that property
 	if isCyclic {
-		return nil
+		return true, nil
 	}
 
 	// temporarily store the Properties expanded in this level
@@ -109,13 +114,13 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 	// expand direct top level properties
 	directTopSWGProperties, err := s.expandSubProperties(propAddr, prop)
 	if err != nil {
-		return fmt.Errorf("failed to expand direct top level properties for %q: %v", propAddr.String(), err)
+		return false, fmt.Errorf("failed to expand direct top level properties for %q: %v", propAddr.String(), err)
 	}
 
 	// expand AllOf properties
 	allOfSWGProperties, err := s.expandAllOfProperties(propAddr, prop)
 	if err != nil {
-		return fmt.Errorf("failed to expand allOf properties for %q: %v", propAddr.String(), err)
+		return false, fmt.Errorf("failed to expand allOf properties for %q: %v", propAddr.String(), err)
 	}
 
 	levelProperties.Merge(directTopSWGProperties)
@@ -124,10 +129,11 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 	// For non-pure discriminator, because itself can be instantiated, so we will add the expanded properties also.
 
 	// In case current property is a discriminator schema, we will expand it into its variants/children.
-	// Otherwise, we will simply return here and do not doing the expanding to variants below.
+	// Otherwise, we will simply return here and do not do the expanding to variants below.
 	if !prop.isDiscriminator {
 		s.addProperties(levelProperties)
-		return nil
+		end := len(levelProperties) == 0
+		return end, nil
 	}
 
 	switch {
@@ -135,7 +141,8 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		// continue
 	case prop.isLeafVariant():
 		s.addProperties(levelProperties)
-		return nil
+		end := len(levelProperties) == 0
+		return end, nil
 	default:
 		// A non-leaf variant, we shall check whether it has been resolved yet.
 		// If it is resolved, it means the variant has been expanded along the expansion of current property,
@@ -143,7 +150,8 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		_, resolved := prop.resolvedRefs[prop.ownerSchemaRef.String()]
 		if resolved {
 			s.addProperties(levelProperties)
-			return nil
+			end := len(levelProperties) == 0
+			return end, nil
 		}
 	}
 
@@ -158,7 +166,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 		// If the 'x-ms-discriminator-value' is defined for the variant schemas, then it will take priority.
 		swagger, err := swaggerloader.LoadSwagger(prop.swaggerURI)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if v, ok := swagger.Definitions[name].Extensions[swaggerExtensionMSDiscriminatorValue].(string); ok {
 			descValue = v
@@ -175,12 +183,12 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) error {
 
 		p, err := buildProperty(prop.PropertyState, resolvedRefs, normVariantRef, prop.forResponse)
 		if err != nil {
-			return err
+			return false, err
 		}
 		s.addProperty(propAddr.AsVariant(descValue), *p)
 	}
 
-	return nil
+	return false, nil
 }
 
 // expandSubProperties expand the directly contained sub-properties of the property (prop) in the specified address (addr)
@@ -265,8 +273,10 @@ func (s Schema) HasGrantedAny() bool {
 }
 
 // AddCovProperty adds a covered property to the schema.
+// In case the property doesn't exist in the Swagger definition, it will error out if in the strict mode.
+// Otherwise, it will just ignore this property.
 // NOTE: This has to be called before the schema goes under granting process.
-func (s *Schema) AddCovProperty(propAddr addr.Property) error {
+func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
 	if s.HasGrantedAny() {
 		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
 	}
@@ -302,12 +312,22 @@ func (s *Schema) AddCovProperty(propAddr addr.Property) error {
 		}
 
 		// The property we're seeking is a member of the property under iteration, we will first expand it one level deep.
-		if err := s.expandPropertyOneLevelDeep(existPropAddr); err != nil {
+		end, err := s.expandPropertyOneLevelDeep(existPropAddr)
+		if err != nil {
 			return fmt.Errorf("expanding top level property for %s: %w", existPropAddr, err)
 		}
-		return s.AddCovProperty(propAddr)
+
+		if end {
+			continue
+		}
+
+		return s.AddCovProperty(propAddr, strict)
 	}
-	return fmt.Errorf("property %s doesn't belong to schemas %s (%s)", propAddr, s.Name, s.swaggerURI)
+
+	if strict {
+		return fmt.Errorf("property %s doesn't belong to schemas %s (%s)", propAddr, s.Name, s.swaggerURI)
+	}
+	return nil
 }
 
 // Merge merges two schema with same address in turns of covered properties.
@@ -322,7 +342,7 @@ func (s *Schema) Merge(os Schema) error {
 
 	for pAddr, prop := range os.Properties {
 		if prop.IsCovered() {
-			if err := s.AddCovProperty(addr.MustParseProperty(pAddr)); err != nil {
+			if err := s.AddCovProperty(addr.MustParseProperty(pAddr), true); err != nil {
 				return err
 			}
 		}

@@ -352,19 +352,7 @@ func TestSchema(t *testing.T) {
 					SwaggerRelPath: "foo.json",
 					Name:           "def_self_ref",
 				},
-				Properties: map[string]*Property{
-					"": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_self_ref"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_self_ref": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_self_ref")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
+				Properties: map[string]*Property{},
 				swaggerURI: specFooPath,
 			},
 		},
@@ -1194,27 +1182,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			name:           `Expand "def_self_ref"`,
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_self_ref",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty(""),
-			},
+			expandAddrs:    []addr.Property{},
 			expect: Schema{
 				SchemaMetaInfo: SchemaMetaInfo{
 					SwaggerRelPath: "foo.json",
 					Name:           "def_self_ref",
 				},
-				Properties: map[string]*Property{
-					"": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_self_ref"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_self_ref": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_self_ref")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
+				Properties: map[string]*Property{},
 				swaggerURI: specFooPath,
 			},
 		},
@@ -2313,7 +2287,8 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 			require.Equal(t, c.err, err, c.name, idx)
 			if err == nil {
 				for _, addr := range c.expandAddrs {
-					require.NoError(t, swgschema.expandPropertyOneLevelDeep(addr), c.name, idx)
+					_, err := swgschema.expandPropertyOneLevelDeep(addr)
+					require.NoError(t, err, c.name, idx)
 				}
 				require.Equal(t, c.expect, *swgschema, c.name, idx)
 			}
@@ -2832,10 +2807,10 @@ func TestSchema_AddCovProperty(t *testing.T) {
 		if err == nil {
 			for iidx, s := range c.steps {
 				if s.err {
-					require.Error(t, schema.AddCovProperty(s.swgPropAddr), fmt.Sprintf("%s: %d", c.name, iidx))
+					require.Error(t, schema.AddCovProperty(s.swgPropAddr, true), fmt.Sprintf("%s: %d", c.name, iidx))
 					continue
 				}
-				require.NoError(t, schema.AddCovProperty(s.swgPropAddr), fmt.Sprintf("%s: %d", c.name, iidx))
+				require.NoError(t, schema.AddCovProperty(s.swgPropAddr, true), fmt.Sprintf("%s: %d", c.name, iidx))
 				require.Equal(t, s.expect, *schema, fmt.Sprintf("%d.%d", idx, iidx))
 			}
 		}
@@ -2923,7 +2898,7 @@ func TestSchema_Marshal(t *testing.T) {
 			schemaName:     "def_cov",
 			process: func(schema *Schema) {
 				swgPropAddr := addr.MustParseProperty("p2/p2_1")
-				require.NoError(t, schema.AddCovProperty(swgPropAddr))
+				require.NoError(t, schema.AddCovProperty(swgPropAddr, true))
 			},
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
