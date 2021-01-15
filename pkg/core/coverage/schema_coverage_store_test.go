@@ -321,7 +321,7 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store, err := coverage.NewSchemaCoverageStore(c.schema, true)
+		store, err := coverage.NewSchemaCoverageStore("", c.schema, true)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, store, idx)
 	}

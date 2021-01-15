@@ -12,8 +12,6 @@ import (
 	"github.com/magodo/azure-rest-api-cov/pkg/core/coverage"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -105,7 +103,7 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
           "2020-12-01": {
 			"active": true,
             "name": "def_base",
-            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
             "node": {
               "total_amount": 2,
               "covered_amount": 1,
@@ -130,7 +128,7 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
           "2021-01-01": {
 			"active": false,
             "name": "def_base",
-            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+            "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
             "node": {
               "total_amount": 3,
               "covered_amount": 1,
@@ -191,13 +189,13 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
 
 		schema, err := schemaInput.ToSchema(index, true)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddSchema(*schema, schemaInput.SchemaLocator, true), idx)
+		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator, true), idx)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
 		schema, err = schemaInput.ToSchema(index, true)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddSchema(*schema, schemaInput.SchemaLocator, false), idx)
+		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator, false), idx)
 
 		b, err = json.MarshalIndent(cov, "", "  ")
 		require.NoError(t, err, idx)
@@ -220,10 +218,8 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
 							"PUT": coverage.APIVersions{
 								"version1": &coverage.SchemaCoverageStore{
 									Active: true,
-									SchemaMetaInfo: swagger.SchemaMetaInfo{
-										Name:           "schema1",
-										SwaggerRelPath: "foo/bar.json",
-									},
+									Name:   "schema1",
+									URL:    "foo/bar.json",
 									Node: coverage.PropertyCoverageNode{
 										TotalAmount:   1,
 										CoveredAmount: 1,
@@ -245,7 +241,7 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
           "version1": {
 			"active": true,
             "name": "schema1",
-            "swagger_rel_path": "foo/bar.json",
+            "url": "foo/bar.json",
             "node": {
               "total_amount": 1,
               "covered_amount": 1
@@ -284,7 +280,7 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
           "version1": {
 			"active": true,
             "name": "schema1",
-            "swagger_rel_path": "foo/bar.json",
+            "url": "foo/bar.json",
             "node": {
               "total_amount": 1,
               "covered_amount": 1
@@ -305,10 +301,8 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
 							"PUT": coverage.APIVersions{
 								"version1": &coverage.SchemaCoverageStore{
 									Active: true,
-									SchemaMetaInfo: swagger.SchemaMetaInfo{
-										Name:           "schema1",
-										SwaggerRelPath: "foo/bar.json",
-									},
+									Name:   "schema1",
+									URL:    "foo/bar.json",
 									Node: coverage.PropertyCoverageNode{
 										TotalAmount:   1,
 										CoveredAmount: 1,

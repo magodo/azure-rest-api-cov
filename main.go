@@ -238,6 +238,8 @@ func main() {
 		}
 	}
 
+	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
+
 	if !*all {
 		var keys SchemaKeys
 		for k := range schemas {
@@ -248,7 +250,7 @@ func main() {
 		var covs []*coverage.SchemaCoverageStore
 		for _, k := range keys {
 			schema := schemas[k]
-			cov, err := coverage.NewSchemaCoverageStore(schema, k.Active)
+			cov, err := coverage.NewSchemaCoverageStore(azureRepoURLPrefix, schema, k.Active)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -267,7 +269,7 @@ func main() {
 	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex))
 	for k, schema := range schemas {
 		// grant
-		if err := cov.AddSchema(schema, k.SchemaLocator, k.Active); err != nil {
+		if err := cov.AddSchema(azureRepoURLPrefix, schema, k.SchemaLocator, k.Active); err != nil {
 			log.Fatal(err)
 		}
 	}
