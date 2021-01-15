@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
+
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
 
 	openapispec "github.com/go-openapi/spec"
@@ -15,13 +17,13 @@ const swaggerExtensionMSDiscriminatorValue = "x-ms-discriminator-value"
 const rootProp = ""
 
 type SchemaMetaInfo struct {
-	Name           string `json:"name"`
-	SwaggerRelPath string `json:"swagger_rel_path"`
+	Name           string        `json:"name"`
+	SwaggerRelPath specpath.Path `json:"swagger_rel_path"`
 }
 
 // Ref returns a hypothetical schema reference. It is mainly used as a unique ID of the schema, to be used in log message or map key.
 func (i SchemaMetaInfo) Ref() string {
-	return i.SwaggerRelPath + "#/definitions/" + i.Name
+	return string(i.SwaggerRelPath) + "#/definitions/" + i.Name
 }
 
 type Schema struct {
@@ -45,7 +47,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, fo
 	swgSchema := &Schema{
 		SchemaMetaInfo: SchemaMetaInfo{
 			Name:           schemaName,
-			SwaggerRelPath: swaggerRelPath,
+			SwaggerRelPath: specpath.Path(swaggerRelPath),
 		},
 		swaggerURI: swaggerURI,
 	}
@@ -264,8 +266,7 @@ func (s Schema) HasGrantedAny() bool {
 		return true
 	}
 	for _, prop := range s.Properties {
-		// We allow auto grants
-		if prop.IsGranted() && prop.PropertyState != PropertyStateGrantedForReqROProp {
+		if prop.IsGranted() {
 			return true
 		}
 	}
@@ -294,20 +295,19 @@ func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
 		}
 
 		if existPropAddr.Equals(propAddr) {
-			// Ensure whether the property is a leaf property.
+			// Ensure the property is a leaf property.
 			isLeaf, err := prop.isLeafProperty()
 			if err != nil {
 				return err
 			}
 			if isLeaf {
-				// Ensure the property NOT is or belongs to a read-only property. Otherwise, just ignore it.
-				if prop.PropertyState == PropertyStateGrantedForReqROProp {
+				// If the property state is already set, do nothing.
+				// Otherwise, mark its state as covered.
+				if prop.PropertyState == PropertyStateIgnoredForReqROProp {
 					return nil
 				}
-
 				prop.PropertyState = PropertyStateCovered
 			}
-
 			return nil
 		}
 
@@ -351,24 +351,48 @@ func (s *Schema) Merge(os Schema) error {
 }
 
 // Grant inquiries the SchemaGrants to Add the granting information onto the Schema
-func (c *Schema) Grant(grants SchemaGrants) error {
-	grant, ok := grants[c.Ref()]
-	if !ok {
-		// There is no grants for this schema
-		return nil
-	}
+// In strict, we will ensure the properties appear in granting file exist in the current schema.
+// Normally strict should always be true, except you are trying to predict the coverage for newer API version and there is
+// no granting file for that version yet.
+func (c *Schema) Grant(grant SchemaGrant, strict bool) error {
 	if grant.IsSchemaGranted() {
 		c.IsGranted = true
 		c.GrantComment = grant.Comment
+		c.Properties = nil
 		return nil
 	}
 
-	for propRelAddr, grantComment := range grant.Properties {
-		property, ok := c.Properties[propRelAddr]
+	for propAddr, grantComment := range grant.Properties {
+		property, ok := c.Properties[propAddr]
 		if !ok {
-			return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propRelAddr, c.Ref())
+			if strict {
+				return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
+			}
+			continue
 		}
 		property.PropertyState = NewPropertyState(PropStateGranted, grantComment)
+
+		// Following logic is to add the ability to grant a parent property. This is commented out
+		// since it seems to be an invalid requirement.
+
+		//// Check whether there is child properties of the property to grant.
+		//// If any is found, we will remove those child properties from the schema,
+		//// and put the property to grant into the schema, and mark it as granted.
+		//var isAny bool
+		//pAddr := addr.MustParseProperty(propAddr)
+		//for existPropAddr := range c.Properties {
+		//	epAddr := addr.MustParseProperty(existPropAddr)
+		//	if pAddr.Contains(epAddr) {
+		//		isAny = true
+		//		delete(c.Properties, existPropAddr)
+		//	}
+		//}
+		//if !isAny {
+		//	return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
+		//}
+		//c.Properties[propAddr] = &Property{
+		//	PropertyState: NewPropertyState(PropStateGranted, grantComment),
+		//}
 	}
 
 	return nil

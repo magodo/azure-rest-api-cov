@@ -13,6 +13,8 @@ type PropertyState interface {
 	IsCovered() bool
 	IsUncovered() bool
 	IsGranted() bool
+	IsIgnored() bool
+	Message() string
 }
 
 type PropState string
@@ -21,22 +23,26 @@ const (
 	PropStateCovered   PropState = "Covered"
 	PropStateUncovered           = "Uncovered"
 	PropStateGranted             = "Granted"
+	PropStateIgnored             = "Ignored"
 )
 
 var (
-	PropertyStateUncovered           = NewPropertyState(PropStateUncovered, "")
-	PropertyStateCovered             = NewPropertyState(PropStateCovered, "")
-	PropertyStateGrantedForReqROProp = NewPropertyState(PropStateGranted, "read-only property wouldn't show up in the request payload")
+	PropertyStateUncovered = NewPropertyState(PropStateUncovered, "")
+	PropertyStateCovered   = NewPropertyState(PropStateCovered, "")
+	// read-only property wouldn't show up in the request payload
+	PropertyStateIgnoredForReqROProp = NewPropertyState(PropStateIgnored, "")
 )
 
-func NewPropertyState(state PropState, grantMsg string) PropertyState {
+func NewPropertyState(state PropState, msg string) PropertyState {
 	switch state {
 	case PropStateCovered:
 		return propertyStateCovered{State: state}
 	case PropStateUncovered:
 		return propertyStateUncovered{State: state}
 	case PropStateGranted:
-		return propertyStateGranted{State: state, GrantComment: grantMsg}
+		return propertyStateGranted{State: state, GrantComment: msg}
+	case PropStateIgnored:
+		return propertyStateIgnored{State: state}
 	default:
 		panic("will not happen")
 	}
@@ -46,10 +52,11 @@ type propertyStateCovered struct {
 	State PropState `json:",omitempty"`
 }
 
-func (s propertyStateCovered) IsCovered() bool      { return true }
-func (s propertyStateCovered) IsUncovered() bool    { return false }
-func (s propertyStateCovered) IsGranted() bool      { return false }
-func (s propertyStateCovered) GrantMessage() string { panic("Covered property has no grant message") }
+func (s propertyStateCovered) IsCovered() bool   { return true }
+func (s propertyStateCovered) IsUncovered() bool { return false }
+func (s propertyStateCovered) IsGranted() bool   { return false }
+func (s propertyStateCovered) IsIgnored() bool   { return false }
+func (s propertyStateCovered) Message() string   { return "" }
 
 type propertyStateUncovered struct {
 	State PropState `json:",omitempty"`
@@ -58,19 +65,29 @@ type propertyStateUncovered struct {
 func (s propertyStateUncovered) IsCovered() bool   { return false }
 func (s propertyStateUncovered) IsUncovered() bool { return true }
 func (s propertyStateUncovered) IsGranted() bool   { return false }
-func (s propertyStateUncovered) GrantMessage() string {
-	panic("Uncovered property has no grant message")
-}
+func (s propertyStateUncovered) IsIgnored() bool   { return false }
+func (s propertyStateUncovered) Message() string   { return "" }
 
 type propertyStateGranted struct {
 	State        PropState `json:",omitempty"`
 	GrantComment string    `json:",omitempty"`
 }
 
-func (s propertyStateGranted) IsCovered() bool      { return false }
-func (s propertyStateGranted) IsUncovered() bool    { return false }
-func (s propertyStateGranted) IsGranted() bool      { return true }
-func (s propertyStateGranted) GrantMessage() string { return s.GrantComment }
+func (s propertyStateGranted) IsCovered() bool   { return false }
+func (s propertyStateGranted) IsUncovered() bool { return false }
+func (s propertyStateGranted) IsGranted() bool   { return true }
+func (s propertyStateGranted) IsIgnored() bool   { return false }
+func (s propertyStateGranted) Message() string   { return s.GrantComment }
+
+type propertyStateIgnored struct {
+	State PropState `json:",omitempty"`
+}
+
+func (s propertyStateIgnored) IsCovered() bool   { return false }
+func (s propertyStateIgnored) IsUncovered() bool { return false }
+func (s propertyStateIgnored) IsGranted() bool   { return false }
+func (s propertyStateIgnored) IsIgnored() bool   { return true }
+func (s propertyStateIgnored) Message() string   { return "" }
 
 type Property struct {
 	PropertyState `json:"state"`
@@ -140,7 +157,7 @@ func (prop Property) copy() *Property {
 // transformToSubProp expands current property to be one of its sub property by the sub property's schema
 func (prop *Property) transformToSubProp(schema openapispec.Schema) {
 	if !prop.forResponse && schema.ReadOnly {
-		prop.PropertyState = PropertyStateGrantedForReqROProp
+		prop.PropertyState = PropertyStateIgnoredForReqROProp
 	}
 
 	prop.schema = schema
@@ -165,7 +182,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	}
 
 	if !forResponse && schema.ReadOnly {
-		state = PropertyStateGrantedForReqROProp
+		state = PropertyStateIgnoredForReqROProp
 	}
 	prop := &Property{
 		PropertyState:  state,

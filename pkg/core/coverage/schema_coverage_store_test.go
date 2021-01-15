@@ -42,16 +42,22 @@ func TestSchemaCoverageStore_Add(t *testing.T) {
 					},
 				},
 				{
-					addr: addr.MustParseProperty("prop_granted"),
+					addr: addr.MustParseProperty("prop3"),
 					prop: swagger.Property{
-						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, ""),
+						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
+					},
+				},
+				{
+					addr: addr.MustParseProperty("prop_ignored"),
+					prop: swagger.Property{
+						PropertyState: swagger.PropertyStateIgnoredForReqROProp,
 					},
 				},
 			},
 			expectStore: coverage.SchemaCoverageStore{
 				Node: coverage.PropertyCoverageNode{
-					TotalAmount:   3,
-					CoveredAmount: 2,
+					TotalAmount:   4,
+					CoveredAmount: 3,
 					Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
@@ -79,6 +85,13 @@ func TestSchemaCoverageStore_Add(t *testing.T) {
 									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
 								},
 							},
+						},
+						addr.MustParsePropertySegment("prop3"): {
+							TotalAmount:   1,
+							CoveredAmount: 1,
+							Granted:       true,
+							GrantMessage:  "granted",
+							Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
 						},
 					},
 				},
@@ -256,8 +269,8 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 			expect: &coverage.SchemaCoverageStore{
 				Active: true,
 				Node: coverage.PropertyCoverageNode{
-					TotalAmount:   3,
-					CoveredAmount: 2,
+					TotalAmount:   5,
+					CoveredAmount: 4,
 					Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
@@ -276,15 +289,30 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 							},
 						},
 						addr.MustParsePropertySegment("prop2"): {
-							TotalAmount:   1,
-							CoveredAmount: 1,
+							TotalAmount:   2,
+							CoveredAmount: 2,
 							Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
 									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
 								},
+								addr.MustParsePropertySegment("granted"): {
+									TotalAmount:   1,
+									CoveredAmount: 1,
+									Granted:       true,
+									GrantMessage:  "granted",
+									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+								},
 							},
+						},
+
+						addr.MustParsePropertySegment("prop_granted"): {
+							TotalAmount:   1,
+							CoveredAmount: 1,
+							Granted:       true,
+							GrantMessage:  "granted",
+							Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
 						},
 					},
 				},

@@ -122,10 +122,11 @@ func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, erro
 	}
 	if err := filepath.Walk(specRootDir,
 		func(p string, info os.FileInfo, err error) error {
-			relPath := strings.TrimPrefix(strings.TrimPrefix(p, specRootDir), string(os.PathSeparator))
 			if err != nil {
 				return err
 			}
+
+			relPath := strings.TrimPrefix(strings.TrimPrefix(p, specRootDir), string(os.PathSeparator))
 			if info == nil {
 				return nil
 			}

@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
+
 	"github.com/go-openapi/jsonreference"
 	openapispec "github.com/go-openapi/spec"
 
@@ -819,7 +821,7 @@ func TestSchema(t *testing.T) {
 						swaggerURI: specFooPath,
 					},
 					"p_primitive_ro": {
-						PropertyState: PropertyStateGrantedForReqROProp,
+						PropertyState: PropertyStateIgnoredForReqROProp,
 						schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive_ro"],
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
@@ -841,7 +843,7 @@ func TestSchema(t *testing.T) {
 						swaggerURI: specFooPath,
 					},
 					"p_obj_array_ro": {
-						PropertyState: PropertyStateGrantedForReqROProp,
+						PropertyState: PropertyStateIgnoredForReqROProp,
 						schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj_array_ro"],
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
@@ -863,7 +865,7 @@ func TestSchema(t *testing.T) {
 						swaggerURI: specFooPath,
 					},
 					"p_obj_ro": {
-						PropertyState: PropertyStateGrantedForReqROProp,
+						PropertyState: PropertyStateIgnoredForReqROProp,
 						schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj_ro"],
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
@@ -2217,7 +2219,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						swaggerURI: specFooPath,
 					},
 					"p_primitive_ro": {
-						PropertyState: PropertyStateGrantedForReqROProp,
+						PropertyState: PropertyStateIgnoredForReqROProp,
 						schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive_ro"],
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
@@ -2240,7 +2242,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						swaggerURI: specFooPath,
 					},
 					"p_obj_array_ro/foo": {
-						PropertyState: PropertyStateGrantedForReqROProp,
+						PropertyState: PropertyStateIgnoredForReqROProp,
 						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
@@ -2264,7 +2266,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						swaggerURI: specFooPath,
 					},
 					"p_obj_ro/foo": {
-						PropertyState: PropertyStateGrantedForReqROProp,
+						PropertyState: PropertyStateIgnoredForReqROProp,
 						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
@@ -2738,7 +2740,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								swaggerURI: specFooPath,
 							},
 							"p_primitive_ro": {
-								PropertyState: PropertyStateGrantedForReqROProp,
+								PropertyState: PropertyStateIgnoredForReqROProp,
 								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive_ro"],
 								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
@@ -2760,7 +2762,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								swaggerURI: specFooPath,
 							},
 							"p_obj_array_ro": {
-								PropertyState: PropertyStateGrantedForReqROProp,
+								PropertyState: PropertyStateIgnoredForReqROProp,
 								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj_array_ro"],
 								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
@@ -2782,7 +2784,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								swaggerURI: specFooPath,
 							},
 							"p_obj_ro/foo": {
-								PropertyState: PropertyStateGrantedForReqROProp,
+								PropertyState: PropertyStateIgnoredForReqROProp,
 								schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
 								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
@@ -3050,47 +3052,38 @@ func TestSchema_Merge(t *testing.T) {
 }
 
 func TestSchema_Grant(t *testing.T) {
+	schemaMetaInfo := SchemaMetaInfo{
+		SwaggerRelPath: specpath.Path("path"),
+		Name:           "schema1",
+	}
 	var cases = []struct {
 		schema       Schema
-		grants       SchemaGrants
+		grant        SchemaGrant
+		strict       bool
 		expectSchema Schema
 	}{
+		// 0: schema is granted
 		{
 			schema: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "path",
-					Name:           "schema1",
-				},
+				SchemaMetaInfo: schemaMetaInfo,
 				Properties: map[string]*Property{
 					"prop1": {},
 				},
 			},
-			grants: SchemaGrants{
-				SchemaMetaInfo{
-					SwaggerRelPath: "path",
-					Name:           "schema1",
-				}.Ref(): {
-					Comment: "granted",
-				},
+			grant: SchemaGrant{
+				Comment: "granted",
 			},
+			strict: true,
 			expectSchema: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "path",
-					Name:           "schema1",
-				},
-				Properties: map[string]*Property{
-					"prop1": {},
-				},
-				IsGranted:    true,
-				GrantComment: "granted",
+				SchemaMetaInfo: schemaMetaInfo,
+				IsGranted:      true,
+				GrantComment:   "granted",
 			},
 		},
+		// 1: property granted
 		{
 			schema: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "path",
-					Name:           "schema1",
-				},
+				SchemaMetaInfo: schemaMetaInfo,
 				Properties: map[string]*Property{
 					"prop1":   {},
 					"prop2":   {},
@@ -3098,22 +3091,48 @@ func TestSchema_Grant(t *testing.T) {
 					"prop3":   {},
 				},
 			},
-			grants: map[string]SchemaGrant{
-				SchemaMetaInfo{
-					SwaggerRelPath: "path",
-					Name:           "schema1",
-				}.Ref(): {
-					Properties: map[string]string{
-						"prop2_2": "granted",
-						"prop3":   "granted",
+			grant: SchemaGrant{
+				Properties: map[string]string{
+					"prop2_2": "granted",
+					"prop3":   "granted",
+				},
+			},
+			strict: true,
+			expectSchema: Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				Properties: map[string]*Property{
+					"prop1": {},
+					"prop2": {},
+					"prop2_2": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
+					},
+					"prop3": {
+						PropertyState: NewPropertyState(PropStateGranted, "granted"),
 					},
 				},
 			},
-			expectSchema: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "path",
-					Name:           "schema1",
+		},
+		// 2: property granted (non-strict)
+		{
+			schema: Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				Properties: map[string]*Property{
+					"prop1":   {},
+					"prop2":   {},
+					"prop2_2": {},
+					"prop3":   {},
 				},
+			},
+			grant: SchemaGrant{
+				Properties: map[string]string{
+					"prop2_2":      "granted",
+					"prop3":        "granted",
+					"unknown_prop": "granted",
+				},
+			},
+			strict: false,
+			expectSchema: Schema{
+				SchemaMetaInfo: schemaMetaInfo,
 				Properties: map[string]*Property{
 					"prop1": {},
 					"prop2": {},
@@ -3129,7 +3148,7 @@ func TestSchema_Grant(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		require.NoError(t, c.schema.Grant(c.grants), idx)
+		require.NoError(t, c.schema.Grant(c.grant, c.strict), idx)
 		require.Equal(t, c.expectSchema, c.schema, idx)
 	}
 }

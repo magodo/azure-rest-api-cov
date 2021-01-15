@@ -38,10 +38,10 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore
 			for _, apiPaths := range specs {
 				for apiPath, ops := range apiPaths {
 
-					covOps, ok := paths[string(apiPath)]
+					covOps, ok := paths[apiPath]
 					if !ok {
 						covOps = Operations{}
-						paths[string(apiPath)] = covOps
+						paths[apiPath] = covOps
 					}
 
 					for op := range ops {
