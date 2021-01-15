@@ -18,9 +18,10 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 	cases := []struct {
 		path   string
 		expect SchemaGrants
+		error  bool
 	}{
 		{
-			path: grantBaseDir,
+			path: filepath.Join(grantBaseDir, "normal"),
 			expect: map[string]SchemaGrant{
 				SchemaMetaInfo{
 					Name:           "schema1",
@@ -34,15 +35,23 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 				}.Ref(): {
 					Properties: map[string]string{
 						"prop1":         "granted",
-						"prop2.prop2_1": "granted",
+						"prop2/prop2_1": "granted",
 					},
 				},
 			},
+		},
+		{
+			path:  filepath.Join(grantBaseDir, "abnormal"),
+			error: true,
 		},
 	}
 
 	for idx, c := range cases {
 		grants, err := NewSchemaGrantsFromFiles(c.path)
+		if c.error {
+			require.Error(t, err, idx)
+			continue
+		}
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, grants, idx)
 	}

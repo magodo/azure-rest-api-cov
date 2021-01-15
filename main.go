@@ -95,6 +95,7 @@ func main() {
 	// Behavior options
 	all := flag.Bool("a", false, "whether to export the RP level coverage")
 	predictVersion := flag.Bool("p", false, "whether to predict coverage for newer API versions")
+	grantRepoUrl := flag.String("g", "", "the repo URL based on which this tool will honor the grants")
 
 	// Other options
 	debug := flag.Bool("d", false, "Whether to show debug log")
@@ -118,15 +119,17 @@ func main() {
 	}
 
 	// Initialize the workspace, which will return the repo and repo index.
-	_, index, err := workspace.Init(*workspaceDir, workspace.InitOption{
-		Force:      *force,
-		RegenIndex: *regenIndex,
-		RepoHash:   *repoHash,
+	wsp, err := workspace.Init(*workspaceDir, workspace.InitOption{
+		Force:        *force,
+		RegenIndex:   *regenIndex,
+		RepoHash:     *repoHash,
+		GrantRepoURL: *grantRepoUrl,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Parse the schema inputs
 	b, err := ioutil.ReadFile(*inputPath)
 	if err != nil {
 		log.Fatal(err)
@@ -139,7 +142,7 @@ func main() {
 	schemas := Schemas{}
 	for _, schemaInput := range schemaInputs {
 		logCurrentProcessingSchemaInput(schemaInput, false)
-		schema, err := schemaInput.ToSchema(index, true)
+		schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, true)
 		if err != nil {
 			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 				log.Warn(err)
@@ -161,7 +164,7 @@ func main() {
 
 	loop:
 		for _, schemaInput := range schemaInputs {
-			specPath, err := index.LocateSpec(schemaInput.SpecLocator)
+			specPath, err := wsp.AzureRepoIndex.LocateSpec(schemaInput.SpecLocator)
 			if err != nil {
 				if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 					log.Warn(err)
@@ -175,7 +178,7 @@ func main() {
 				log.Fatal(err)
 			}
 
-			swg, err := swaggerloader.LoadSwagger(filepath.Join(index.SpecRootDir, string(specPath)))
+			swg, err := swaggerloader.LoadSwagger(filepath.Join(wsp.AzureRepoIndex.SpecRootDir, string(specPath)))
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -183,7 +186,7 @@ func main() {
 			rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
 
 			var newApiVersions []workspace.APIVersion
-			for apiVersion := range index.ResourceProviders[workspace.ResourceProvider(rp)] {
+			for apiVersion := range wsp.AzureRepoIndex.ResourceProviders[workspace.ResourceProvider(rp)] {
 				if string(apiVersion) > currentVersion {
 					// Modify the API version to shift to the newer ones
 					schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
@@ -202,7 +205,7 @@ func main() {
 				schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
 
 				logCurrentProcessingSchemaInput(schemaInput, true)
-				schema, err := schemaInput.ToSchema(index, false)
+				schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, false)
 				if err != nil {
 					if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
 						log.Warn(err)
@@ -217,6 +220,26 @@ func main() {
 		}
 	}
 
+	// Grant
+	if *grantRepoUrl != "" {
+		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for k, schema := range schemas {
+			grant, ok := grants[schema.Ref()]
+			if !ok {
+				continue
+			}
+			if err := schema.Grant(grant, k.Active); err != nil {
+				log.Fatalf("granting for schema %v: %v", k.SchemaLocator, err)
+			}
+		}
+	}
+
+	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
+
 	if !*all {
 		var keys SchemaKeys
 		for k := range schemas {
@@ -227,7 +250,7 @@ func main() {
 		var covs []*coverage.SchemaCoverageStore
 		for _, k := range keys {
 			schema := schemas[k]
-			cov, err := coverage.NewSchemaCoverageStore(schema, k.Active)
+			cov, err := coverage.NewSchemaCoverageStore(azureRepoURLPrefix, schema, k.Active)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -243,9 +266,10 @@ func main() {
 	}
 
 	// All
-	cov := coverage.NewEmptyRepoCoverageStore(*index)
+	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex))
 	for k, schema := range schemas {
-		if err := cov.AddSchema(schema, k.SchemaLocator, k.Active); err != nil {
+		// grant
+		if err := cov.AddSchema(azureRepoURLPrefix, schema, k.SchemaLocator, k.Active); err != nil {
 			log.Fatal(err)
 		}
 	}

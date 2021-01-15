@@ -3,8 +3,6 @@ package coverage
 import (
 	"fmt"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
-
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
 
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
@@ -38,10 +36,10 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore
 			for _, apiPaths := range specs {
 				for apiPath, ops := range apiPaths {
 
-					covOps, ok := paths[string(apiPath)]
+					covOps, ok := paths[apiPath]
 					if !ok {
 						covOps = Operations{}
-						paths[string(apiPath)] = covOps
+						paths[apiPath] = covOps
 					}
 
 					for op := range ops {
@@ -62,13 +60,13 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore
 	return coverage
 }
 
-func (repoCov *RepoCoverageStore) AddSchema(s swagger.Schema, locator workspace.SchemaLocator, active bool) error {
-	schemaCov, err := NewSchemaCoverageStore(s, active)
+func (repoCov *RepoCoverageStore) AddSchema(repoURLPrefix string, s swagger.Schema, locator workspace.SchemaLocator, active bool) error {
+	schemaCov, err := NewSchemaCoverageStore(repoURLPrefix, s, active)
 	if err != nil {
 		return err
 	}
 
-	p := specpath.Path(s.SwaggerRelPath)
+	p := s.SwaggerRelPath
 	pathInfo, err := p.PathInfo()
 	if err != nil {
 		return err

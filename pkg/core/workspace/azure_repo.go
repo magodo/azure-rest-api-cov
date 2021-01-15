@@ -11,8 +11,7 @@ import (
 	"github.com/go-git/go-git/v5"
 )
 
-//const azureRepoURL = "https://github.com/Azure/azure-rest-api-specs.git"
-const azureRepoURL = "https://gitee.com/magodo/azure-rest-api-specs.git"
+const azureRepoURL = "git@github.com:Azure/azure-rest-api-specs"
 const azureRepoName = "azure-rest-api-specs"
 
 type AzureRepo struct {
@@ -71,7 +70,7 @@ func (repo *AzureRepo) CheckoutHash(hash string) (changed bool, err error) {
 		return false, nil
 	}
 
-	// Fetch from the origin/master
+	// Fetch from default remote
 	if err := wt.Pull(&git.PullOptions{
 		Progress: os.Stdout,
 	}); err != nil {

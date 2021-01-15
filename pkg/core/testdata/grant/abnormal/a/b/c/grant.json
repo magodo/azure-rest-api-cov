@@ -1,0 +1,8 @@
+{
+    "schema1": {
+        "properties": {
+            "prop1/prop2": "granted",
+            "prop1": "granted"
+        }
+    }
+}

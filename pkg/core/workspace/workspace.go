@@ -20,19 +20,38 @@ type InitOption struct {
 	// RepoHash specifies the commit hash of azure rest api spec repo to checkout.
 	// If this is empty string, then will not modify the repo head after clone.
 	RepoHash string
+
+	GrantRepoURL string
 }
 
-func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
+type Workspace struct {
+	AzureRepo      *AzureRepo
+	AzureRepoIndex *AzureRepoIndex
+	GrantRepo      *GrantRepo
+}
+
+func Init(dir string, opt InitOption) (*Workspace, error) {
 	if opt.Force {
 		if err := os.RemoveAll(dir); err != nil {
-			return nil, nil, fmt.Errorf("cleaning up the workspace %q: %w", dir, err)
+			return nil, fmt.Errorf("cleaning up the workspace %q: %w", dir, err)
 		}
 	}
 
+	var result Workspace
+	var err error
 	log.Printf("Initializing workspace under: %s", dir)
 	if err := os.Mkdir(dir, 0755); err != nil {
 		if !errors.Is(err, os.ErrExist) {
-			return nil, nil, fmt.Errorf("creating workspace %q: %w", dir, err)
+			return nil, fmt.Errorf("creating workspace %q: %w", dir, err)
+		}
+	}
+
+	// Initialize grant repository.
+	if opt.GrantRepoURL != "" {
+		log.Printf("Preparing Granting Repo %q...", opt.GrantRepoURL)
+		result.GrantRepo, err = NewGrantRepo(dir, opt.GrantRepoURL)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -40,8 +59,9 @@ func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
 	log.Println("Preparing Azure Repo...")
 	repo, err := NewAzureRepo(dir)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	result.AzureRepo = repo
 
 	var repoChanged bool
 	if opt.RepoHash != "" {
@@ -49,7 +69,7 @@ func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
 		var err error
 		repoChanged, err = repo.CheckoutHash(opt.RepoHash)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 	headRef, _ := repo.Repo.Head()
@@ -65,23 +85,27 @@ func Init(dir string, opt InitOption) (*AzureRepo, *AzureRepoIndex, error) {
 
 	index, err := ImportAzureRepoIndex(indexPath)
 	if err == nil {
-		return repo, index, nil
+		result.AzureRepoIndex = index
+		return &result, nil
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Index not exported yet, need to generate the index and export it then.
 	log.Println("Generating Azure Repo Index...")
 	index, err = NewAzureRepoIndex(repo.SpecRootDir, headRef.Hash().String())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	result.AzureRepoIndex = index
 	log.Println("Azure Repo Index generated")
+
 	if err := index.Export(indexPath); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	log.Println("Azure Repo Index exported")
-	return repo, index, nil
+
+	return &result, nil
 }

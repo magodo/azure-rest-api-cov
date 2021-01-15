@@ -14,21 +14,21 @@ func TestInit(t *testing.T) {
 	}
 	tmpDir := t.TempDir()
 	t.Log("start to init (1)")
-	_, _, err := workspace.Init(tmpDir, workspace.InitOption{
+	_, err := workspace.Init(tmpDir, workspace.InitOption{
 		Force:    false,
 		RepoHash: "",
 	})
 	require.NoError(t, err, "first init")
 
 	t.Log("start to init (2)")
-	_, _, err = workspace.Init(tmpDir, workspace.InitOption{
+	_, err = workspace.Init(tmpDir, workspace.InitOption{
 		Force:    false,
 		RepoHash: "",
 	})
 	require.NoError(t, err, "second init")
 
 	t.Log("start to init (3)")
-	_, _, err = workspace.Init(tmpDir, workspace.InitOption{
+	_, err = workspace.Init(tmpDir, workspace.InitOption{
 		Force:    false,
 		RepoHash: "ee92c0739efe6acd5b947a3f7829a349800b2426",
 	})
