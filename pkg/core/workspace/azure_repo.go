@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/go-git/go-git/v5/plumbing"
-
 	"github.com/go-git/go-git/v5"
 )
 
@@ -55,35 +53,6 @@ func NewAzureRepo(baseDir string) (*AzureRepo, error) {
 	return &repo, nil
 }
 
-func (repo *AzureRepo) CheckoutHash(hash string) (changed bool, err error) {
-	wt, err := repo.Repo.Worktree()
-	if err != nil {
-		return false, err
-	}
-	ref, err := repo.Repo.Head()
-	if err != nil {
-		return false, err
-	}
-
-	// Nothing to do since already in the hash
-	if ref.Hash().String() == hash {
-		return false, nil
-	}
-
-	// Fetch from default remote
-	if err := wt.Pull(&git.PullOptions{
-		Progress: os.Stdout,
-	}); err != nil {
-		if err != git.NoErrAlreadyUpToDate {
-			return false, err
-		}
-	}
-
-	// Checkout the hash
-	if err := wt.Checkout(&git.CheckoutOptions{
-		Hash: plumbing.NewHash(hash),
-	}); err != nil {
-		return false, err
-	}
-	return true, nil
+func (repo *AzureRepo) CheckoutRefObj(ref string) (changed bool, err error) {
+	return checkoutRef(repo.Repo, ref)
 }

@@ -17,11 +17,14 @@ type InitOption struct {
 	// RegenIndex regenerates the index
 	RegenIndex bool
 
-	// RepoHash specifies the commit hash of azure rest api spec repo to checkout.
-	// If this is empty string, then will not modify the repo head after clone.
-	RepoHash string
+	// SpecRepoRef specifies the git ref object of azure rest api spec repo to check out.
+	// If this is empty string, then will not modify the repo head after clones.
+	SpecRepoRef string
 
 	GrantRepoURL string
+	// GrantRepoRef specifies the git ref object of grant repo to check out.
+	// If this is empty string, then will not modify the repo head after clones.
+	GrantRepoRef string
 }
 
 type Workspace struct {
@@ -53,6 +56,13 @@ func Init(dir string, opt InitOption) (*Workspace, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if opt.GrantRepoRef != "" {
+			log.Printf("Checkout %s for granting repo", opt.GrantRepoRef)
+			if _, err := result.GrantRepo.CheckoutRef(opt.GrantRepoRef); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Initialize azure repository.
@@ -64,10 +74,10 @@ func Init(dir string, opt InitOption) (*Workspace, error) {
 	result.AzureRepo = repo
 
 	var repoChanged bool
-	if opt.RepoHash != "" {
-		log.Printf("Checkout %s for Azure Repo", opt.RepoHash)
+	if opt.SpecRepoRef != "" {
+		log.Printf("Checkout %s for Azure Repo", opt.SpecRepoRef)
 		var err error
-		repoChanged, err = repo.CheckoutHash(opt.RepoHash)
+		repoChanged, err = repo.CheckoutRefObj(opt.SpecRepoRef)
 		if err != nil {
 			return nil, err
 		}

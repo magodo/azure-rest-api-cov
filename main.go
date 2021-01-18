@@ -90,12 +90,13 @@ func main() {
 		"The path to the workspace for caching the azure-rest-api repository and other stuffs")
 	force := flag.Bool("f", false, "whether to force create the workspace")
 	regenIndex := flag.Bool("r", false, "whether to force regenerate the repository index in the workspace")
-	repoHash := flag.String("c", "", "The azure-rest-api-spec repo commit hash to checkout")
+	specRepoRef := flag.String("spec-ref", "", "The azure-rest-api-spec repo ref object to checkout")
 
 	// Behavior options
 	all := flag.Bool("a", false, "whether to export the RP level coverage")
 	predictVersion := flag.Bool("p", false, "whether to predict coverage for newer API versions")
 	grantRepoUrl := flag.String("g", "", "the repo URL based on which this tool will honor the grants")
+	grantRepoRef := flag.String("grant-ref", "", "The grant repo ref object to checkout")
 
 	// Other options
 	debug := flag.Bool("d", false, "Whether to show debug log")
@@ -118,12 +119,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *grantRepoRef != "" && *grantRepoUrl == "" {
+		log.Fatal("`-grant-commit` has to be used together with `-g`")
+	}
+
 	// Initialize the workspace, which will return the repo and repo index.
 	wsp, err := workspace.Init(*workspaceDir, workspace.InitOption{
 		Force:        *force,
 		RegenIndex:   *regenIndex,
-		RepoHash:     *repoHash,
+		SpecRepoRef:  *specRepoRef,
 		GrantRepoURL: *grantRepoUrl,
+		GrantRepoRef: *grantRepoRef,
 	})
 	if err != nil {
 		log.Fatal(err)

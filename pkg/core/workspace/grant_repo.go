@@ -11,6 +11,7 @@ import (
 
 type GrantRepo struct {
 	RootDir string
+	Repo    *git.Repository
 }
 
 func NewGrantRepo(baseDir string, repoUrl string) (*GrantRepo, error) {
@@ -31,7 +32,7 @@ func NewGrantRepo(baseDir string, repoUrl string) (*GrantRepo, error) {
 		if err != nil {
 			return nil, err
 		}
-		// URLs must have at least one element, which will be used by fetch.
+		// URLs must have at least one element, which will be used for fetching.
 		if remote.Config().URLs[0] != repoUrl {
 			os.RemoveAll(repoDir)
 		} else {
@@ -60,34 +61,14 @@ func NewGrantRepo(baseDir string, repoUrl string) (*GrantRepo, error) {
 		return nil, fmt.Errorf("open repo %q: %w", repoDir, err)
 	}
 
-	// Always use the latest version of grant repo
-	wt, err := r.Worktree()
-	if err != nil {
-		return nil, err
-	}
-
-	// Fetch from default remote
-	if err := wt.Pull(&git.PullOptions{
-		Progress: os.Stdout,
-	}); err != nil {
-		if err != git.NoErrAlreadyUpToDate {
-			return nil, err
-		}
-	}
-	head, err := r.Head()
-	if err != nil {
-		return nil, err
-	}
-	if err := wt.Checkout(&git.CheckoutOptions{
-		Branch: head.Name(),
-		Force:  true,
-	}); err != nil {
-		return nil, err
-	}
-
 	repo := GrantRepo{
 		RootDir: repoDir,
+		Repo:    r,
 	}
 
 	return &repo, nil
+}
+
+func (repo *GrantRepo) CheckoutRef(ref string) (changed bool, err error) {
+	return checkoutRef(repo.Repo, ref)
 }
