@@ -145,6 +145,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Consume the schema inputs
 	schemas := Schemas{}
 	for _, schemaInput := range schemaInputs {
 		logCurrentProcessingSchemaInput(schemaInput, false)
@@ -162,6 +163,7 @@ func main() {
 		}
 	}
 
+	// (Optionally) Predict the coverage of the Specs of newer API versions based on the schema inputs
 	if *predictVersion {
 		explicitSchemas := map[workspace.SchemaLocator]bool{}
 		for _, schemaInput := range schemaInputs {
@@ -228,7 +230,7 @@ func main() {
 
 	// Grant
 	if *grantRepoUrl != "" {
-		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir)
+		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -271,7 +273,7 @@ func main() {
 		return
 	}
 
-	// All
+	// Complement the coverage report with all uncovered models.
 	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex))
 	for k, schema := range schemas {
 		// grant

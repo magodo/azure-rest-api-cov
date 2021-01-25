@@ -26,6 +26,18 @@ func (i SchemaMetaInfo) Ref() string {
 	return string(i.SwaggerRelPath) + "#/definitions/" + i.Name
 }
 
+func ParseSchemaMetaInfoRef(input string) (*SchemaMetaInfo, error) {
+	parts := strings.Split(input, "#/definitions/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("malformed format of schema reference")
+	}
+	return &SchemaMetaInfo{
+		Name:           parts[1],
+		SwaggerRelPath: specpath.Path(parts[0]),
+	}, nil
+
+}
+
 type Schema struct {
 	SchemaMetaInfo
 	Properties Properties `json:"properties"`
@@ -78,6 +90,28 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, fo
 	delete(swgSchema.Properties, rootProp)
 
 	return swgSchema, nil
+}
+
+// ProcessCoverageForSchema will create a new empty Schema for the input schema, then process it to generate the property coverages based on the coveredProps.
+// If "forResponse" is specified, the read-only properties will  be ignored in the final coverage result.
+// If "strict" is specified, the coveredProps should guarantee to exist in the designated schema. Otherwise, an error will return.
+func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict bool) (*Schema, error) {
+	schema, err := NewEmptySchema(swaggerBaseDir, swaggerRelPath, schemaName, forResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, propStr := range coveredProps {
+		prop := addr.MustParseProperty(propStr)
+		if schemaVariantValue != "" {
+			prop = addr.MustParseProperty("").AsVariant(schemaVariantValue).Append(prop)
+		}
+		if err := schema.AddCovProperty(prop, strict); err != nil {
+			return nil, err
+		}
+	}
+
+	return schema, nil
 }
 
 // expandPropertyOneLevelDeep expand the specified swagger schemas property one level deep, with any allOf and $ref taken into consideration.

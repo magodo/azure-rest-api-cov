@@ -16,6 +16,8 @@ import (
 type SchemaGrants map[string]SchemaGrant // key is the Schema.Ref()
 
 type SchemaGrant struct {
+	Variant string `json:"variant,omitempty"`
+
 	// The grant comment why the schema is granted.
 	Comment string `json:"comment,omitempty"`
 
@@ -29,7 +31,7 @@ func (g SchemaGrant) IsSchemaGranted() bool {
 
 // NewGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
 // folder layout as defined by the SchemaAddr.
-func NewSchemaGrantsFromFiles(grantBaseDir string) (SchemaGrants, error) {
+func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string) (SchemaGrants, error) {
 	var swgGrant = SchemaGrants{}
 	return swgGrant, filepath.Walk(grantBaseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -54,11 +56,17 @@ func NewSchemaGrantsFromFiles(grantBaseDir string) (SchemaGrants, error) {
 			return err
 		}
 
-		// Sanity check: ensure the properties are mutual exclusive.
-		for schemaName, grant := range infileGrants {
-			for prop1 := range grant.Properties {
+		specRelPath, err := filepath.Rel(grantBaseDir, path)
+		if err != nil {
+			return err
+		}
+
+		for schemaName, schemaGrant := range infileGrants {
+
+			// Sanity check: ensure the properties are mutual exclusive.
+			for prop1 := range schemaGrant.Properties {
 				addr1 := addr.MustParseProperty(prop1)
-				for prop2 := range grant.Properties {
+				for prop2 := range schemaGrant.Properties {
 					if prop1 == prop2 {
 						continue
 					}
@@ -69,17 +77,21 @@ func NewSchemaGrantsFromFiles(grantBaseDir string) (SchemaGrants, error) {
 					}
 				}
 			}
-		}
 
-		relPath, err := filepath.Rel(grantBaseDir, path)
-		if err != nil {
-			return err
-		}
+			// Sanity check: ensure the schema and its properties exist.
+			coveredProps := make([]string, 0, len(schemaGrant.Properties))
+			for k := range schemaGrant.Properties {
+				coveredProps = append(coveredProps, k)
+			}
 
-		for schemaName, schemaGrant := range infileGrants {
+			_, err := ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, false, true)
+			if err != nil {
+				return err
+			}
+
 			swgGrant[SchemaMetaInfo{
 				Name:           schemaName,
-				SwaggerRelPath: specpath.Path(relPath),
+				SwaggerRelPath: specpath.Path(specRelPath),
 			}.Ref()] = schemaGrant
 		}
 		return nil
