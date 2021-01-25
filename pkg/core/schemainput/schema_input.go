@@ -1,7 +1,6 @@
 package schemainput
 
 import (
-	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
 	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
 )
@@ -18,19 +17,9 @@ func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex, strict 
 		return nil, err
 	}
 
-	schema, err := swagger.NewEmptySchema(index.SpecRootDir, string(relPath), name, schemaInput.Operation == workspace.OperationKindGet)
+	schema, err := swagger.ProcessCoverageForSchema(index.SpecRootDir, string(relPath), name, schemaInput.Variant, schemaInput.Properties, schemaInput.Operation == workspace.OperationKindGet, strict)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, propStr := range schemaInput.Properties {
-		prop := addr.MustParseProperty(propStr)
-		if schemaInput.Variant != "" {
-			prop = addr.MustParseProperty("").AsVariant(schemaInput.Variant).Append(prop)
-		}
-		if err := schema.AddCovProperty(prop, strict); err != nil {
-			return nil, err
-		}
 	}
 	return schema, nil
 }
