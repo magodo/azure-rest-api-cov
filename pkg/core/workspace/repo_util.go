@@ -2,11 +2,58 @@ package workspace
 
 import (
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"os"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
+
+// cloneAndOpenRepo will clone the repo from upstream if not existed, then open it.
+func cloneAndOpenRepo(repoDir string, repoUrl string) (*git.Repository, error) {
+	var repoExist bool
+	if _, err := os.Stat(repoDir); err == nil {
+		r, err := git.PlainOpen(repoDir)
+		if err != nil {
+			return nil, err
+		}
+		remote, err := r.Remote("origin")
+		if err != nil {
+			return nil, err
+		}
+		// URLs must have at least one element, which will be used for fetching.
+		if remote.Config().URLs[0] != repoUrl {
+			os.RemoveAll(repoDir)
+		} else {
+			repoExist = true
+		}
+	}
+
+	if !repoExist {
+		if err := os.Mkdir(repoDir, 0755); err != nil {
+			if !errors.Is(err, os.ErrExist) {
+				return nil, fmt.Errorf("creating repo directory %q: %w", repoDir, err)
+			}
+		}
+
+		if _, err := git.PlainClone(repoDir, false, &git.CloneOptions{
+			URL:      repoUrl,
+			Progress: os.Stderr,
+		}); err != nil {
+			os.RemoveAll(repoDir)
+			return nil, fmt.Errorf("cloning repo %q: %w", azureRepoURL, err)
+
+		}
+	}
+
+	r, err := git.PlainOpen(repoDir)
+	if err != nil {
+		return nil, fmt.Errorf("open repo %q: %w", repoDir, err)
+	}
+
+	return r, nil
+}
 
 func checkoutRef(repo *git.Repository, ref string) (changed bool, err error) {
 	wt, err := repo.Worktree()

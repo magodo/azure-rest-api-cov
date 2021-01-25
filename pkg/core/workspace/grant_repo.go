@@ -1,9 +1,6 @@
 package workspace
 
 import (
-	"errors"
-	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/go-git/go-git/v5"
@@ -22,51 +19,15 @@ func NewGrantRepo(baseDir string, repoUrl string) (*GrantRepo, error) {
 	}
 	repoDir = filepath.Clean(repoDir)
 
-	var repoExist bool
-	if _, err := os.Stat(repoDir); err == nil {
-		r, err := git.PlainOpen(repoDir)
-		if err != nil {
-			return nil, err
-		}
-		remote, err := r.Remote("origin")
-		if err != nil {
-			return nil, err
-		}
-		// URLs must have at least one element, which will be used for fetching.
-		if remote.Config().URLs[0] != repoUrl {
-			os.RemoveAll(repoDir)
-		} else {
-			repoExist = true
-		}
-	}
-
-	if !repoExist {
-		if err := os.Mkdir(repoDir, 0755); err != nil {
-			if !errors.Is(err, os.ErrExist) {
-				return nil, fmt.Errorf("creating repo directory %q: %w", repoDir, err)
-			}
-		}
-
-		if _, err := git.PlainClone(repoDir, false, &git.CloneOptions{
-			URL:      repoUrl,
-			Progress: os.Stdout,
-		}); err != nil {
-			return nil, fmt.Errorf("cloning grant repo %q: %w", azureRepoURL, err)
-
-		}
-	}
-
-	r, err := git.PlainOpen(repoDir)
+	r, err := cloneAndOpenRepo(repoDir, repoUrl)
 	if err != nil {
-		return nil, fmt.Errorf("open repo %q: %w", repoDir, err)
+		return nil, err
 	}
 
-	repo := GrantRepo{
+	return &GrantRepo{
 		RootDir: repoDir,
 		Repo:    r,
-	}
-
-	return &repo, nil
+	}, nil
 }
 
 func (repo *GrantRepo) CheckoutRef(ref string) (changed bool, err error) {
