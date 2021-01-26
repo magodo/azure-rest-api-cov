@@ -44,6 +44,7 @@ func main() {
 
 	// Other options
 	debug := flag.Bool("d", false, "Whether to show debug log")
+	additionalMessage := flag.String("m", "", "Additional message that will include in the coverage report")
 
 	// Parse flag
 	flag.Parse()
@@ -82,7 +83,7 @@ func main() {
 	}
 	defer schemaInputFile.Close()
 
-	output, err := analyzer.Run(schemaInputFile, wspOpt, *predict, *all)
+	output, err := analyzer.Run(schemaInputFile, wspOpt, *predict, *all, *additionalMessage)
 	if err != nil {
 		log.Fatal(err)
 	}

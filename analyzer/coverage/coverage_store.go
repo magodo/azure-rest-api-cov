@@ -10,6 +10,7 @@ import (
 
 type RepoCoverageStore struct {
 	Commit            string            `json:"commit"`
+	AdditionalMessage string            `json:"additional_message,omitempty"`
 	ResourceProviders ResourceProviders `json:"resource_providers"`
 }
 
@@ -23,9 +24,10 @@ type Operations map[string]APIVersions
 
 type APIVersions map[string]*SchemaCoverageStore
 
-func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex) RepoCoverageStore {
+func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex, additionalMessage string) RepoCoverageStore {
 	coverage := RepoCoverageStore{
 		Commit:            index.Commit,
+		AdditionalMessage: additionalMessage,
 		ResourceProviders: ResourceProviders{},
 	}
 

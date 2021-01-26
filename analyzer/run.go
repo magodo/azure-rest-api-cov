@@ -66,7 +66,7 @@ func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Sche
 	return existing.Merge(s)
 }
 
-func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bool, all bool) (string, error) {
+func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bool, all bool, additionalMessage string) (string, error) {
 
 	// Initialize the workspace, which will return the repo and repo index.
 	wsp, err := workspace.Init(workspaceOpt)
@@ -212,7 +212,7 @@ func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bo
 	}
 
 	// Complement the coverage report with all uncovered models.
-	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex))
+	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex), additionalMessage)
 	for k, schema := range schemas {
 		if err := cov.AddSchema(azureRepoURLPrefix, schema, k.SchemaLocator, k.Active); err != nil {
 			return "", err

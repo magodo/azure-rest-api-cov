@@ -61,7 +61,7 @@ func TestNewEmptyRepoCoverageStore(t *testing.T) {
 
 	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
 	require.NoError(t, err, "generate index")
-	cov := coverage.NewEmptyRepoCoverageStore(*idx)
+	cov := coverage.NewEmptyRepoCoverageStore(*idx, "")
 	require.Equal(t, expect, cov)
 }
 
@@ -180,7 +180,7 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
-		cov := coverage.NewEmptyRepoCoverageStore(*index)
+		cov := coverage.NewEmptyRepoCoverageStore(*index, "")
 		var schemaInput schemainput.SchemaInput
 
 		// Add active schemaInput
@@ -211,7 +211,8 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
 	}{
 		{
 			input: coverage.RepoCoverageStore{
-				Commit: "xxx",
+				AdditionalMessage: "source: xxx",
+				Commit:            "xxx",
 				ResourceProviders: coverage.ResourceProviders{
 					"rp1": coverage.APIPaths{
 						"path1": coverage.Operations{
@@ -234,6 +235,7 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
 			expect: `
 {
   "commit": "xxx",
+  "additional_message": "source: xxx",
   "resource_providers": {
     "rp1": {
       "path1": {
