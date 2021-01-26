@@ -76,7 +76,13 @@ func main() {
 		GrantRepoRef: *grantRepoRef,
 	}
 
-	output, err := analyzer.Run(*inputPath, wspOpt, *predict, *all)
+	schemaInputFile, err := os.Open(*inputPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer schemaInputFile.Close()
+
+	output, err := analyzer.Run(schemaInputFile, wspOpt, *predict, *all)
 	if err != nil {
 		log.Fatal(err)
 	}

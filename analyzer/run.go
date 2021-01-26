@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"path/filepath"
 	"sort"
@@ -65,7 +66,7 @@ func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Sche
 	return existing.Merge(s)
 }
 
-func Run(inputFile string, workspaceOpt workspace.InitOption, predict bool, all bool) (string, error) {
+func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bool, all bool) (string, error) {
 
 	// Initialize the workspace, which will return the repo and repo index.
 	wsp, err := workspace.Init(workspaceOpt)
@@ -74,7 +75,7 @@ func Run(inputFile string, workspaceOpt workspace.InitOption, predict bool, all 
 	}
 
 	// Parse the schema inputs
-	b, err := ioutil.ReadFile(inputFile)
+	b, err := ioutil.ReadAll(schemaInputsIn)
 	if err != nil {
 		return "", err
 	}
