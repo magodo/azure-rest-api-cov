@@ -6,6 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/go-git/go-git/v5/plumbing/transport"
+
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer"
 
 	log "github.com/sirupsen/logrus"
@@ -39,8 +43,12 @@ func main() {
 	// Behavior options
 	all := flag.Bool("a", false, "whether to export the RP level coverage")
 	predict := flag.Bool("p", false, "whether to predict coverage for newer API versions")
+
+	// Grant options
 	grantRepoUrl := flag.String("g", "", "the repo URL based on which this tool will honor the grants")
 	grantRepoRef := flag.String("grant-ref", "", "The grant repo ref object to checkout")
+	repoUser := flag.String("u", "", "github user that might be needed for accessing the grant repo")
+	repoToken := flag.String("t", "", "github access token that might be needed for accessing the grant repo")
 
 	// Other options
 	debug := flag.Bool("d", false, "Whether to show debug log")
@@ -68,10 +76,20 @@ func main() {
 		log.Fatal("`-grant-commit` has to be used together with `-g`")
 	}
 
+	var auth transport.AuthMethod
+
+	if *repoToken != "" && *repoUser != "" {
+		auth = &http.BasicAuth{
+			Username: *repoUser,
+			Password: *repoToken,
+		}
+	}
+
 	wspOpt := workspace.InitOption{
 		WorkspaceDir: *workspaceDir,
 		Force:        *force,
 		RegenIndex:   *regenIndex,
+		RepoAuth:     auth,
 		SpecRepoRef:  *specRepoRef,
 		GrantRepoURL: *grantRepoUrl,
 		GrantRepoRef: *grantRepoRef,

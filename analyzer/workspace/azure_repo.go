@@ -21,7 +21,7 @@ func NewAzureRepo(baseDir string) (*AzureRepo, error) {
 	}
 	repoDir = filepath.Clean(repoDir)
 
-	r, err := cloneAndOpenRepo(repoDir, azureRepoURL)
+	r, err := cloneAndOpenRepo(repoDir, azureRepoURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +32,6 @@ func NewAzureRepo(baseDir string) (*AzureRepo, error) {
 	}, nil
 }
 
-func (repo *AzureRepo) CheckoutRefObj(ref string) (changed bool, err error) {
-	return checkoutRef(repo.Repo, ref)
+func (repo *AzureRepo) CheckoutRef(ref string) (changed bool, err error) {
+	return checkoutRef(repo.Repo, ref, nil)
 }

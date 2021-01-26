@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
 const azureRepoIndexFilename = "index.json"
@@ -24,9 +26,13 @@ type InitOption struct {
 	SpecRepoRef string
 
 	GrantRepoURL string
+
 	// GrantRepoRef specifies the git ref object of grant repo to check out.
 	// If this is empty string, then will not modify the repo head after clones.
 	GrantRepoRef string
+
+	// Repository auth (might be necessary for accessing grant repo)
+	RepoAuth transport.AuthMethod
 }
 
 type Workspace struct {
@@ -55,14 +61,14 @@ func Init(opt InitOption) (*Workspace, error) {
 	// Initialize grant repository.
 	if opt.GrantRepoURL != "" {
 		log.Printf("Preparing Granting Repo %q...", opt.GrantRepoURL)
-		result.GrantRepo, err = NewGrantRepo(dir, opt.GrantRepoURL)
+		result.GrantRepo, err = NewGrantRepo(dir, opt.GrantRepoURL, opt.RepoAuth)
 		if err != nil {
 			return nil, err
 		}
 
 		if opt.GrantRepoRef != "" {
 			log.Printf("Checkout %s for granting repo", opt.GrantRepoRef)
-			if _, err := result.GrantRepo.CheckoutRef(opt.GrantRepoRef); err != nil {
+			if _, err := result.GrantRepo.CheckoutRef(opt.GrantRepoRef, opt.RepoAuth); err != nil {
 				return nil, err
 			}
 		}
@@ -80,7 +86,7 @@ func Init(opt InitOption) (*Workspace, error) {
 	if opt.SpecRepoRef != "" {
 		log.Printf("Checkout %s for Azure Repo", opt.SpecRepoRef)
 		var err error
-		repoChanged, err = repo.CheckoutRefObj(opt.SpecRepoRef)
+		repoChanged, err = repo.CheckoutRef(opt.SpecRepoRef)
 		if err != nil {
 			return nil, err
 		}
