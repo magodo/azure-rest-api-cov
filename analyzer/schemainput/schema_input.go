@@ -1,8 +1,8 @@
 package schemainput
 
 import (
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
-	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
+	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 )
 
 type SchemaInput struct {

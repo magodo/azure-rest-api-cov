@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
+	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 )
 
 type SchemaGrants map[string]SchemaGrant // key is the Schema.Ref()

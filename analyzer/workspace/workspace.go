@@ -11,6 +11,8 @@ import (
 const azureRepoIndexFilename = "index.json"
 
 type InitOption struct {
+	WorkspaceDir string
+
 	// Force inits workspace from scratch
 	Force bool
 
@@ -33,7 +35,8 @@ type Workspace struct {
 	GrantRepo      *GrantRepo
 }
 
-func Init(dir string, opt InitOption) (*Workspace, error) {
+func Init(opt InitOption) (*Workspace, error) {
+	dir := opt.WorkspaceDir
 	if opt.Force {
 		if err := os.RemoveAll(dir); err != nil {
 			return nil, fmt.Errorf("cleaning up the workspace %q: %w", dir, err)

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
 	openapispec "github.com/go-openapi/spec"
 )

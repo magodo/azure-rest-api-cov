@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/workspace"
+	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 
 	"github.com/stretchr/testify/require"
 )

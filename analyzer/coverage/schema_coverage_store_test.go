@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/coverage"
+	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/stretchr/testify/require"
 )
 

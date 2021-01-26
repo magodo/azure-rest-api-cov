@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
+	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 
 	"github.com/go-openapi/jsonreference"
 	openapispec "github.com/go-openapi/spec"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/stretchr/testify/require"
 )
 

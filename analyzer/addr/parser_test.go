@@ -3,7 +3,7 @@ package addr_test
 import (
 	"testing"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/addr"
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/stretchr/testify/require"
 )
 

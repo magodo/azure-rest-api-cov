@@ -12,12 +12,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/specpath"
+	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swagger"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 
 	openapispec "github.com/go-openapi/spec"
-	"github.com/magodo/azure-rest-api-cov/pkg/core/swaggerloader"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 )
 
 var (
