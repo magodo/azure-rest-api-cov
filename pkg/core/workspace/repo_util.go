@@ -85,7 +85,7 @@ func checkoutRef(repo *git.Repository, ref string) (changed bool, err error) {
 
 	// Fetch from default remote
 	if err := wt.Pull(&git.PullOptions{
-		Progress: os.Stdout,
+		Progress: os.Stderr,
 	}); err != nil {
 		if err != git.NoErrAlreadyUpToDate {
 			return false, err
