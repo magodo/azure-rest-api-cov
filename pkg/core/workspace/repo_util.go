@@ -42,7 +42,7 @@ func cloneAndOpenRepo(repoDir string, repoUrl string) (*git.Repository, error) {
 			Progress: os.Stderr,
 		}); err != nil {
 			os.RemoveAll(repoDir)
-			return nil, fmt.Errorf("cloning repo %q: %w", azureRepoURL, err)
+			return nil, fmt.Errorf("cloning repo %q: %w", repoUrl, err)
 
 		}
 	}
