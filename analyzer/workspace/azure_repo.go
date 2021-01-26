@@ -6,7 +6,7 @@ import (
 	"github.com/go-git/go-git/v5"
 )
 
-const azureRepoURL = "git@github.com:Azure/azure-rest-api-specs"
+const azureRepoURL = "https://github.com/Azure/azure-rest-api-specs.git"
 const azureRepoName = "azure-rest-api-specs"
 
 type AzureRepo struct {

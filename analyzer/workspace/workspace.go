@@ -3,9 +3,10 @@ package workspace
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 )
