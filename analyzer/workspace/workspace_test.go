@@ -14,23 +14,26 @@ func TestInit(t *testing.T) {
 	}
 	tmpDir := t.TempDir()
 	t.Log("start to init (1)")
-	_, err := workspace.Init(tmpDir, workspace.InitOption{
-		Force:       false,
-		SpecRepoRef: "",
+	_, err := workspace.Init(workspace.InitOption{
+		WorkspaceDir: tmpDir,
+		Force:        false,
+		SpecRepoRef:  "",
 	})
 	require.NoError(t, err, "first init")
 
 	t.Log("start to init (2)")
-	_, err = workspace.Init(tmpDir, workspace.InitOption{
-		Force:       false,
-		SpecRepoRef: "",
+	_, err = workspace.Init(workspace.InitOption{
+		WorkspaceDir: tmpDir,
+		Force:        false,
+		SpecRepoRef:  "",
 	})
 	require.NoError(t, err, "second init")
 
 	t.Log("start to init (3)")
-	_, err = workspace.Init(tmpDir, workspace.InitOption{
-		Force:       false,
-		SpecRepoRef: "ee92c0739efe6acd5b947a3f7829a349800b2426",
+	_, err = workspace.Init(workspace.InitOption{
+		WorkspaceDir: tmpDir,
+		Force:        false,
+		SpecRepoRef:  "ee92c0739efe6acd5b947a3f7829a349800b2426",
 	})
 	require.NoError(t, err, "third init")
 }
