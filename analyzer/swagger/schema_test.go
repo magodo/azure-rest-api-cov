@@ -3059,8 +3059,8 @@ func TestSchema_Grant(t *testing.T) {
 	var cases = []struct {
 		schema       Schema
 		grant        SchemaGrant
-		strict       bool
 		expectSchema Schema
+		hasError     bool
 	}{
 		// 0: schema is granted
 		{
@@ -3073,7 +3073,6 @@ func TestSchema_Grant(t *testing.T) {
 			grant: SchemaGrant{
 				Comment: "granted",
 			},
-			strict: true,
 			expectSchema: Schema{
 				SchemaMetaInfo: schemaMetaInfo,
 				IsGranted:      true,
@@ -3097,7 +3096,6 @@ func TestSchema_Grant(t *testing.T) {
 					"prop3":   "granted",
 				},
 			},
-			strict: true,
 			expectSchema: Schema{
 				SchemaMetaInfo: schemaMetaInfo,
 				Properties: map[string]*Property{
@@ -3112,7 +3110,7 @@ func TestSchema_Grant(t *testing.T) {
 				},
 			},
 		},
-		// 2: property granted (non-strict)
+		// 2: grant unknown property cause error
 		{
 			schema: Schema{
 				SchemaMetaInfo: schemaMetaInfo,
@@ -3130,25 +3128,34 @@ func TestSchema_Grant(t *testing.T) {
 					"unknown_prop": "granted",
 				},
 			},
-			strict: false,
-			expectSchema: Schema{
+			hasError: true,
+		},
+		// 3: grant property of non-uncovered state cause error
+		{
+			schema: Schema{
 				SchemaMetaInfo: schemaMetaInfo,
 				Properties: map[string]*Property{
-					"prop1": {},
-					"prop2": {},
-					"prop2_2": {
-						PropertyState: NewPropertyState(PropStateGranted, "granted"),
-					},
-					"prop3": {
-						PropertyState: NewPropertyState(PropStateGranted, "granted"),
+					"prop1": {
+						PropertyState: NewPropertyState(PropStateCovered, ""),
 					},
 				},
 			},
+			grant: SchemaGrant{
+				Properties: map[string]string{
+					"prop1": "granted",
+				},
+			},
+			hasError: true,
 		},
 	}
 
 	for idx, c := range cases {
-		require.NoError(t, c.schema.Grant(c.grant, c.strict), idx)
+		err := c.schema.Grant(c.grant)
+		if c.hasError {
+			require.Error(t, err, idx)
+			continue
+		}
+		require.NoError(t, err, idx)
 		require.Equal(t, c.expectSchema, c.schema, idx)
 	}
 }

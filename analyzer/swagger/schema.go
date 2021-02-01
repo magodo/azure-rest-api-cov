@@ -385,10 +385,7 @@ func (s *Schema) Merge(os Schema) error {
 }
 
 // Grant inquiries the SchemaGrants to Add the granting information onto the Schema
-// In strict, we will ensure the properties appear in granting file exist in the current schema.
-// Normally strict should always be true, except you are trying to predict the coverage for newer API version and there is
-// no granting file for that version yet.
-func (c *Schema) Grant(grant SchemaGrant, strict bool) error {
+func (c *Schema) Grant(grant SchemaGrant) error {
 	if grant.IsSchemaGranted() {
 		c.IsGranted = true
 		c.GrantComment = grant.Comment
@@ -399,10 +396,10 @@ func (c *Schema) Grant(grant SchemaGrant, strict bool) error {
 	for propAddr, grantComment := range grant.Properties {
 		property, ok := c.Properties[propAddr]
 		if !ok {
-			if strict {
-				return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
-			}
-			continue
+			return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
+		}
+		if property.PropertyState != nil && !property.PropertyState.IsUncovered() {
+			return fmt.Errorf(`property %q that is to be granted is not an uncovered property, but %v`, propAddr, property.PropertyState.GetState())
 		}
 		property.PropertyState = NewPropertyState(PropStateGranted, grantComment)
 

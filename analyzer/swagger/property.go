@@ -15,6 +15,7 @@ type PropertyState interface {
 	IsGranted() bool
 	IsIgnored() bool
 	Message() string
+	GetState() PropState
 }
 
 type PropState string
@@ -52,42 +53,46 @@ type propertyStateCovered struct {
 	State PropState `json:",omitempty"`
 }
 
-func (s propertyStateCovered) IsCovered() bool   { return true }
-func (s propertyStateCovered) IsUncovered() bool { return false }
-func (s propertyStateCovered) IsGranted() bool   { return false }
-func (s propertyStateCovered) IsIgnored() bool   { return false }
-func (s propertyStateCovered) Message() string   { return "" }
+func (s propertyStateCovered) IsCovered() bool     { return true }
+func (s propertyStateCovered) IsUncovered() bool   { return false }
+func (s propertyStateCovered) IsGranted() bool     { return false }
+func (s propertyStateCovered) IsIgnored() bool     { return false }
+func (s propertyStateCovered) Message() string     { return "" }
+func (s propertyStateCovered) GetState() PropState { return s.State }
 
 type propertyStateUncovered struct {
 	State PropState `json:",omitempty"`
 }
 
-func (s propertyStateUncovered) IsCovered() bool   { return false }
-func (s propertyStateUncovered) IsUncovered() bool { return true }
-func (s propertyStateUncovered) IsGranted() bool   { return false }
-func (s propertyStateUncovered) IsIgnored() bool   { return false }
-func (s propertyStateUncovered) Message() string   { return "" }
+func (s propertyStateUncovered) IsCovered() bool     { return false }
+func (s propertyStateUncovered) IsUncovered() bool   { return true }
+func (s propertyStateUncovered) IsGranted() bool     { return false }
+func (s propertyStateUncovered) IsIgnored() bool     { return false }
+func (s propertyStateUncovered) Message() string     { return "" }
+func (s propertyStateUncovered) GetState() PropState { return s.State }
 
 type propertyStateGranted struct {
 	State        PropState `json:",omitempty"`
 	GrantComment string    `json:",omitempty"`
 }
 
-func (s propertyStateGranted) IsCovered() bool   { return false }
-func (s propertyStateGranted) IsUncovered() bool { return false }
-func (s propertyStateGranted) IsGranted() bool   { return true }
-func (s propertyStateGranted) IsIgnored() bool   { return false }
-func (s propertyStateGranted) Message() string   { return s.GrantComment }
+func (s propertyStateGranted) IsCovered() bool     { return false }
+func (s propertyStateGranted) IsUncovered() bool   { return false }
+func (s propertyStateGranted) IsGranted() bool     { return true }
+func (s propertyStateGranted) IsIgnored() bool     { return false }
+func (s propertyStateGranted) Message() string     { return s.GrantComment }
+func (s propertyStateGranted) GetState() PropState { return s.State }
 
 type propertyStateIgnored struct {
 	State PropState `json:",omitempty"`
 }
 
-func (s propertyStateIgnored) IsCovered() bool   { return false }
-func (s propertyStateIgnored) IsUncovered() bool { return false }
-func (s propertyStateIgnored) IsGranted() bool   { return false }
-func (s propertyStateIgnored) IsIgnored() bool   { return true }
-func (s propertyStateIgnored) Message() string   { return "" }
+func (s propertyStateIgnored) IsCovered() bool     { return false }
+func (s propertyStateIgnored) IsUncovered() bool   { return false }
+func (s propertyStateIgnored) IsGranted() bool     { return false }
+func (s propertyStateIgnored) IsIgnored() bool     { return true }
+func (s propertyStateIgnored) Message() string     { return "" }
+func (s propertyStateIgnored) GetState() PropState { return s.State }
 
 type Property struct {
 	PropertyState `json:"state"`

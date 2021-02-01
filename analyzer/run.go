@@ -179,7 +179,7 @@ func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bo
 			if !ok {
 				continue
 			}
-			if err := schema.Grant(grant, k.Active); err != nil {
+			if err := schema.Grant(grant); err != nil {
 				return "", fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
 			}
 		}
