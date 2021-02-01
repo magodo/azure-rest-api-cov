@@ -248,6 +248,10 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 	}{
 		{
 			schema: swagger.Schema{
+				SchemaMetaInfo: swagger.SchemaMetaInfo{
+					Name:           "foo",
+					SwaggerRelPath: "foo/resource-manager/Microsoft.Foo/preview/2021-02-01/foo.json",
+				},
 				Properties: swagger.Properties{
 					"prop1/covered": &swagger.Property{
 						PropertyState: swagger.PropertyStateCovered,
@@ -267,7 +271,10 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 				},
 			},
 			expect: &coverage.SchemaCoverageStore{
-				Active: true,
+				Name:      "foo",
+				URL:       "foo/resource-manager/Microsoft.Foo/preview/2021-02-01/foo.json",
+				Active:    true,
+				IsPreview: true,
 				Node: coverage.PropertyCoverageNode{
 					TotalAmount:   5,
 					CoveredAmount: 4,
