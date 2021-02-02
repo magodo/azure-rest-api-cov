@@ -51,7 +51,7 @@ func main() {
 	repoToken := flag.String("t", "", "github access token that might be needed for accessing the grant repo")
 
 	// Other options
-	debug := flag.Bool("d", false, "Whether to show debug log")
+	logLevel := flag.String("log-level", "info", `Log level: can be one of "debug", "info", "warn", "fatal"`)
 	additionalMessage := flag.String("m", "", "Additional message that will include in the coverage report")
 
 	// Parse flag
@@ -61,10 +61,17 @@ func main() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
-	if *debug {
+	switch *logLevel {
+	case "debug":
 		log.SetLevel(log.DebugLevel)
-	} else {
+	case "info":
 		log.SetLevel(log.InfoLevel)
+	case "warn":
+		log.SetLevel(log.WarnLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	default:
+		log.Fatal("unknown log level")
 	}
 
 	if *inputPath == "" {
