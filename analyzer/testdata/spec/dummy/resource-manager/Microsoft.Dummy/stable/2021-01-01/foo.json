@@ -119,6 +119,15 @@
           "$ref": "#/definitions/def_base"
         }
       ]
-    }
+    },
+
+    "def_grant_update": {
+      "properties": {
+        "p1": {},
+        "p2": {}
+      }
+    },
+
+    "def_grant_still": {}
   }
 }

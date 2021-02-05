@@ -9,4 +9,5 @@ require (
 	github.com/go-openapi/spec v0.20.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.6.1
+	github.com/urfave/cli/v2 v2.3.0
 )

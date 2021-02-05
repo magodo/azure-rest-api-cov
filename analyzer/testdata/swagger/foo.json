@@ -347,6 +347,17 @@
           "$ref": "#/definitions/def_foo"
         }
       }
-    }
+    },
+
+    "def_grant_deprecated": {},
+
+    "def_grant_update": {
+      "properties": {
+        "p_deprecated": {},
+        "p1": {}
+      }
+    },
+
+    "def_grant_still": {}
   }
 }

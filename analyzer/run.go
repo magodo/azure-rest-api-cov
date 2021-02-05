@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 
@@ -66,10 +67,18 @@ func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Sche
 	return existing.Merge(s)
 }
 
-func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bool, all bool, additionalMessage string) (string, error) {
+type RunContext struct {
+	WorkspaceOpt      workspace.InitOption
+	Predict           bool
+	All               bool
+	AdditionalMessage string
+	MigrateGrantHint  bool
+	TryMigrate        bool
+}
 
+func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 	// Initialize the workspace, which will return the repo and repo index.
-	wsp, err := workspace.Init(workspaceOpt)
+	wsp, err := workspace.Init(ctx.WorkspaceOpt)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +112,7 @@ func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bo
 	}
 
 	// (Optionally) Predict the coverage of the Specs of newer API versions based on the schema inputs
-	if predict {
+	if ctx.Predict {
 		explicitSchemas := map[workspace.SchemaLocator]bool{}
 		for _, schemaInput := range schemaInputs {
 			explicitSchemas[schemaInput.SchemaLocator] = true
@@ -168,26 +177,48 @@ func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bo
 	}
 
 	// Grant
-	if workspaceOpt.GrantRepoURL != "" {
-		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir)
+	if ctx.WorkspaceOpt.GrantRepoURL != "" {
+		hintMessages := []string{}
+
+		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir, nil)
 		if err != nil {
 			return "", err
 		}
 
 		for k, schema := range schemas {
-			grant, ok := grants[schema.Ref()]
-			if !ok {
-				continue
+			grant, matchRef, err := grants.SchemaGrantFor(schema.Ref())
+			if err != nil {
+				return "", err
 			}
-			if err := schema.Grant(grant); err != nil {
-				return "", fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
+			if grant != nil {
+				if matchRef == schema.Ref() {
+					if err := schema.Grant(*grant, true); err != nil {
+						return "", fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
+					}
+				}
+
+				if ctx.MigrateGrantHint {
+					hintMessages = append(hintMessages, fmt.Sprintf("there is a grant on old API version %q, that is able to be migrated for %q", matchRef, schema.Ref()))
+				}
+
+				if ctx.TryMigrate {
+					if err := schema.Grant(*grant, false); err != nil {
+						return "", fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
+					}
+				}
+			}
+		}
+
+		if ctx.MigrateGrantHint {
+			if err := ioutil.WriteFile("possible_grant_migration.txt", []byte(strings.Join(hintMessages, "\n")), 0644); err != nil {
+				return "", err
 			}
 		}
 	}
 
 	// Generate coverage result
 	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
-	if !all {
+	if !ctx.All {
 		var keys SchemaKeys
 		for k := range schemas {
 			keys = append(keys, k)
@@ -212,7 +243,7 @@ func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bo
 	}
 
 	// Complement the coverage report with all uncovered models.
-	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex), additionalMessage)
+	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex), ctx.AdditionalMessage)
 	for k, schema := range schemas {
 		if err := cov.AddSchema(azureRepoURLPrefix, schema, k.SchemaLocator, k.Active); err != nil {
 			return "", err

@@ -1,0 +1,14 @@
+{
+  "def_grant_deprecated": {
+    "comment": "grant model"
+  },
+  "def_grant_still": {
+    "comment": "grant model"
+  },
+  "def_grant_update": {
+    "properties": {
+      "p_deprecated": "grant",
+      "p1": "grant"
+    }
+  }
+}
