@@ -25,13 +25,20 @@ type SchemaGrant struct {
 	Properties map[string]string `json:"properties,omitempty"`
 }
 
+type GrantFileFilter struct {
+	RP        string
+	Version   string
+	IsPreview *bool
+	SpecName  string
+}
+
 func (g SchemaGrant) IsSchemaGranted() bool {
 	return len(g.Properties) == 0
 }
 
 // NewGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
 // folder layout as defined by the SchemaAddr.
-func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string) (SchemaGrants, error) {
+func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *GrantFileFilter) (SchemaGrants, error) {
 	var swgGrant = SchemaGrants{}
 	return swgGrant, filepath.Walk(grantBaseDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -40,6 +47,42 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string) (SchemaGr
 
 		if info.IsDir() || !strings.HasSuffix(info.Name(), ".json") {
 			return err
+		}
+
+		specRelPath, err := filepath.Rel(grantBaseDir, path)
+		if err != nil {
+			return err
+		}
+
+		if filter != nil {
+			pathInfo, err := specpath.Path(specRelPath).PathInfo()
+			if err != nil {
+				return err
+			}
+
+			if filter.RP != "" {
+				if pathInfo.ResourceProvider != filter.RP {
+					return nil
+				}
+			}
+
+			if filter.IsPreview != nil {
+				if pathInfo.IsPreview != *filter.IsPreview {
+					return nil
+				}
+			}
+
+			if filter.Version != "" {
+				if pathInfo.Version != filter.Version {
+					return nil
+				}
+			}
+
+			if filter.SpecName != "" {
+				if pathInfo.SpecName != filter.SpecName {
+					return nil
+				}
+			}
 		}
 
 		infileGrants := map[string]SchemaGrant{}
@@ -53,11 +96,6 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string) (SchemaGr
 		}
 
 		if err := json.Unmarshal(b, &infileGrants); err != nil {
-			return err
-		}
-
-		specRelPath, err := filepath.Rel(grantBaseDir, path)
-		if err != nil {
 			return err
 		}
 
@@ -84,7 +122,7 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string) (SchemaGr
 				coveredProps = append(coveredProps, k)
 			}
 
-			_, err := ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, false, true)
+			_, err := ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, true, true)
 			if err != nil {
 				return err
 			}
@@ -96,4 +134,22 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string) (SchemaGr
 		}
 		return nil
 	})
+}
+
+func (schemaGrant SchemaGrant) ToSchema(schemaRef string, specRootDir string, strict bool) (*Schema, error) {
+	metaInfo, err := ParseSchemaMetaInfoRef(schemaRef)
+	if err != nil {
+		return nil, err
+	}
+	properties := make([]string, 0, len(schemaGrant.Properties))
+	for prop := range schemaGrant.Properties {
+		properties = append(properties, prop)
+	}
+
+	schema, err := ProcessCoverageForSchema(specRootDir, string(metaInfo.SwaggerRelPath), metaInfo.Name, schemaGrant.Variant, properties, true, strict)
+	if err != nil {
+		return nil, err
+	}
+	return schema, nil
+
 }

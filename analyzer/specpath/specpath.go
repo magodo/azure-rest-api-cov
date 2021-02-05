@@ -7,7 +7,7 @@ import (
 )
 
 const schemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
-const schemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]s(Microsoft.\w+)%[1]s(preview|stable)%[1]s(.+?)%[1]s.+?\.json$`
+const schemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]s(Microsoft.\w+)%[1]s(preview|stable)%[1]s(.+?)%[1]s(.+?\.json)$`
 
 type Path string
 
@@ -16,6 +16,7 @@ type PathInfo struct {
 	ResourceProviderMS string
 	IsPreview          bool
 	Version            string
+	SpecName           string
 }
 
 func (p Path) PathInfo() (*PathInfo, error) {
@@ -29,6 +30,7 @@ func (p Path) PathInfo() (*PathInfo, error) {
 		ResourceProviderMS: match[2],
 		IsPreview:          match[3] == "preview",
 		Version:            match[4],
+		SpecName:           match[5],
 	}, nil
 }
 
@@ -36,4 +38,13 @@ func (p Path) PathInfo() (*PathInfo, error) {
 func (p Path) IsSpecFolder() bool {
 	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(schemaFolderPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
 	return schemaFolderPattern.MatchString(string(p))
+}
+
+func (info PathInfo) ToPath() Path {
+	previewOrStable := "stable"
+	if info.IsPreview {
+		previewOrStable = "preview"
+	}
+	return Path(fmt.Sprintf("%[2]s%[1]sresource-manager%[1]s%[3]s%[1]s%[4]s%[1]s%[5]s%[1]s%[6]s",
+		string(os.PathSeparator), info.ResourceProvider, info.ResourceProviderMS, previewOrStable, info.Version, info.SpecName))
 }

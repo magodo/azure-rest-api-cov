@@ -14,9 +14,9 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	specBasePath = filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
-	grantNormalBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant", "normal")
-	grantAbnormalPropBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant", "abnormal_prop")
-	grantAbnormalNonExistBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant", "abnormal_non_exist")
+	grantNormalBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "normal")
+	grantAbnormalPropBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "abnormal_prop")
+	grantAbnormalNonExistBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "abnormal_non_exist")
 
 	cases := []struct {
 		path   string
@@ -61,7 +61,7 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		grants, err := NewSchemaGrantsFromFiles(c.path, specBasePath)
+		grants, err := NewSchemaGrantsFromFiles(c.path, specBasePath, nil)
 		if c.error {
 			require.Error(t, err, idx)
 			continue

@@ -169,7 +169,7 @@ func Run(schemaInputsIn io.Reader, workspaceOpt workspace.InitOption, predict bo
 
 	// Grant
 	if workspaceOpt.GrantRepoURL != "" {
-		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir)
+		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir, nil)
 		if err != nil {
 			return "", err
 		}
