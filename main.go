@@ -98,6 +98,14 @@ func main() {
 						Aliases: []string{"m"},
 						Usage:   "Additional message that will include in the coverage report",
 					},
+					&cli.BoolFlag{
+						Name:  "migrate-grant-hint",
+						Usage: `Report possible grant migrations (e.g. there exists some grant for a model in old API version, but absent in the current version) in a file "possible_grant_migration.txt"`,
+					},
+					&cli.BoolFlag{
+						Name:  "try-migrate",
+						Usage: `Try to migrate best match grants from older/newer API version and use it to grant the model of current API version`,
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -115,6 +123,8 @@ func main() {
 					grantRepoUrl := ctx.String("grant-repo-url")
 					grantRepoRef := ctx.String("grant-ref")
 					additionalMessage := ctx.String("additional-message")
+					migrateGrantHint := ctx.Bool("migrate-grant-hint")
+					tryMigrate := ctx.Bool("try-migrate")
 
 					if grantRepoRef != "" && grantRepoUrl == "" {
 						return fmt.Errorf("`-grant-ref` has to be used together with `-g`")
@@ -144,7 +154,16 @@ func main() {
 					}
 					defer schemaInputFile.Close()
 
-					output, err := analyzer.Run(schemaInputFile, wspOpt, predict, all, additionalMessage)
+					runCtx := analyzer.RunContext{
+						WorkspaceOpt:      wspOpt,
+						Predict:           predict,
+						All:               all,
+						AdditionalMessage: additionalMessage,
+						MigrateGrantHint:  migrateGrantHint,
+						TryMigrate:        tryMigrate,
+					}
+
+					output, err := analyzer.Run(schemaInputFile, runCtx)
 					if err != nil {
 						return err
 					}

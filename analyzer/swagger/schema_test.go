@@ -3150,7 +3150,7 @@ func TestSchema_Grant(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		err := c.schema.Grant(c.grant)
+		err := c.schema.Grant(c.grant, true)
 		if c.hasError {
 			require.Error(t, err, idx)
 			continue
