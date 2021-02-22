@@ -191,19 +191,19 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 				return "", err
 			}
 			if grant != nil {
+				// The grant file is exactly for this schema.
 				if matchRef == schema.Ref() {
 					if err := schema.Grant(*grant, true); err != nil {
 						return "", fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
 					}
-				}
-
-				if ctx.MigrateGrantHint {
-					hintMessages = append(hintMessages, fmt.Sprintf("there is a grant on old API version %q, that is able to be migrated for %q", matchRef, schema.Ref()))
-				}
-
-				if ctx.TryMigrate {
-					if err := schema.Grant(*grant, false); err != nil {
-						return "", fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
+				} else {
+					if ctx.MigrateGrantHint && k.Active {
+						hintMessages = append(hintMessages, fmt.Sprintf("there is a grant on old API version %q, that is able to be migrated for %q", matchRef, schema.Ref()))
+					}
+					if ctx.TryMigrate {
+						if err := schema.Grant(*grant, false); err != nil {
+							return "", fmt.Errorf("(trying) granting for schema %v: %v", k.SchemaLocator, err)
+						}
 					}
 				}
 			}
