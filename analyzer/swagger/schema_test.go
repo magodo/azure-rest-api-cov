@@ -26,6 +26,7 @@ var (
 	specBarPath                 string
 	specBazPath                 string
 	specNestedDiscriminatorPath string
+	specSiblingVariantPath      string
 	specRemoteDiscPath          string
 
 	specRemotePath string
@@ -37,6 +38,7 @@ var (
 	swaggerBaz                 *openapispec.Swagger
 	swaggerRemote              *openapispec.Swagger
 	swaggerNestedDiscriminator *openapispec.Swagger
+	swaggerSiblingVariant      *openapispec.Swagger
 	swaggerRemoteDisc          *openapispec.Swagger
 )
 
@@ -50,6 +52,7 @@ func TestMain(m *testing.M) {
 	specBarPath = filepath.Join(specBasePath, "bar.json")
 	specBazPath = filepath.Join(specBasePath, "baz", "baz.json")
 	specNestedDiscriminatorPath = filepath.Join(specBasePath, "nested_discriminator.json")
+	specSiblingVariantPath = filepath.Join(specBasePath, "sibling_variant.json")
 	specRemoteDiscPath = filepath.Join(specBasePath, "remote", "discriminator.json")
 
 	specRemotePath = filepath.Join(specBasePath, "remote.json")
@@ -75,6 +78,11 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	swaggerSiblingVariant, err = swaggerloader.LoadSwagger(specSiblingVariantPath)
+	if err != nil {
+		log.Fatal(err)
+	}
 	swaggerRemoteDisc, err = swaggerloader.LoadSwagger(specRemoteDiscPath)
 	if err != nil {
 		log.Fatal(err)
@@ -85,6 +93,7 @@ func TestMain(m *testing.M) {
 	_ = swaggerBaz
 	_ = swaggerRemote
 	_ = swaggerNestedDiscriminator
+	_ = swaggerSiblingVariant
 	_ = swaggerRemoteDisc
 
 	os.Exit(m.Run())
@@ -453,8 +462,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 					"{def_variant2}": {
 						PropertyState: PropertyStateUncovered,
@@ -465,8 +479,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -528,8 +547,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template"): {},
+						},
 					},
 					"{def_variant2}": {
 						PropertyState: PropertyStateUncovered,
@@ -540,8 +564,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -567,8 +596,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child1")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2"): {},
+						},
 					},
 					"{def_child2}": {
 						PropertyState: PropertyStateUncovered,
@@ -579,8 +613,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -608,7 +647,11 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						variantRefSet: map[string]struct{}{
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+						rootVariantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
 						},
@@ -622,8 +665,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
 						},
-						swaggerURI:      specNestedDiscriminatorPath,
-						isDiscriminator: true,
+						swaggerURI:          specNestedDiscriminatorPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -651,7 +699,11 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						variantRefSet: map[string]struct{}{
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+						rootVariantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
 						},
@@ -665,8 +717,13 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
 						},
-						swaggerURI:      specNestedDiscriminatorPath,
-						isDiscriminator: true,
+						swaggerURI:          specNestedDiscriminatorPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -877,6 +934,104 @@ func TestSchema(t *testing.T) {
 					},
 				},
 				swaggerURI: specFooPath,
+			},
+		},
+		// 22: non-leaf variant will cause all possible variants (including siblings) of its root discriminator expanded.
+		{
+			specBaseURL: specBasePath,
+			specRelPath: "sibling_variant.json",
+			schemaName:  "def_b",
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "sibling_variant.json",
+					Name:           "def_b",
+				},
+				Properties: map[string]*Property{
+					"{def_a}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerSiblingVariant.Definitions["def_a"],
+						resolvedRefs: map[string]interface{}{
+							specSiblingVariantPath + "#/definitions/def_a": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_a")),
+						},
+						swaggerURI:      specSiblingVariantPath,
+						isDiscriminator: true,
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_a"):       {},
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b"):       {},
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b_child"): {},
+						},
+						directVariantRefSet: map[string]struct{}{},
+					},
+					"{def_b}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerSiblingVariant.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specSiblingVariantPath + "#/definitions/def_b": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b")),
+						},
+						swaggerURI:      specSiblingVariantPath,
+						isDiscriminator: true,
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_a"):       {},
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b"):       {},
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b_child"): {},
+						},
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b"):       {},
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b_child"): {},
+						},
+					},
+					"{def_b_child}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerSiblingVariant.Definitions["def_b_child"],
+						resolvedRefs: map[string]interface{}{
+							specSiblingVariantPath + "#/definitions/def_b_child": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b_child")),
+						},
+						swaggerURI:      specSiblingVariantPath,
+						isDiscriminator: true,
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_a"):       {},
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b"):       {},
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b_child"): {},
+						},
+						directVariantRefSet: map[string]struct{}{},
+					},
+				},
+				swaggerURI: specSiblingVariantPath,
+			},
+		},
+		// 23: leaf variant will only cause itself expanded, as a normal property.
+		{
+			specBaseURL: specBasePath,
+			specRelPath: "sibling_variant.json",
+			schemaName:  "def_b_child",
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "sibling_variant.json",
+					Name:           "def_b_child",
+				},
+				Properties: map[string]*Property{
+					"type": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerSiblingVariant.Definitions["def_root"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specSiblingVariantPath + "#/definitions/def_b_child": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_root")),
+						},
+						swaggerURI: specSiblingVariantPath,
+					},
+				},
+				swaggerURI: specSiblingVariantPath,
 			},
 		},
 	}
@@ -1228,8 +1383,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1259,8 +1419,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 					"prop{def_variant2}": {
 						PropertyState: PropertyStateUncovered,
@@ -1272,8 +1437,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1316,8 +1486,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1348,8 +1523,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template"): {},
+						},
 					},
 					"prop{def_variant2}": {
 						PropertyState: PropertyStateUncovered,
@@ -1361,8 +1541,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1402,8 +1587,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2")),
 						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -1434,7 +1624,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						variantRefSet: map[string]struct{}{
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+						rootVariantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
 						},
@@ -1502,7 +1696,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						variantRefSet: map[string]struct{}{
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+						rootVariantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
 						},
@@ -1517,8 +1715,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
 						},
-						swaggerURI:      specNestedDiscriminatorPath,
-						isDiscriminator: true,
+						swaggerURI:          specNestedDiscriminatorPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -1573,8 +1776,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
 						},
-						swaggerURI:      specNestedDiscriminatorPath,
-						isDiscriminator: true,
+						swaggerURI:          specNestedDiscriminatorPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -1607,7 +1815,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						variantRefSet: map[string]struct{}{
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+						rootVariantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
 						},
@@ -1758,7 +1970,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						variantRefSet: map[string]struct{}{
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+						rootVariantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
 						},
@@ -1773,8 +1989,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
 						},
-						swaggerURI:      specNestedDiscriminatorPath,
-						isDiscriminator: true,
+						swaggerURI:          specNestedDiscriminatorPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -1807,7 +2028,11 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						variantRefSet: map[string]struct{}{
+						directVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+						rootVariantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
 						},
@@ -1901,8 +2126,13 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
 						},
-						swaggerURI:      specNestedDiscriminatorPath,
-						isDiscriminator: true,
+						swaggerURI:          specNestedDiscriminatorPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -2140,8 +2370,12 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 							specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
 							specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
 						},
-						swaggerURI:      specRemoteDiscPath,
-						isDiscriminator: true,
+						swaggerURI:          specRemoteDiscPath,
+						isDiscriminator:     true,
+						directVariantRefSet: map[string]struct{}{},
+						rootVariantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "v1"): {},
+						},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -2292,7 +2526,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 					_, err := swgschema.expandPropertyOneLevelDeep(addr)
 					require.NoError(t, err, c.name, idx)
 				}
-				require.Equal(t, c.expect, *swgschema, c.name, idx)
+				require.Equal(t, c.expect, *swgschema, idx)
 			}
 		}
 	}
@@ -2660,8 +2894,13 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 								},
-								swaggerURI:      specFooPath,
-								isDiscriminator: true,
+								swaggerURI:          specFooPath,
+								isDiscriminator:     true,
+								directVariantRefSet: map[string]struct{}{},
+								rootVariantRefSet: map[string]struct{}{
+									fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+								},
 							},
 						},
 						swaggerURI: specFooPath,
@@ -2692,8 +2931,13 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1")),
 								},
-								swaggerURI:      specFooPath,
-								isDiscriminator: true,
+								swaggerURI:          specFooPath,
+								isDiscriminator:     true,
+								directVariantRefSet: map[string]struct{}{},
+								rootVariantRefSet: map[string]struct{}{
+									fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+								},
 							},
 							"{def_variant2}": {
 								PropertyState: PropertyStateUncovered,
@@ -2704,8 +2948,13 @@ func TestSchema_AddCovProperty(t *testing.T) {
 								ownerSchemaRef: &openapispec.Ref{
 									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 								},
-								swaggerURI:      specFooPath,
-								isDiscriminator: true,
+								swaggerURI:          specFooPath,
+								isDiscriminator:     true,
+								directVariantRefSet: map[string]struct{}{},
+								rootVariantRefSet: map[string]struct{}{
+									fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+								},
 							},
 						},
 						swaggerURI: specFooPath,

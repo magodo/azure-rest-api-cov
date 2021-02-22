@@ -1,0 +1,45 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "SiblingVariant",
+    "version": "2020-12-01"
+  },
+  "host": "management.azure.com",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/{host}/{sibling_discriminator}": {}
+  },
+  "definitions": {
+    "def_root": {
+      "discriminator": "type",
+      "properties": {
+        "type": {
+          "type": "string"
+        }
+      }
+    },
+    "def_a": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_root"
+        }
+      ]
+    },
+    "def_b": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_root"
+        }
+      ]
+    },
+    "def_b_child": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_b"
+        }
+      ]
+    }
+  }
+}

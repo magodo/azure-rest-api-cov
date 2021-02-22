@@ -128,10 +128,13 @@ type Property struct {
 
 	// Normalized reference to variant schemas of the schema of this property. It is nil if `isDiscriminator` is false.
 	// Note that: Non-leaf variant schema has itself as its variant schema (i.e. both pure discriminator and leaf variant
-	//            do not contain itself in the variantRefSet).
+	//            do not contain itself in the rootVariantRefSet).
 	//            This is because non-leaf variant schema is both a discriminator and a variant (can be instantiate), when
 	//            expanding it to its variant, we will need to both instantiate itself and its children variants.
-	variantRefSet map[string]struct{}
+	rootVariantRefSet map[string]struct{}
+
+	// Similar to rootVariantRefSet, but only count for the variants under current schema of this property in turns of allOf hierarchy.
+	directVariantRefSet map[string]struct{}
 }
 
 type Properties map[string]*Property // the key is relative property addr string representation
@@ -198,7 +201,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 		forResponse:    forResponse,
 	}
 
-	isDiscriminator, pure, err := checkDiscriminatorSchema(normSchemaRef)
+	isDiscriminator, pure, _, err := checkDiscriminatorSchema(normSchemaRef)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +214,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	prop.isDiscriminator = isDiscriminator
 	prop.isPureDiscriminator = pure
 
-	prop.variantRefSet, err = getVariantRefSet(normSchemaRef)
+	prop.rootVariantRefSet, prop.directVariantRefSet, err = getVariantRefSet(normSchemaRef)
 	if err != nil {
 		return nil, err
 	}
@@ -224,49 +227,65 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	return prop, nil
 }
 
-func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, error) {
-	is, pure, err := checkDiscriminatorSchema(normSchemaRef)
+func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[string]struct{}, error) {
+	is, pure, rootDiscriminatorRef, err := checkDiscriminatorSchema(normSchemaRef)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !is {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	swaggerURI := normSchemaRef.GetURL().Path
 	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	// Find all the child variants which derives from this schema.
-	childRefSet := map[string]struct{}{normSchemaRef.String(): {}}
-	oldChildRefSet := map[string]struct{}{}
-	for len(childRefSet) != len(oldChildRefSet) {
-		oldChildRefSet = childRefSet
-		childRefSet = make(map[string]struct{}, len(oldChildRefSet))
-		for k := range oldChildRefSet {
-			childRefSet[k] = struct{}{}
-		}
+	fillInChildRefSet := func(in *map[string]struct{}) {
+		childRefSet := *in
+		oldChildRefSet := map[string]struct{}{}
+		for len(childRefSet) != len(oldChildRefSet) {
+			oldChildRefSet = childRefSet
+			childRefSet = make(map[string]struct{}, len(oldChildRefSet))
+			for k := range oldChildRefSet {
+				childRefSet[k] = struct{}{}
+			}
 
-		for ref := range oldChildRefSet {
-			// Collect its children
-			for childSchemaRef, allOfs := range allAllOfs {
-				if _, ok := allOfs[ref]; ok {
-					childRefSet[childSchemaRef] = struct{}{}
+			for ref := range oldChildRefSet {
+				// Collect its children
+				for childSchemaRef, allOfs := range allAllOfs {
+					if _, ok := allOfs[ref]; ok {
+						childRefSet[childSchemaRef] = struct{}{}
+					}
 				}
 			}
 		}
-	}
-	// Keep this schema ref in the child ref only if this schema is a non-leaf variant and non-pure discriminator.
-	if pure || len(childRefSet) == 1 {
-		delete(childRefSet, normSchemaRef.String())
-	}
-	if len(childRefSet) == 0 {
-		return nil, nil
+		*in = childRefSet
 	}
 
-	return childRefSet, nil
+	// Find all the child variants which derives from this schema.
+	directChildRefSet := map[string]struct{}{normSchemaRef.String(): {}}
+	fillInChildRefSet(&directChildRefSet)
+
+	// Find all the child variants which derives from the root discriminator schema.
+	//
+	// This is because currently in the Azure Go SDK (track1), all the derived concrete types will implement the root discriminator interface.
+	// Whilst in the cov-terraform tool, when analyzing the variants of a field of type interface, we will check all its possible implementors
+	// (including the directly inherited models and sibling models in Swagger).
+	// Though this is currently observed in Go SDK, since Go SDK is based from autorest modeler, which is common base for other generators.
+	// Therefore, this behavior should be the same for other SDKs.
+	rootChildRefSet := map[string]struct{}{rootDiscriminatorRef.String(): {}}
+	fillInChildRefSet(&rootChildRefSet)
+
+	// Keep this schema ref in the child ref only if this schema is a non-leaf variant and non-pure discriminator (i.e. an intermediate discrminator).
+	if pure || len(directChildRefSet) == 1 {
+		delete(directChildRefSet, normSchemaRef.String())
+	}
+
+	delete(rootChildRefSet, rootDiscriminatorRef.String())
+
+	return rootChildRefSet, directChildRefSet, nil
 }
 
 // Construct all the "allOf"s of the schemas in current spec.
@@ -297,29 +316,29 @@ func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error)
 }
 
 // checkDiscriminatorSchema tells whether the specified schema is a discriminator (either pure discriminator or derived schema).
-// Note that in Azure rest api spec (OpenAPI 2), a schema is a discriminator when itself directly defines "discriminator" or it is a derived schema (variant),
+// Note that in Azure rest api spec (OpenAPI 2), a schema is a discriminator when itself directly defines "discriminator", or it is a derived schema (variant),
 // as derived schema also inherits the "discriminator" property.
 // This function goes backwards the "allOf" chain to find the nearest parent who explicitly defines the discriminator. If it finds any such parent schema,
-// `is` is `true`. Additionally, if the property itself corresponds to a direct discriminator, `pure` is set to `true`.
-func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool, err error) {
+// `is` is `true`. Additionally, if the property itself corresponds to a direct discriminator, `pure` is set to `true`. This pure discriminator parent will also be returned.
+func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool, rootDiscriminatorRef *openapispec.Ref, err error) {
 	schema, err := openapispec.ResolveRefWithBase(nil, &normSchemaRef, nil)
 	if err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 
 	swaggerURI := normSchemaRef.GetURL().Path
 	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
 	if err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 
 	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
 	if err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 
 	if schema.Discriminator != "" {
-		return true, true, nil
+		return true, true, &normSchemaRef, nil
 	}
 
 	baseRefSet := map[string]struct{}{normSchemaRef.String(): {}}
@@ -339,15 +358,15 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 			apiRef := openapispec.MustCreateRef(ref)
 			schema, err := openapispec.ResolveRefWithBase(swagger, &apiRef, &openapispec.ExpandOptions{RelativeBase: swaggerURI})
 			if err != nil {
-				return false, false, err
+				return false, false, nil, err
 			}
 			if schema.Discriminator != "" {
-				return true, false, nil
+				return true, false, &apiRef, nil
 			}
 		}
 		baseRefSet = newBaseRefSet
 	}
-	return false, false, nil
+	return false, false, nil, nil
 }
 
 // expandRefPropertyInPlace expand a property itself IN-PLACE until either it is a concrete schemas (i.e. not a ref) or hit a cyclic ref.
@@ -400,7 +419,7 @@ func (prop Property) isLeafVariant() bool {
 	if prop.isPureDiscriminator {
 		return false
 	}
-	return prop.variantRefSet == nil
+	return len(prop.directVariantRefSet) == 0
 }
 
 func (prop Property) isLeafProperty() (bool, error) {

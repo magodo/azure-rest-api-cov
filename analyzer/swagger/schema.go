@@ -191,7 +191,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 		}
 	}
 
-	for variantRef := range prop.variantRefSet {
+	for variantRef := range prop.rootVariantRefSet {
 		if _, resolved := prop.resolvedRefs[variantRef]; resolved {
 			continue
 		}
