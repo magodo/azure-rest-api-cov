@@ -386,13 +386,13 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 		return false, false, nil, err
 	}
 
+	if schema.Discriminator != "" {
+		return true, true, &normSchemaRef, nil
+	}
+
 	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
 	if err != nil {
 		return false, false, nil, err
-	}
-
-	if schema.Discriminator != "" {
-		return true, true, &normSchemaRef, nil
 	}
 
 	baseRefSet := map[string]struct{}{normSchemaRef.String(): {}}
@@ -432,7 +432,7 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 			return false, nil
 		}
 
-		if prop.schema.Items.Schema == nil || len(prop.schema.Items.Schemas) != 0 {
+		if prop.schema.Items.Schema == nil && len(prop.schema.Items.Schemas) == 0 {
 			return false, nil
 		}
 
@@ -476,6 +476,7 @@ func (prop Property) isLeafVariant() bool {
 	return len(prop.directVariantRefSet) == 0
 }
 
+// isLeafProperty tells whether the prop is a leaf property, meaning it has no unresolved ref, sub-properties, or allOf(s).
 func (prop Property) isLeafProperty() (bool, error) {
 	p := prop.copy()
 	cyclic, err := p.expandRefPropertyInPlace()
