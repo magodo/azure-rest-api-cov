@@ -147,28 +147,57 @@ func (p Properties) Merge(o Properties) {
 
 func (prop Property) copy() *Property {
 	newResolvedRefs := map[string]interface{}{}
-	if len(prop.resolvedRefs) != 0 {
-		for k, v := range prop.resolvedRefs {
-			newResolvedRefs[k] = v
-		}
+	for k, v := range prop.resolvedRefs {
+		newResolvedRefs[k] = v
 	}
+
+	newRootVariantRefSet := map[string]struct{}{}
+	for k, v := range prop.rootVariantRefSet {
+		newRootVariantRefSet[k] = v
+	}
+
+	newDirectVariantRefSet := map[string]struct{}{}
+	for k, v := range prop.directVariantRefSet {
+		newDirectVariantRefSet[k] = v
+	}
+
 	return &Property{
+		PropertyState:       prop.PropertyState,
+		schema:              prop.schema,
+		ownerSchemaRef:      prop.ownerSchemaRef,
+		resolvedRefs:        newResolvedRefs,
+		swaggerURI:          prop.swaggerURI,
+		forResponse:         prop.forResponse,
+		isDiscriminator:     prop.isDiscriminator,
+		isPureDiscriminator: prop.isPureDiscriminator,
+		rootVariantRefSet:   newRootVariantRefSet,
+		directVariantRefSet: newDirectVariantRefSet,
+	}
+}
+
+// propagateSubPropOfSchema propagates a sub property with the given schema. The sub-property contains
+// all the property level information from the parent property, except the discriminator related ones as the sub-property
+// will not inherit them in the syntax of swagger.
+func (prop *Property) propagateSubPropOfSchema(schema openapispec.Schema) *Property {
+	newResolvedRefs := map[string]interface{}{}
+	for k, v := range prop.resolvedRefs {
+		newResolvedRefs[k] = v
+	}
+
+	newProp := &Property{
 		PropertyState:  prop.PropertyState,
-		schema:         prop.schema,
+		schema:         schema,
 		ownerSchemaRef: prop.ownerSchemaRef,
 		resolvedRefs:   newResolvedRefs,
 		swaggerURI:     prop.swaggerURI,
 		forResponse:    prop.forResponse,
+		// Ignore the discriminator related properties here as the new sub-property will not be a discriminator.
 	}
-}
 
-// transformToSubProp expands current property to be one of its sub property by the sub property's schema
-func (prop *Property) transformToSubProp(schema openapispec.Schema) {
 	if !prop.forResponse && schema.ReadOnly {
-		prop.PropertyState = PropertyStateIgnoredForReqROProp
+		newProp.PropertyState = PropertyStateIgnoredForReqROProp
 	}
-
-	prop.schema = schema
+	return newProp
 }
 
 // buildProperty build a new property by providing all the needed information about this property.
