@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"sync"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
@@ -318,10 +319,18 @@ func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[s
 	return rootChildRefSet, directChildRefSet, nil
 }
 
+type AllAllOfsCache struct {
+	sync.Mutex
+	m map[string]map[string]map[string]struct{}
+}
+
+var allAllOfsCache = AllAllOfsCache{
+	Mutex: sync.Mutex{},
+	m:     map[string]map[string]map[string]struct{}{},
+}
+
 // Construct all the "allOf"s of the schemas in current spec.
 // {normRef: {normRef1, normRef2,...}, ...}
-var allAllOfsCache = map[string]map[string]map[string]struct{}{}
-
 func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error) {
 	var err error
 	swaggerURI, err = filepath.Abs(swaggerURI)
@@ -329,7 +338,10 @@ func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error)
 		return nil, err
 	}
 
-	if allAllOfs, ok := allAllOfsCache[swaggerURI]; ok {
+	allAllOfsCache.Lock()
+	defer allAllOfsCache.Unlock()
+
+	if allAllOfs, ok := allAllOfsCache.m[swaggerURI]; ok {
 		return allAllOfs, nil
 	}
 
@@ -353,7 +365,7 @@ func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error)
 			}
 		}
 	}
-	allAllOfsCache[swaggerURI] = allAllOfs
+	allAllOfsCache.m[swaggerURI] = allAllOfs
 	return allAllOfs, nil
 }
 
