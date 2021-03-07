@@ -3,6 +3,7 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
@@ -212,10 +213,8 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	swaggerURI := normSchemaRef.GetURL().Path
 
 	newResolvedRefs := map[string]interface{}{}
-	if len(resolvedRefs) != 0 {
-		for k, v := range resolvedRefs {
-			newResolvedRefs[k] = v
-		}
+	for k, v := range resolvedRefs {
+		newResolvedRefs[k] = v
 	}
 
 	if !forResponse && schema.ReadOnly {
@@ -235,11 +234,12 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 		return nil, err
 	}
 	if !isDiscriminator {
-		// In case current schema is not a discriminator, we will mark it as ref-ed.
+		// In case the current schema is not a discriminator, we will mark it as ref-ed.
 		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
 		return prop, nil
 	}
 
+	// Following applies to discriminator property
 	prop.isDiscriminator = isDiscriminator
 	prop.isPureDiscriminator = pure
 
@@ -248,7 +248,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 		return nil, err
 	}
 
-	// In case current schema is a leaf variant, we will mark it as ref-ed.
+	// In case the current schema is a leaf variant, we will mark it as ref-ed.
 	if prop.isLeafVariant() {
 		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
 	}
@@ -256,6 +256,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	return prop, nil
 }
 
+// getVariantRefSet gets the variant set for both "root" and "direct".
 func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[string]struct{}, error) {
 	is, pure, rootDiscriminatorRef, err := checkDiscriminatorSchema(normSchemaRef)
 	if err != nil {
@@ -319,8 +320,19 @@ func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[s
 
 // Construct all the "allOf"s of the schemas in current spec.
 // {normRef: {normRef1, normRef2,...}, ...}
-// TODO: cache it
+var allAllOfsCache = map[string]map[string]map[string]struct{}{}
+
 func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error) {
+	var err error
+	swaggerURI, err = filepath.Abs(swaggerURI)
+	if err != nil {
+		return nil, err
+	}
+
+	if allAllOfs, ok := allAllOfsCache[swaggerURI]; ok {
+		return allAllOfs, nil
+	}
+
 	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
 	if err != nil {
 		return nil, err
@@ -341,6 +353,7 @@ func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error)
 			}
 		}
 	}
+	allAllOfsCache[swaggerURI] = allAllOfs
 	return allAllOfs, nil
 }
 

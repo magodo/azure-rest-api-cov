@@ -2,6 +2,7 @@ package swaggerloader
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/go-openapi/loads"
@@ -21,6 +22,12 @@ var swaggerCache = SwaggerCache{
 
 // LoadSwagger load a certain swagger spec (document) from either file or http
 func LoadSwagger(swaggerURI string) (*openapispec.Swagger, error) {
+	var err error
+	swaggerURI, err = filepath.Abs(swaggerURI)
+	if err != nil {
+		return nil, err
+	}
+
 	swaggerCache.Lock()
 	defer swaggerCache.Unlock()
 
