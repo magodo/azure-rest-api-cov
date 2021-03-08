@@ -400,6 +400,7 @@ func (c *Schema) Grant(grant SchemaGrant, strict bool) error {
 			if strict {
 				return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
 			}
+			continue
 		}
 		if property.PropertyState != nil && !property.PropertyState.IsUncovered() && strict {
 			return fmt.Errorf(`property %q that is to be granted is not an uncovered property, but %v`, propAddr, property.PropertyState.GetState())
