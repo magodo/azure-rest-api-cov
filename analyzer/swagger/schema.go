@@ -114,7 +114,104 @@ func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName 
 	return schema, nil
 }
 
-// expandPropertyOneLevelDeep expand the specified swagger schemas property one level deep, with any allOf and $ref taken into consideration.
+// ExpandProperties expands properties to the "leaf", with expanding the ref, allOf, subProperties all the way along.
+// NOTE: This has to be called before the schema goes under granting process.
+func (s *Schema) ExpandProperties() error {
+	if s.HasGrantedAny() {
+		return fmt.Errorf("ExpandProperties() has to be called on schema (%q) before granting", s.Ref())
+	}
+
+
+	propsExpandedToEnd := map[string]bool{}
+	propsToExpand := map[string]bool{}
+
+	for {
+
+		propsToExpand = map[string]bool{}
+		for k := range s.Properties {
+			if !propsExpandedToEnd[k] {
+				propsToExpand[k] = true
+			}
+		}
+
+		if len(propsToExpand) == 0 {
+			break
+		}
+
+		for existRAddr := range propsToExpand {
+			existPropAddr := addr.MustParseProperty(existRAddr)
+			end, err := s.expandPropertyOneLevelDeep(existPropAddr)
+			if err != nil {
+				return fmt.Errorf("expanding top property for %s: %w", existPropAddr, err)
+			}
+
+			if end {
+				propsExpandedToEnd[existRAddr] = true
+			}
+
+		}
+	}
+	return nil
+}
+
+// AddCovProperty adds a covered property to the schema.
+// In case the property doesn't exist in the Swagger definition, it will error out if in the strict mode.
+// Otherwise, it will just ignore this property.
+// NOTE: This has to be called before the schema goes under granting process.
+func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
+	if s.HasGrantedAny() {
+		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
+	}
+	for existRAddr, prop := range s.Properties {
+		existPropAddr := addr.MustParseProperty(existRAddr)
+
+		if !propAddr.Contains(existPropAddr) && !existPropAddr.Contains(propAddr) && !existPropAddr.Equals(propAddr) {
+			continue
+		}
+
+		// If the property to Add is a parent property of any existing properties.
+		// We will throw that property since we will only regard leaf property as covered.
+		if propAddr.Contains(existPropAddr) {
+			return nil
+		}
+
+		if existPropAddr.Equals(propAddr) {
+			// Ensure the property is a leaf property.
+			isLeaf, err := prop.isLeafProperty()
+			if err != nil {
+				return err
+			}
+			if isLeaf {
+				// If the property state is already set, do nothing.
+				// Otherwise, mark its state as covered.
+				if prop.PropertyState == PropertyStateIgnoredForReqROProp {
+					return nil
+				}
+				prop.PropertyState = PropertyStateCovered
+			}
+			return nil
+		}
+
+		// The property we're seeking is a member of the property under iteration, we will first expand it one level deep.
+		end, err := s.expandPropertyOneLevelDeep(existPropAddr)
+		if err != nil {
+			return fmt.Errorf("expanding top level property for %s: %w", existPropAddr, err)
+		}
+
+		if end {
+			continue
+		}
+
+		return s.AddCovProperty(propAddr, strict)
+	}
+
+	if strict {
+		return fmt.Errorf("property %s doesn't belong to schemas %s (%s)", propAddr, s.Name, s.swaggerURI)
+	}
+	return nil
+}
+
+// expandPropertyOneLevelDeep expand the specified swagger property one level deep, with any ref, allOf, sub-properties taken into consideration.
 func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, err error) {
 	raddr := propAddr.String()
 
@@ -161,8 +258,6 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 
 	levelProperties.Merge(directTopSWGProperties)
 	levelProperties.Merge(allOfSWGProperties)
-
-	// For non-pure discriminator, because itself can be instantiated, so we will add the expanded properties also.
 
 	// In case current property is a discriminator schema, we will expand it into its variants/children.
 	// Otherwise, we will simply return here and do not do the expanding to variants below.
@@ -303,63 +398,6 @@ func (s Schema) HasGrantedAny() bool {
 		}
 	}
 	return false
-}
-
-// AddCovProperty adds a covered property to the schema.
-// In case the property doesn't exist in the Swagger definition, it will error out if in the strict mode.
-// Otherwise, it will just ignore this property.
-// NOTE: This has to be called before the schema goes under granting process.
-func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
-	if s.HasGrantedAny() {
-		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
-	}
-	for existRAddr, prop := range s.Properties {
-		existPropAddr := addr.MustParseProperty(existRAddr)
-
-		if !propAddr.Contains(existPropAddr) && !existPropAddr.Contains(propAddr) && !existPropAddr.Equals(propAddr) {
-			continue
-		}
-
-		// If the property to Add is a parent property of any existing properties.
-		// We will throw that property since we will only regard leaf property as covered.
-		if propAddr.Contains(existPropAddr) {
-			return nil
-		}
-
-		if existPropAddr.Equals(propAddr) {
-			// Ensure the property is a leaf property.
-			isLeaf, err := prop.isLeafProperty()
-			if err != nil {
-				return err
-			}
-			if isLeaf {
-				// If the property state is already set, do nothing.
-				// Otherwise, mark its state as covered.
-				if prop.PropertyState == PropertyStateIgnoredForReqROProp {
-					return nil
-				}
-				prop.PropertyState = PropertyStateCovered
-			}
-			return nil
-		}
-
-		// The property we're seeking is a member of the property under iteration, we will first expand it one level deep.
-		end, err := s.expandPropertyOneLevelDeep(existPropAddr)
-		if err != nil {
-			return fmt.Errorf("expanding top level property for %s: %w", existPropAddr, err)
-		}
-
-		if end {
-			continue
-		}
-
-		return s.AddCovProperty(propAddr, strict)
-	}
-
-	if strict {
-		return fmt.Errorf("property %s doesn't belong to schemas %s (%s)", propAddr, s.Name, s.swaggerURI)
-	}
-	return nil
 }
 
 // Merge merges two schema with same address in turns of covered properties.
