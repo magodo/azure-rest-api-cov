@@ -84,26 +84,17 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
   "resource_providers": {
     "dummy": {
       "/{host}/{bar}": {},
-      "/{host}/{foo}/def_foo": {
-	    "GET": {
-          "2020-12-01": null,
-          "2021-01-01": null
-        },
-	    "PUT": {
-          "2020-12-01": null
-        }
-      },
       "/{host}/{foo}/def_bar": {
-	    "POST": {
+        "POST": {
           "2020-12-01": null
         }
       },
       "/{host}/{foo}/def_base": {
-       "PUT": {
+        "PUT": {
           "2020-12-01": {
-			"active": true,
             "name": "def_base",
             "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "active": true,
             "node": {
               "total_amount": 2,
               "covered_amount": 1,
@@ -120,27 +111,33 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
                 },
                 "{def_variant2}": {
                   "total_amount": 1,
-                  "covered_amount": 0
+                  "covered_amount": 0,
+                  "children": {
+                    "type": {
+                      "total_amount": 1,
+                      "covered_amount": 0
+                    }
+                  }
                 }
               }
             }
           },
           "2021-01-01": {
-			"active": false,
             "name": "def_base",
             "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+            "active": false,
             "node": {
-              "total_amount": 3,
+              "total_amount": 4,
               "covered_amount": 1,
               "children": {
                 "{def_variant1}": {
                   "total_amount": 2,
                   "covered_amount": 1,
                   "children": {
-					"new_prop": {
+                    "new_prop": {
                       "total_amount": 1,
                       "covered_amount": 0
-					},
+                    },
                     "type": {
                       "total_amount": 1,
                       "covered_amount": 1
@@ -148,12 +145,31 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
                   }
                 },
                 "{def_variant2}": {
-                  "total_amount": 1,
-                  "covered_amount": 0
+                  "total_amount": 2,
+                  "covered_amount": 0,
+                  "children": {
+                    "new_prop": {
+                      "total_amount": 1,
+                      "covered_amount": 0
+                    },
+                    "type": {
+                      "total_amount": 1,
+                      "covered_amount": 0
+                    }
+                  }
                 }
               }
             }
           }
+        }
+      },
+      "/{host}/{foo}/def_foo": {
+        "GET": {
+          "2020-12-01": null,
+          "2021-01-01": null
+        },
+        "PUT": {
+          "2020-12-01": null
         }
       },
       "/{host}/{foo}/def_regular": {

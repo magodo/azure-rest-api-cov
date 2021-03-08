@@ -358,6 +358,19 @@
       }
     },
 
-    "def_grant_still": {}
+    "def_grant_still": {},
+
+    "def_contain_map": {
+      "properties": {
+        "tags": {
+          "type" : "object",
+          "properties": {
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
   }
 }

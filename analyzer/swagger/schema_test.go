@@ -1777,6 +1777,25 @@ func TestSchema_ExpandProperties(t *testing.T) {
 				},
 			},
 		},
+		// 19
+		{
+			name:           `Expand Map/Dict properties`,
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_contain_map",
+			expect: map[string]*Property{
+				"tags": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_contain_map"].Properties["tags"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_map"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_contain_map": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+			},
+		},
 	}
 
 	for idx, c := range cases {
@@ -3268,521 +3287,238 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 }
 
 func TestSchema_AddCovProperty(t *testing.T) {
-	type step struct {
-		swgPropAddr addr.Property
-		err         bool
-		expect      Schema
-	}
-
 	cases := []struct {
 		name           string
 		swaggerRelPath string
 		schemaName     string
 		forResponse    bool
-		steps          []step
+		addrs          []addr.Property
+		expect         Schema
 	}{
 		// 0
 		{
-			name:           "Add same property twice should take no diff (re-entry)",
+			name:           "Normal case",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
-			steps: []step{
-				{
-					swgPropAddr: addr.MustParseProperty("p1"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_cov",
+			addrs: []addr.Property{
+				addr.MustParseProperty("p2/p2_1"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_cov",
+				},
+				Properties: map[string]*Property{
+					"p1": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
 						},
-						Properties: map[string]*Property{
-							"p1": {
-								PropertyState: PropertyStateCovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"p2": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"tags": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"p2/p2_1": {
+						PropertyState: PropertyStateCovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"p2/p2_2": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"tags": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 						},
 						swaggerURI: specFooPath,
 					},
 				},
-				// Add a second tf link to the same swg property should have no change
-				{
-					swgPropAddr: addr.MustParseProperty("p1"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_cov",
-						},
-						Properties: map[string]*Property{
-							"p1": {
-								PropertyState: PropertyStateCovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"p2": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"tags": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-						},
-						swaggerURI: specFooPath,
-					},
-				},
+				swaggerURI: specFooPath,
 			},
 		},
 		// 1
 		{
-			name:           "Add tf link to swagger non-leaf property should not cover that property",
+			name:           "Add tf link to swagger non-leaf property will not be counted as covered",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
-			steps: []step{
-				{
-					swgPropAddr: addr.MustParseProperty("p2"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_cov",
+			addrs: []addr.Property{
+				addr.MustParseProperty("p2"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_cov",
+				},
+				Properties: map[string]*Property{
+					"p1": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
 						},
-						Properties: map[string]*Property{
-							"p1": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"p2": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"tags": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"p2/p2_1": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"p2/p2_2": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"tags": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 						},
 						swaggerURI: specFooPath,
 					},
 				},
+				swaggerURI: specFooPath,
 			},
 		},
 		// 2
 		{
-			name:           "Add tf link to swagger parent property first, then Add another tf link to swagger child property",
+			name:           "Add tf link to model with Map/Dict properties should be counted as covered",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_cov",
-			steps: []step{
-				{
-					swgPropAddr: addr.MustParseProperty("p2"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_cov",
+			addrs: []addr.Property{
+				addr.MustParseProperty("tags"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_cov",
+				},
+				Properties: map[string]*Property{
+					"p1": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
 						},
-						Properties: map[string]*Property{
-							"p1": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"p2": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"tags": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"p2/p2_1": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"p2/p2_2": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"tags": {
+						PropertyState: PropertyStateCovered,
+						schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_cov": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
 						},
 						swaggerURI: specFooPath,
 					},
 				},
-				{
-					swgPropAddr: addr.MustParseProperty("p2/p2_1"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_cov",
-						},
-						Properties: map[string]*Property{
-							"p1": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"p2/p2_1": {
-								PropertyState: PropertyStateCovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"p2/p2_2": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"].Properties["p2_2"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"tags": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-						},
-						swaggerURI: specFooPath,
-					},
-				},
+				swaggerURI: specFooPath,
 			},
 		},
 		// 3
 		{
-			name:           "Add tf link to model with Map/Dict properties should be counted as covered",
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_cov",
-			steps: []step{
-				{
-					swgPropAddr: addr.MustParseProperty("tags"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_cov",
-						},
-						Properties: map[string]*Property{
-							"p1": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"p2": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["p2"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"tags": {
-								PropertyState: PropertyStateCovered,
-								schema:        swaggerFoo.Definitions["def_cov"].Properties["tags"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_cov": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_cov")),
-								},
-								swaggerURI: specFooPath,
-							},
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-			},
-		},
-		// 4
-		{
 			name:           "Add property of discriminator will cover",
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_base",
-			steps: []step{
-				{
-					swgPropAddr: addr.MustParseProperty("{def_variant1}/type"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_base",
-						},
-						Properties: map[string]*Property{
-							"{def_variant1}/type": {
-								PropertyState: PropertyStateCovered,
-								schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_variant1": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
-								},
-								swaggerURI: specFooPath,
-							},
-							"{def_variant2}": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["variant2_def"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/variant2_def": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
-								},
-								swaggerURI:          specFooPath,
-								isDiscriminator:     true,
-								directVariantRefSet: map[string]struct{}{},
-								rootVariantRefSet: map[string]struct{}{
-									fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
-									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
-								},
-							},
-						},
-						swaggerURI: specFooPath,
-					},
-				},
+			addrs: []addr.Property{
+				addr.MustParseProperty("{def_variant1}/type"),
 			},
-		},
-		// 5
-		{
-			name:           "Add discriminator itself will not counted as covered",
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_base",
-			steps: []step{
-				{
-					swgPropAddr: addr.MustParseProperty("{def_variant1}"),
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_base",
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_base",
+				},
+				Properties: map[string]*Property{
+					"{def_variant1}/type": {
+						PropertyState: PropertyStateCovered,
+						schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_variant1": struct{}{},
 						},
-						Properties: map[string]*Property{
-							"{def_variant1}": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_variant1"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_variant1": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1")),
-								},
-								swaggerURI:          specFooPath,
-								isDiscriminator:     true,
-								directVariantRefSet: map[string]struct{}{},
-								rootVariantRefSet: map[string]struct{}{
-									fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
-									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
-								},
-							},
-							"{def_variant2}": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["variant2_def"],
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/variant2_def": struct{}{},
-								},
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
-								},
-								swaggerURI:          specFooPath,
-								isDiscriminator:     true,
-								directVariantRefSet: map[string]struct{}{},
-								rootVariantRefSet: map[string]struct{}{
-									fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
-									fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
-								},
-							},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"{def_variant2}/type": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/variant2_def": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
 						},
 						swaggerURI: specFooPath,
 					},
 				},
-			},
-		},
-		// 6
-		{
-			name:           "Add property whose parent property is RO",
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_contain_ro",
-			steps: []step{
-				{
-					swgPropAddr: addr.MustParseProperty("p_obj_ro/foo"),
-
-					expect: Schema{
-						SchemaMetaInfo: SchemaMetaInfo{
-							SwaggerRelPath: "foo.json",
-							Name:           "def_contain_ro",
-						},
-						Properties: map[string]*Property{
-							"p_primitive": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive"],
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
-								},
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_contain_ro": struct{}{},
-								},
-								swaggerURI: specFooPath,
-							},
-							"p_primitive_ro": {
-								PropertyState: PropertyStateIgnoredForReqROProp,
-								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive_ro"],
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
-								},
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_contain_ro": struct{}{},
-								},
-								swaggerURI: specFooPath,
-							},
-							"p_obj_array": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj_array"],
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
-								},
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_contain_ro": struct{}{},
-								},
-								swaggerURI: specFooPath,
-							},
-							"p_obj_array_ro": {
-								PropertyState: PropertyStateIgnoredForReqROProp,
-								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj_array_ro"],
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
-								},
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_contain_ro": struct{}{},
-								},
-								swaggerURI: specFooPath,
-							},
-							"p_obj": {
-								PropertyState: PropertyStateUncovered,
-								schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_obj"],
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
-								},
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_contain_ro": struct{}{},
-								},
-								swaggerURI: specFooPath,
-							},
-							"p_obj_ro/foo": {
-								PropertyState: PropertyStateIgnoredForReqROProp,
-								schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-								ownerSchemaRef: &openapispec.Ref{
-									Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
-								},
-								resolvedRefs: map[string]interface{}{
-									specFooPath + "#/definitions/def_contain_ro": struct{}{},
-									specFooPath + "#/definitions/def_foo":        struct{}{},
-								},
-								swaggerURI: specFooPath,
-							},
-						},
-						swaggerURI: specFooPath,
-					},
-				},
+				swaggerURI: specFooPath,
 			},
 		},
 	}
@@ -3790,14 +3526,12 @@ func TestSchema_AddCovProperty(t *testing.T) {
 	for idx, c := range cases {
 		schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
 		require.NoError(t, err, idx)
+		require.NoError(t, schema.ExpandProperties(), idx)
 		if err == nil {
-			for iidx, s := range c.steps {
-				if s.err {
-					require.Error(t, schema.AddCovProperty(s.swgPropAddr, true), fmt.Sprintf("%s: %d", c.name, iidx))
-					continue
-				}
-				require.NoError(t, schema.AddCovProperty(s.swgPropAddr, true), fmt.Sprintf("%s: %d", c.name, iidx))
-				require.Equal(t, s.expect, *schema, fmt.Sprintf("%d.%d", idx, iidx))
+			for iidx, addr := range c.addrs {
+				err := schema.AddCovProperty(addr, true)
+				require.NoError(t, err, fmt.Sprintf("%s: %d.%d", c.name, idx, iidx))
+				require.Equal(t, c.expect, *schema, fmt.Sprintf("%d.%d", idx, iidx))
 			}
 		}
 	}
@@ -3884,6 +3618,7 @@ func TestSchema_Marshal(t *testing.T) {
 			schemaName:     "def_cov",
 			process: func(schema *Schema) {
 				swgPropAddr := addr.MustParseProperty("p2/p2_1")
+				require.NoError(t, schema.ExpandProperties())
 				require.NoError(t, schema.AddCovProperty(swgPropAddr, true))
 			},
 			expect: fmt.Sprintf(`{

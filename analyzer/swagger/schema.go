@@ -101,6 +101,10 @@ func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName 
 		return nil, err
 	}
 
+	if err := schema.ExpandProperties(); err != nil {
+		return nil, err
+	}
+
 	for _, propStr := range coveredProps {
 		prop := addr.MustParseProperty(propStr)
 		if schemaVariantValue != "" {
@@ -121,12 +125,10 @@ func (s *Schema) ExpandProperties() error {
 		return fmt.Errorf("ExpandProperties() has to be called on schema (%q) before granting", s.Ref())
 	}
 
-
 	propsExpandedToEnd := map[string]bool{}
 	propsToExpand := map[string]bool{}
 
 	for {
-
 		propsToExpand = map[string]bool{}
 		for k := range s.Properties {
 			if !propsExpandedToEnd[k] {
@@ -154,10 +156,10 @@ func (s *Schema) ExpandProperties() error {
 	return nil
 }
 
-// AddCovProperty adds a covered property to the schema.
-// In case the property doesn't exist in the Swagger definition, it will error out if in the strict mode.
-// Otherwise, it will just ignore this property.
-// NOTE: This has to be called before the schema goes under granting process.
+// AddCovProperty marks a property as covered.
+// In case the property doesn't exist in the Swagger definition, it will error out if in the strict mode. Otherwise, it will just ignore this property.
+// Furthermore, if the property is a parent of some existing properties, it will always be skipped. Since we only count coverage for leaf properties.
+// NOTE: You shall ensure to call after expanding properties. Also, this has to be called before the schema goes under granting process.
 func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
 	if s.HasGrantedAny() {
 		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
@@ -165,44 +167,27 @@ func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
 	for existRAddr, prop := range s.Properties {
 		existPropAddr := addr.MustParseProperty(existRAddr)
 
-		if !propAddr.Contains(existPropAddr) && !existPropAddr.Contains(propAddr) && !existPropAddr.Equals(propAddr) {
-			continue
-		}
-
-		// If the property to Add is a parent property of any existing properties.
-		// We will throw that property since we will only regard leaf property as covered.
 		if propAddr.Contains(existPropAddr) {
 			return nil
 		}
 
-		if existPropAddr.Equals(propAddr) {
-			// Ensure the property is a leaf property.
-			isLeaf, err := prop.isLeafProperty()
-			if err != nil {
-				return err
-			}
-			if isLeaf {
-				// If the property state is already set, do nothing.
-				// Otherwise, mark its state as covered.
-				if prop.PropertyState == PropertyStateIgnoredForReqROProp {
-					return nil
-				}
-				prop.PropertyState = PropertyStateCovered
-			}
-			return nil
-		}
-
-		// The property we're seeking is a member of the property under iteration, we will first expand it one level deep.
-		end, err := s.expandPropertyOneLevelDeep(existPropAddr)
-		if err != nil {
-			return fmt.Errorf("expanding top level property for %s: %w", existPropAddr, err)
-		}
-
-		if end {
+		if !existPropAddr.Equals(propAddr) {
 			continue
 		}
 
-		return s.AddCovProperty(propAddr, strict)
+		// Ensure the property is a leaf property.
+		isLeaf, err := prop.isLeafProperty()
+		if err != nil {
+			return err
+		}
+		if isLeaf {
+			// Ignore in case this property is already marked to be ignored.
+			if prop.PropertyState == PropertyStateIgnoredForReqROProp {
+				return nil
+			}
+			prop.PropertyState = PropertyStateCovered
+		}
+		return nil
 	}
 
 	if strict {
@@ -322,10 +307,18 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	return false, nil
 }
 
-// expandSubProperties expand the directly contained sub-properties of the property (prop) in the specified address (addr)
+// expandSubProperties expand the directly contained sub-properties of the property (prop) in the specified address (addr), given it is not a leaf property.
 // Especially, if the property is an array to object, it will expand to the sub-properties of the object item instead.
 func (s *Schema) expandSubProperties(propAddr addr.Property, prop *Property) (Properties, error) {
 	output := Properties{}
+	isLeaf, err := prop.isLeafProperty()
+	if err != nil {
+		return nil, err
+	}
+	if isLeaf {
+		return output, nil
+	}
+
 	var properties openapispec.SchemaProperties
 	if prop.schema.Items != nil {
 		properties = prop.schema.Items.Schema.Properties

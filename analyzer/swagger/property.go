@@ -427,7 +427,7 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	ref := prop.schema.Ref
 	if ref.String() == "" {
-		// Specially, if current schema is an array and the items is a ref, we need to go on expand it.
+		// Specially, if current schema is an array, and the items is a ref, we need to go on expand it.
 		if prop.schema.Items == nil {
 			return false, nil
 		}
@@ -496,7 +496,8 @@ func (prop Property) isLeafProperty() (bool, error) {
 		}
 	}
 
-	return len(p.schema.AllOf) == 0 && p.schema.Properties == nil, nil
+	// In case this property is an array, we will further check whether its item has defined schema.
+	return len(p.schema.AllOf) == 0 && p.schema.Properties == nil && (p.schema.Items == nil || (p.schema.Items.Schema == nil && len(p.schema.Items.Schemas) == 0)), nil
 }
 
 func (props Properties) MarshalJSON() ([]byte, error) {
