@@ -1037,6 +1037,9 @@ func TestSchema(t *testing.T) {
 	}
 
 	for idx, c := range cases {
+		if idx != 5 {
+			continue
+		}
 		msg := fmt.Sprintf("(%d) %s: %s", idx, filepath.Join(c.specBaseURL, c.specRelPath), c.schemaName)
 		for i := 0; i <= c.repeat; i++ {
 			actual, err := NewEmptySchema(c.specBaseURL, c.specRelPath, c.schemaName, c.forResponse)
