@@ -358,6 +358,42 @@
       }
     },
 
-    "def_grant_still": {}
+    "def_grant_still": {},
+
+    "def_activity": {
+      "discriminator": "type",
+      "properties": {
+         "type": {},
+         "actor": {
+           "$ref": "#/definitions/def_actor"
+         }
+      }
+    },
+
+    "def_activity_a": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_activity"
+        }
+      ]
+    },
+
+    "def_actor": {
+      "discriminator": "type",
+      "properties": {
+        "type": {},
+        "activity": {
+          "$ref": "#/definitions/def_activity"
+        }
+      }
+    },
+
+    "def_actor_a": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/def_actor"
+        }
+      ]
+    }
   }
 }

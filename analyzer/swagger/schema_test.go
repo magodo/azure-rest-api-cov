@@ -2518,6 +2518,70 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 				swaggerURI: specFooPath,
 			},
 		},
+		// 28
+		{
+			name:           `Expand cyclic discriminator`,
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_activity",
+			expandAddrs: []addr.Property{
+				addr.MustParseProperty("{def_activity_a}"),
+				addr.MustParseProperty("{def_activity_a}/actor"),
+				addr.MustParseProperty("{def_activity_a}/actor{def_actor_a}"),
+				addr.MustParseProperty("{def_activity_a}/actor{def_actor_a}/activity"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_activity",
+				},
+				Properties: map[string]*Property{
+					"{def_activity_a}/actor{def_actor_a}/activity": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_activity"],
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_activity")),
+						},
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_activity_a": struct{}{},
+							specFooPath + "#/definitions/def_actor_a":    struct{}{},
+						},
+						swaggerURI:          specFooPath,
+						isDiscriminator:     true,
+						isPureDiscriminator: true,
+						rootVariantRefSet: map[string]struct{}{
+							specFooPath + "#/definitions/def_activity_a": {},
+						},
+						directVariantRefSet: map[string]struct{}{
+							specFooPath + "#/definitions/def_activity_a": {},
+						},
+					},
+					"{def_activity_a}/actor{def_actor_a}/type": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_actor"].Properties["type"],
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_actor")),
+						},
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_activity_a": struct{}{},
+							specFooPath + "#/definitions/def_actor_a":    struct{}{},
+						},
+						swaggerURI: specFooPath,
+					},
+					"{def_activity_a}/type": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_activity"].Properties["type"],
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_activity")),
+						},
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_activity_a": struct{}{},
+						},
+						swaggerURI: specFooPath,
+					},
+				},
+				swaggerURI: specFooPath,
+			},
+		},
 	}
 
 	for idx, c := range cases {
