@@ -1796,6 +1796,57 @@ func TestSchema_ExpandProperties(t *testing.T) {
 				},
 			},
 		},
+		// 20
+		{
+			name:           `Expand cyclic discriminator`,
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_activity",
+			expect: map[string]*Property{
+				"{def_activity_a}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_activity"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_activity"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_activity_a": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity_a}/actor{def_actor_a}/activity": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_activity"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_activity"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor_a":    struct{}{},
+						specFooPath + "#/definitions/def_activity_a": struct{}{},
+					},
+					swaggerURI:          specFooPath,
+					isDiscriminator:     true,
+					isPureDiscriminator: true,
+					rootVariantRefSet: map[string]struct{}{
+						fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_activity_a"): {},
+					},
+					directVariantRefSet: map[string]struct{}{
+						fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_activity_a"): {},
+					},
+				},
+				"{def_activity_a}/actor{def_actor_a}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_actor"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor_a":    struct{}{},
+						specFooPath + "#/definitions/def_activity_a": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+			},
+		},
 	}
 
 	for idx, c := range cases {

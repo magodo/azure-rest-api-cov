@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
+	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
 )
 
@@ -62,6 +63,12 @@ func main() {
 				Value: "info",
 				Usage: `Log level: can be one of "debug", "info", "warn", "fatal"`,
 			},
+
+			// profiles
+			&cli.BoolFlag{
+				Name:  "profile-cpu",
+				Usage: "Profile CPU",
+			},
 		},
 		Commands: []*cli.Command{
 			{
@@ -109,6 +116,10 @@ func main() {
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
+
+					if ctx.Bool("profile-cpu") {
+						defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+					}
 
 					workspaceDir := ctx.String("workspace-dir")
 					force := ctx.Bool("workspace-force-new")
@@ -209,6 +220,10 @@ func main() {
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
 
+					if ctx.Bool("profile-cpu") {
+						defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+					}
+
 					workspaceDir := ctx.String("workspace-dir")
 					force := ctx.Bool("workspace-force-new")
 					regenIndex := ctx.Bool("index-renew")
@@ -267,5 +282,4 @@ func initLog(logLevel string) {
 	default:
 		log.Fatal("unknown log level")
 	}
-
 }

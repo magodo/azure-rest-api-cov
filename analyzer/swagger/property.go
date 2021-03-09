@@ -131,7 +131,7 @@ type Property struct {
 	// Normalized reference to variant schemas of the schema of this property. It is nil if `isDiscriminator` is false.
 	// Note that: Non-leaf variant schema has itself as its variant schema (i.e. both pure discriminator and leaf variant
 	//            do not contain itself in the rootVariantRefSet).
-	//            This is because non-leaf variant schema is both a discriminator and a variant (can be instantiate), when
+	//            This is because non-leaf variant schema is both a discriminator, and a variant (can be instantiated), when
 	//            expanding it to its variant, we will need to both instantiate itself and its children variants.
 	rootVariantRefSet map[string]struct{}
 
@@ -464,6 +464,10 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	*prop = *refProp
 
 	return prop.expandRefPropertyInPlace()
+}
+
+func (prop Property) isNonLeafVariant() bool {
+	return prop.isDiscriminator && !prop.isLeafVariant() && !prop.isPureDiscriminator
 }
 
 func (prop Property) isLeafVariant() bool {

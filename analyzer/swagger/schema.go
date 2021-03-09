@@ -2,6 +2,7 @@ package swagger
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
@@ -96,6 +97,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, fo
 // If "forResponse" is specified, the read-only properties will  be ignored in the final coverage result.
 // If "strict" is specified, the coveredProps should guarantee to exist in the designated schema. Otherwise, an error will return.
 func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict bool) (*Schema, error) {
+
 	schema, err := NewEmptySchema(swaggerBaseDir, swaggerRelPath, schemaName, forResponse)
 	if err != nil {
 		return nil, err
@@ -140,6 +142,7 @@ func (s *Schema) ExpandProperties() error {
 			break
 		}
 
+		log.Printf("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
 		for existRAddr := range propsToExpand {
 			existPropAddr := addr.MustParseProperty(existRAddr)
 			end, err := s.expandPropertyOneLevelDeep(existPropAddr)
@@ -244,8 +247,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	levelProperties.Merge(directTopSWGProperties)
 	levelProperties.Merge(allOfSWGProperties)
 
-	// In case current property is a discriminator schema, we will expand it into its variants/children.
-	// Otherwise, we will simply return here and do not do the expanding to variants below.
+	// In case current property is not a discriminator schema, we will simply return here and do not do the expanding to variants below.
 	if !prop.isDiscriminator {
 		s.addProperties(levelProperties)
 		end := len(levelProperties) == 0
@@ -259,22 +261,27 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 		s.addProperties(levelProperties)
 		end := len(levelProperties) == 0
 		return end, nil
-	default:
+	case prop.isNonLeafVariant():
 		// A non-leaf variant, we shall check whether it has been resolved yet.
 		// If it is resolved, it means the variant has been expanded along the expansion of current property,
 		// then we shall stop expanding its children variants and set its properties here.
-		_, resolved := prop.resolvedRefs[prop.ownerSchemaRef.String()]
-		if resolved {
+		if _, resolved := prop.resolvedRefs[prop.ownerSchemaRef.String()]; resolved {
 			s.addProperties(levelProperties)
 			end := len(levelProperties) == 0
 			return end, nil
 		}
+	default:
+		panic("will not reach here")
 	}
 
+	// A pure discriminator or a non-leaf variant that has not been resolved yet. We'll further expand their variants.
+	skipped := 0
 	for variantRef := range prop.rootVariantRefSet {
 		if _, resolved := prop.resolvedRefs[variantRef]; resolved {
+			skipped++
 			continue
 		}
+
 		ref := openapispec.MustCreateRef(variantRef)
 		name, _ := SchemaInfoFromRef(ref)
 
@@ -302,6 +309,16 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 			return false, err
 		}
 		s.addProperty(propAddr.AsVariant(descValue), *p)
+	}
+
+	// In case all the variants are skipped, we will potentially mark this expansion as end as there is no new properties got expanded.
+	if skipped == len(prop.rootVariantRefSet) {
+		// Especially, in case this is a non-leaf variant prop, we will further ensure there is no sub-properties got expanded.
+		if prop.isNonLeafVariant() {
+			end := len(levelProperties) == 0
+			return end, nil
+		}
+		return true, nil
 	}
 
 	return false, nil
