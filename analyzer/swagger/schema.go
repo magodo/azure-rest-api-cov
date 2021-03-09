@@ -2,8 +2,9 @@ package swagger
 
 import (
 	"fmt"
-	"log"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 
@@ -142,7 +143,7 @@ func (s *Schema) ExpandProperties() error {
 			break
 		}
 
-		log.Printf("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
+		log.Debugf("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
 		for existRAddr := range propsToExpand {
 			existPropAddr := addr.MustParseProperty(existRAddr)
 			end, err := s.expandPropertyOneLevelDeep(existPropAddr)
