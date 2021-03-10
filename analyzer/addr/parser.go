@@ -3,9 +3,25 @@ package addr
 import (
 	"errors"
 	"fmt"
+	"sync"
 )
 
+var propertyCache = struct {
+	sync.Mutex
+	m map[string]Property
+}{
+	sync.Mutex{},
+	map[string]Property{},
+}
+
 func ParseProperty(input string) (Property, error) {
+	propertyCache.Lock()
+	defer propertyCache.Unlock()
+
+	if prop, ok := propertyCache.m[input]; ok {
+		return prop, nil
+	}
+
 	var prop Property
 	var segment PropertySegment
 	emptySegment := PropertySegment{}
@@ -31,6 +47,7 @@ loop:
 			segment.DiscriminatorValue = UnescapeDiscriminatorValue(item.val)
 		}
 	}
+	propertyCache.m[input] = prop
 	return prop, nil
 }
 
