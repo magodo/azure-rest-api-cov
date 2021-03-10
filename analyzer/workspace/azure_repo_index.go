@@ -33,6 +33,7 @@ const (
 	OperationKindPost                 = "POST"
 	OperationKindPatch                = "PATCH"
 	OperationKindDelete               = "DELETE"
+	OperationKindGlob                 = "*"
 )
 
 type SpecLocator struct {
@@ -43,6 +44,45 @@ type SpecLocator struct {
 type SchemaLocator struct {
 	SpecLocator
 	Operation OperationKind `json:"operation"`
+}
+
+// NewSchemaLocatorFromPattern create a SchemaLocator from the pattern in the format of: <API Path>:<Operation>:<API Version>
+func NewSchemaLocatorFromPattern(p string) (SchemaLocator, error) {
+	segments := strings.Split(p, ":")
+	if len(segments) != 3 {
+		return SchemaLocator{}, fmt.Errorf("malformed format of SchemaLocator pattern %q, expecting: <API Path>:<Operation>:<API Version>", p)
+	}
+
+	path, op, ver := segments[0], segments[1], segments[2]
+	return SchemaLocator{
+		SpecLocator: SpecLocator{
+			ApiVersion: ver,
+			ApiPath:    path,
+		},
+		Operation: OperationKind(op),
+	}, nil
+}
+
+func (loc SchemaLocator) Match(oloc SchemaLocator) bool {
+	if loc.Operation != OperationKindGlob {
+		if loc.Operation != oloc.Operation {
+			return false
+		}
+	}
+
+	if loc.ApiPath != "*" {
+		if loc.ApiPath != oloc.ApiPath {
+			return false
+		}
+	}
+
+	if loc.ApiVersion != "*" {
+		if loc.ApiVersion != oloc.ApiVersion {
+			return false
+		}
+	}
+
+	return true
 }
 
 type AzureRepoIndex struct {

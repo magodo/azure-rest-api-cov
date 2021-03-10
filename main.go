@@ -113,6 +113,10 @@ func main() {
 						Name:  "try-migrate",
 						Usage: `Try to migrate best match grants from older/newer API version and use it to grant the model of current API version`,
 					},
+					&cli.StringSliceFlag{
+						Name:  "ignore-schema",
+						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -136,6 +140,7 @@ func main() {
 					additionalMessage := ctx.String("additional-message")
 					migrateGrantHint := ctx.Bool("migrate-grant-hint")
 					tryMigrate := ctx.Bool("try-migrate")
+					ignoreSchema := ctx.StringSlice("ignore-schema")
 
 					if grantRepoRef != "" && grantRepoUrl == "" {
 						return fmt.Errorf("`-grant-ref` has to be used together with `-g`")
@@ -172,6 +177,7 @@ func main() {
 						AdditionalMessage: additionalMessage,
 						MigrateGrantHint:  migrateGrantHint,
 						TryMigrate:        tryMigrate,
+						IgnoreSchema:      ignoreSchema,
 					}
 
 					output, err := analyzer.Run(schemaInputFile, runCtx)
