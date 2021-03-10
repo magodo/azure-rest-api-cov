@@ -204,11 +204,8 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	defer func() {
 		// We have to check whether we added any child property of this property.
 		// If yes, then we need to remove this property from the Schema property map.
-		for currentRAddr := range s.Properties {
-			currentAddr := addr.MustParseProperty(currentRAddr)
-			if propAddr.Contains(currentAddr) {
-				delete(s.Properties, raddr)
-			}
+		if !end {
+			delete(s.Properties, raddr)
 		}
 	}()
 
@@ -224,7 +221,8 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 
 	// If the property to be expanded is a cyclic reference, we will do nothing but keep that property
 	if isCyclic {
-		return true, nil
+		end = true
+		return
 	}
 
 	// temporarily store the Properties expanded in this level
@@ -248,8 +246,8 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	// In case current property is not a discriminator schema, we will simply return here and do not do the expanding to variants below.
 	if !prop.isDiscriminator {
 		s.addProperties(levelProperties)
-		end := len(levelProperties) == 0
-		return end, nil
+		end = len(levelProperties) == 0
+		return
 	}
 
 	switch {
@@ -257,16 +255,16 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 		// continue
 	case prop.isLeafVariant():
 		s.addProperties(levelProperties)
-		end := len(levelProperties) == 0
-		return end, nil
+		end = len(levelProperties) == 0
+		return
 	case prop.isNonLeafVariant():
 		// A non-leaf variant, we shall check whether it has been resolved yet.
 		// If it is resolved, it means the variant has been expanded along the expansion of current property,
 		// then we shall stop expanding its children variants and set its properties here.
 		if _, resolved := prop.resolvedRefs[prop.ownerSchemaRef.String()]; resolved {
 			s.addProperties(levelProperties)
-			end := len(levelProperties) == 0
-			return end, nil
+			end = len(levelProperties) == 0
+			return
 		}
 	default:
 		panic("will not reach here")
@@ -313,10 +311,12 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	if skipped == len(prop.rootVariantRefSet) {
 		// Especially, in case this is a non-leaf variant prop, we will further ensure there is no sub-properties got expanded.
 		if prop.isNonLeafVariant() {
-			end := len(levelProperties) == 0
-			return end, nil
+			end = len(levelProperties) == 0
+			return
 		}
-		return true, nil
+
+		end = true
+		return
 	}
 
 	return false, nil
