@@ -127,7 +127,7 @@ func TestSchemaGrantFor(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		grant, matchRef, err := schemaGrants.SchemaGrantFor(c.ref)
+		grant, matchRef, err := schemaGrants.GetGrantForSchema(c.ref)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, expectResult{
 			grant: grant,

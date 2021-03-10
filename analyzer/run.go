@@ -67,6 +67,71 @@ func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Sche
 	return existing.Merge(s)
 }
 
+func (schemas Schemas) predict(schemaInputs []schemainput.SchemaInput, wsp *workspace.Workspace) error {
+	activeSchemas := map[workspace.SchemaLocator]bool{}
+	for _, schemaInput := range schemaInputs {
+		activeSchemas[schemaInput.SchemaLocator] = true
+	}
+
+loop:
+	for _, schemaInput := range schemaInputs {
+		specPath, err := wsp.AzureRepoIndex.LocateSpec(schemaInput.SpecLocator)
+		if err != nil {
+			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
+				log.Warn(err)
+				continue
+			}
+			return err
+		}
+
+		pathInfo, err := specPath.PathInfo()
+		if err != nil {
+			return err
+		}
+
+		swg, err := swaggerloader.LoadSwagger(filepath.Join(wsp.AzureRepoIndex.SpecRootDir, string(specPath)))
+		if err != nil {
+			return err
+		}
+
+		rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
+
+		var newApiVersions []workspace.APIVersion
+		for apiVersion := range wsp.AzureRepoIndex.ResourceProviders[workspace.ResourceProvider(rp)] {
+			if string(apiVersion) > currentVersion {
+				// Modify the API version to shift to the newer ones
+				schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
+
+				// If at least one newer version has already been explicitly specified via schemaInput files, then skip prediction based on current
+				// schemaInput. We should use the latest existing schemaInput to do the prediction on newer versions.
+				if activeSchemas[schemaInput.SchemaLocator] {
+					continue loop
+				}
+				newApiVersions = append(newApiVersions, apiVersion)
+			}
+		}
+
+		for _, apiVersion := range newApiVersions {
+			// Modify the API version to shift to the newer ones
+			schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
+
+			logCurrentProcessingSchemaInput(schemaInput, true)
+			schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, false)
+			if err != nil {
+				if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
+					log.Warn(err)
+					continue
+				}
+				return err
+			}
+			if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema, false); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type RunContext struct {
 	WorkspaceOpt      workspace.InitOption
 	Predict           bool
@@ -93,8 +158,10 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 		return "", err
 	}
 
-	// Consume the schema inputs
+	// schemas is used to store all the schemas with every property state (cov/un-cov/granted/ignored) set
 	schemas := Schemas{}
+
+	// Consume the schema inputs to get the property coverage
 	for _, schemaInput := range schemaInputs {
 		logCurrentProcessingSchemaInput(schemaInput, false)
 		schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, true)
@@ -113,100 +180,16 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 
 	// (Optionally) Predict the coverage of the Specs of newer API versions based on the schema inputs
 	if ctx.Predict {
-		explicitSchemas := map[workspace.SchemaLocator]bool{}
-		for _, schemaInput := range schemaInputs {
-			explicitSchemas[schemaInput.SchemaLocator] = true
-		}
-
-	loop:
-		for _, schemaInput := range schemaInputs {
-			specPath, err := wsp.AzureRepoIndex.LocateSpec(schemaInput.SpecLocator)
-			if err != nil {
-				if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
-					log.Warn(err)
-					continue
-				}
-				return "", err
-			}
-
-			pathInfo, err := specPath.PathInfo()
-			if err != nil {
-				return "", err
-			}
-
-			swg, err := swaggerloader.LoadSwagger(filepath.Join(wsp.AzureRepoIndex.SpecRootDir, string(specPath)))
-			if err != nil {
-				return "", err
-			}
-
-			rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
-
-			var newApiVersions []workspace.APIVersion
-			for apiVersion := range wsp.AzureRepoIndex.ResourceProviders[workspace.ResourceProvider(rp)] {
-				if string(apiVersion) > currentVersion {
-					// Modify the API version to shift to the newer ones
-					schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
-
-					// If at least one newer version has already been explicitly specified via schemaInput files, then skip prediction based on current
-					// schemaInput. We should use the latest existing schemaInput to do the prediction on newer versions.
-					if explicitSchemas[schemaInput.SchemaLocator] {
-						continue loop
-					}
-					newApiVersions = append(newApiVersions, apiVersion)
-				}
-			}
-
-			for _, apiVersion := range newApiVersions {
-				// Modify the API version to shift to the newer ones
-				schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
-
-				logCurrentProcessingSchemaInput(schemaInput, true)
-				schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, false)
-				if err != nil {
-					if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
-						log.Warn(err)
-						continue
-					}
-					return "", err
-				}
-				if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema, false); err != nil {
-					return "", err
-				}
-			}
+		if err := schemas.predict(schemaInputs, wsp); err != nil {
+			return "", err
 		}
 	}
 
 	// Grant
 	if ctx.WorkspaceOpt.GrantRepoURL != "" {
-		hintMessages := []string{}
-
-		grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir, nil)
+		hintMessages, err := schemas.grant(wsp, ctx.TryMigrate)
 		if err != nil {
 			return "", err
-		}
-
-		for k, schema := range schemas {
-			grant, matchRef, err := grants.SchemaGrantFor(schema.Ref())
-			if err != nil {
-				return "", err
-			}
-			if grant != nil {
-				// The grant file is exactly for this schema.
-				if matchRef == schema.Ref() {
-					if err := schema.Grant(*grant, true); err != nil {
-						return "", fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
-					}
-				} else {
-					if ctx.MigrateGrantHint && k.Active {
-						hintMessages = append(hintMessages, fmt.Sprintf("there is a grant on old API version %q, that is able to be migrated for %q", matchRef, schema.Ref()))
-					}
-					if ctx.TryMigrate {
-						if err := schema.Grant(*grant, false); err != nil {
-							return "", fmt.Errorf("(trying) granting for schema %v: %v", k.SchemaLocator, err)
-						}
-					}
-				}
-			}
 		}
 
 		if ctx.MigrateGrantHint {
@@ -216,8 +199,9 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 		}
 	}
 
-	// Generate coverage result
 	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
+
+	// Generate coverage result (only the covered models)
 	if !ctx.All {
 		var keys SchemaKeys
 		for k := range schemas {
@@ -255,6 +239,40 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+// grant leverage the grant repo to grant the schemas (both active and predicted schemas).
+// In case there is any grant exist but is for some other API version, a hint message will be returned.
+// If tryMigrate is specified, these API mismatched grant will take effect.
+func (schemas Schemas) grant(wsp *workspace.Workspace, tryMigrate bool) ([]string, error) {
+	grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var hintMessages []string
+	for k, schema := range schemas {
+		grant, matchRef, err := grants.GetGrantForSchema(schema.Ref())
+		if err != nil {
+			return nil, err
+		}
+		if grant != nil {
+			// The grant file is exactly for this schema.
+			if matchRef == schema.Ref() {
+				if err := schema.Grant(*grant, true); err != nil {
+					return nil, fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
+				}
+			} else {
+				hintMessages = append(hintMessages, fmt.Sprintf("there is a grant with different API version %q, that is able to be migrated for %q", matchRef, schema.Ref()))
+				if tryMigrate {
+					if err := schema.Grant(*grant, false); err != nil {
+						return nil, fmt.Errorf("(trying) granting for schema %v: %v", k.SchemaLocator, err)
+					}
+				}
+			}
+		}
+	}
+	return hintMessages, nil
 }
 
 func logCurrentProcessingSchemaInput(schemaInput schemainput.SchemaInput, predict bool) {

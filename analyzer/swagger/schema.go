@@ -25,7 +25,8 @@ type SchemaMetaInfo struct {
 
 // Ref returns a hypothetical schema reference. It is mainly used as a unique ID of the schema, to be used in log message or map key.
 func (i SchemaMetaInfo) Ref() string {
-	return string(i.SwaggerRelPath) + "#/definitions/" + i.Name
+	ref := SchemaNameToRef(i.Name, string(i.SwaggerRelPath))
+	return ref.String()
 }
 
 func ParseSchemaMetaInfoRef(input string) (*SchemaMetaInfo, error) {

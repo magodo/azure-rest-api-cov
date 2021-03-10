@@ -138,12 +138,12 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 	})
 }
 
-// SchemaGrantFor get the schema grant for a certain schemaRef.
-// If the schemaRef is included in the schemaGrants, the grant is returned, and the "exact" is set to true.
+// GetGrantForSchema get the schema grant for a certain schemaRef.
+// If the schemaRef is included in the schemaGrants, the grant is returned.
 // If the schemaRef is not included, but another version of that schema ref (same RP, same spec name and same model name) is included,
-// the best match (with the least version gap) will be returned, and the "exact" is set to false.
+// the best match (with the least version gap) will be returned.
 // Otherwise, a nil SchemaGrant is returned.
-func (schemaGrants SchemaGrants) SchemaGrantFor(schemaRef string) (grant *SchemaGrant, ref string, err error) {
+func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *SchemaGrant, ref string, err error) {
 	if grant, ok := schemaGrants[schemaRef]; ok {
 		return &grant, schemaRef, nil
 	}
