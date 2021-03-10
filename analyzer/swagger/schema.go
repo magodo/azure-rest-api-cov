@@ -55,9 +55,6 @@ type Schema struct {
 func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, forResponse bool) (*Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
 
-	ref := SchemaNameToRef(schemaName, "")
-	normalizedSchemaRef := normalizePaths(ref.String(), swaggerURI)
-
 	swgSchema := &Schema{
 		SchemaMetaInfo: SchemaMetaInfo{
 			Name:           schemaName,
@@ -69,7 +66,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, fo
 	rootProperty, err := buildProperty(
 		PropertyStateUncovered,
 		map[string]interface{}{},
-		openapispec.MustCreateRef(normalizedSchemaRef),
+		SchemaNameToRef(schemaName, swaggerURI),
 		forResponse,
 	)
 	if err != nil {
