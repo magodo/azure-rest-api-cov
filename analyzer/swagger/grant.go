@@ -124,7 +124,7 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 				coveredProps = append(coveredProps, k)
 			}
 
-			_, err := ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, true, true)
+			_, err := ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, true, true, false)
 			if err != nil {
 				return err
 			}
@@ -254,7 +254,7 @@ func (schemaGrant SchemaGrant) ToSchema(schemaRef string, specRootDir string, st
 		properties = append(properties, prop)
 	}
 
-	schema, err := ProcessCoverageForSchema(specRootDir, string(metaInfo.SwaggerRelPath), metaInfo.Name, schemaGrant.Variant, properties, true, strict)
+	schema, err := ProcessCoverageForSchema(specRootDir, string(metaInfo.SwaggerRelPath), metaInfo.Name, schemaGrant.Variant, properties, true, strict, false)
 	if err != nil {
 		return nil, err
 	}

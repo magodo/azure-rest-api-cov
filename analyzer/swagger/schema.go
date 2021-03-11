@@ -45,15 +45,18 @@ type Schema struct {
 	SchemaMetaInfo
 	Properties Properties `json:"properties"`
 
-	// Whether this property is granted to be not to implement in Terraform
+	// Whether this property is granted to be not to implement in Terraform?
 	IsGranted    bool   `json:",omitempty"`
 	GrantComment string `json:",omitempty"`
+
+	// Whether this schema is from the schemaInput? Otherwise, it means the schema is from prediction.
+	Active bool `json:"active"`
 
 	// The full URI of the Swagger file that defines this schema.
 	swaggerURI string
 }
 
-func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, forResponse bool) (*Schema, error) {
+func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forResponse, active bool) (*Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
 
 	swgSchema := &Schema{
@@ -61,6 +64,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, fo
 			Name:           schemaName,
 			SwaggerRelPath: specpath.Path(swaggerRelPath),
 		},
+		Active:     active,
 		swaggerURI: swaggerURI,
 	}
 
@@ -95,9 +99,8 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath string, schemaName string, fo
 // ProcessCoverageForSchema will create a new empty Schema for the input schema, then process it to generate the property coverages based on the coveredProps.
 // If "forResponse" is specified, the read-only properties will  be ignored in the final coverage result.
 // If "strict" is specified, the coveredProps should guarantee to exist in the designated schema. Otherwise, an error will return.
-func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict bool) (*Schema, error) {
-
-	schema, err := NewEmptySchema(swaggerBaseDir, swaggerRelPath, schemaName, forResponse)
+func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict, active bool) (*Schema, error) {
+	schema, err := NewEmptySchema(swaggerBaseDir, swaggerRelPath, schemaName, forResponse, active)
 	if err != nil {
 		return nil, err
 	}

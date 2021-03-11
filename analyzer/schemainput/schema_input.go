@@ -11,13 +11,13 @@ type SchemaInput struct {
 	Properties []string `json:"properties"`
 }
 
-func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex, strict bool) (*swagger.Schema, error) {
+func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex, strict, active bool) (*swagger.Schema, error) {
 	name, relPath, err := index.LocateSchema(schemaInput.SchemaLocator)
 	if err != nil {
 		return nil, err
 	}
 
-	schema, err := swagger.ProcessCoverageForSchema(index.SpecRootDir, string(relPath), name, schemaInput.Variant, schemaInput.Properties, schemaInput.Operation == workspace.OperationKindGet, strict)
+	schema, err := swagger.ProcessCoverageForSchema(index.SpecRootDir, string(relPath), name, schemaInput.Variant, schemaInput.Properties, schemaInput.Operation == workspace.OperationKindGet, strict, active)
 	if err != nil {
 		return nil, err
 	}

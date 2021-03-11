@@ -72,6 +72,69 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
+				Name:  "coverage",
+				Usage: "Generate coverage file, which will contains the covered/uncovered expanded properties for each schema (optionally plus predicted schemas in newer API version)",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:     "input",
+						Required: true,
+						Aliases:  []string{"i"},
+						Usage:    "The path to the schema input file, which is expected to hold a JSON array of input schemas",
+					},
+					&cli.BoolFlag{
+						Name:    "predict",
+						Aliases: []string{"p"},
+						Usage:   "Whether to predict coverage for newer API versions",
+					},
+					&cli.StringSliceFlag{
+						Name:  "ignore-schema",
+						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					initLog(ctx.String("log-level"))
+
+					if ctx.Bool("profile-cpu") {
+						defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+					}
+
+					workspaceDir := ctx.String("workspace-dir")
+					force := ctx.Bool("workspace-force-new")
+					regenIndex := ctx.Bool("index-renew")
+					specRepoRef := ctx.String("spec-ref")
+					inputPath := ctx.String("input")
+
+					predict := ctx.Bool("predict")
+					ignoreSchema := ctx.StringSlice("ignore-schema")
+
+					wspOpt := workspace.InitOption{
+						WorkspaceDir: workspaceDir,
+						Force:        force,
+						RegenIndex:   regenIndex,
+						SpecRepoRef:  specRepoRef,
+					}
+
+					schemaInputFile, err := os.Open(inputPath)
+					if err != nil {
+						return err
+					}
+					defer schemaInputFile.Close()
+
+					cctx := analyzer.CoverageContext{
+						WorkspaceOpt: wspOpt,
+						Predict:      predict,
+						IgnoreSchema: ignoreSchema,
+					}
+
+					output, err := analyzer.Coverage(schemaInputFile, cctx)
+					if err != nil {
+						return err
+					}
+					fmt.Println(output)
+					return nil
+				},
+			},
+			{
 				Name:  "report",
 				Usage: "Generate coverage report",
 				Flags: []cli.Flag{

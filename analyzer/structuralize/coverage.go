@@ -1,4 +1,4 @@
-package coverage
+package structuralize
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 )
 
-type RepoCoverageStore struct {
+type Coverage struct {
 	Commit            string            `json:"commit"`
 	AdditionalMessage string            `json:"additional_message,omitempty"`
 	ResourceProviders ResourceProviders `json:"resource_providers"`
@@ -22,10 +22,10 @@ type APIPaths map[string]Operations
 
 type Operations map[string]APIVersions
 
-type APIVersions map[string]*SchemaCoverageStore
+type APIVersions map[string]*SchemaCoverage
 
-func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex, additionalMessage string) RepoCoverageStore {
-	coverage := RepoCoverageStore{
+func NewEmptyCoverage(index workspace.AzureRepoIndex, additionalMessage string) Coverage {
+	coverage := Coverage{
 		Commit:            index.Commit,
 		AdditionalMessage: additionalMessage,
 		ResourceProviders: ResourceProviders{},
@@ -62,8 +62,8 @@ func NewEmptyRepoCoverageStore(index workspace.AzureRepoIndex, additionalMessage
 	return coverage
 }
 
-func (repoCov *RepoCoverageStore) AddSchema(repoURLPrefix string, s swagger.Schema, locator workspace.SchemaLocator, active bool) error {
-	schemaCov, err := NewSchemaCoverageStore(repoURLPrefix, s, active)
+func (cov *Coverage) AddSchema(repoURLPrefix string, s swagger.Schema, locator workspace.SchemaLocator) error {
+	schemaCov, err := NewSchemaCoverage(repoURLPrefix, s)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (repoCov *RepoCoverageStore) AddSchema(repoURLPrefix string, s swagger.Sche
 	}
 
 	rp := ResourceProvider(pathInfo.ResourceProvider)
-	paths, ok := repoCov.ResourceProviders[rp]
+	paths, ok := cov.ResourceProviders[rp]
 	if !ok {
 		return fmt.Errorf("no resource provider %q found", rp)
 	}

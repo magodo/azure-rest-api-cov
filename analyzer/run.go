@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
+	"github.com/magodo/azure-rest-api-cov/analyzer/structuralize"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
@@ -22,7 +22,6 @@ import (
 )
 
 type SchemaKey struct {
-	Active        bool
 	SchemaLocator workspace.SchemaLocator
 }
 
@@ -54,9 +53,8 @@ func (keys SchemaKeys) Swap(i, j int) {
 
 type Schemas map[SchemaKey]swagger.Schema
 
-func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Schema, active bool) error {
+func (schemas Schemas) AddSchema(locator workspace.SchemaLocator, s swagger.Schema) error {
 	schemaKey := SchemaKey{
-		Active:        active,
 		SchemaLocator: locator,
 	}
 	existing, ok := schemas[schemaKey]
@@ -116,7 +114,7 @@ predictLoop:
 			schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
 
 			logCurrentProcessingSchemaInput(schemaInput, true)
-			schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, false)
+			schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, false, false)
 			if err != nil {
 				if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
 					log.Warn(err)
@@ -124,7 +122,7 @@ predictLoop:
 				}
 				return err
 			}
-			if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema, false); err != nil {
+			if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
 				return err
 			}
 		}
@@ -204,7 +202,7 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 	for _, schemaInput := range schemaInputs {
 		logCurrentProcessingSchemaInput(schemaInput, false)
 
-		schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, true)
+		schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, true, true)
 		if err != nil {
 			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 				log.Warn(err)
@@ -213,7 +211,7 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 			return "", err
 		}
 
-		if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema, true); err != nil {
+		if err := schemas.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
 			return "", err
 		}
 	}
@@ -249,10 +247,10 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 		}
 		sort.Sort(keys)
 
-		var covs []*coverage.SchemaCoverageStore
+		var covs []*structuralize.SchemaCoverage
 		for _, k := range keys {
 			schema := schemas[k]
-			cov, err := coverage.NewSchemaCoverageStore(azureRepoURLPrefix, schema, k.Active)
+			cov, err := structuralize.NewSchemaCoverage(azureRepoURLPrefix, schema)
 			if err != nil {
 				return "", err
 			}
@@ -267,9 +265,9 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 	}
 
 	// Complement the coverage report with all uncovered models.
-	cov := coverage.NewEmptyRepoCoverageStore(*(wsp.AzureRepoIndex), ctx.AdditionalMessage)
+	cov := structuralize.NewEmptyCoverage(*(wsp.AzureRepoIndex), ctx.AdditionalMessage)
 	for k, schema := range schemas {
-		if err := cov.AddSchema(azureRepoURLPrefix, schema, k.SchemaLocator, k.Active); err != nil {
+		if err := cov.AddSchema(azureRepoURLPrefix, schema, k.SchemaLocator); err != nil {
 			return "", err
 		}
 	}

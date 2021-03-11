@@ -1,10 +1,10 @@
-package coverage_test
+package structuralize_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
+	"github.com/magodo/azure-rest-api-cov/analyzer/structuralize"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 
@@ -19,7 +19,7 @@ func TestSchemaCoverageStore_Add(t *testing.T) {
 	}
 	cases := []struct {
 		propertiesToAdd []swgproperty
-		expectStore     coverage.SchemaCoverageStore
+		expectStore     structuralize.SchemaCoverage
 	}{
 		{
 			propertiesToAdd: []swgproperty{
@@ -54,35 +54,35 @@ func TestSchemaCoverageStore_Add(t *testing.T) {
 					},
 				},
 			},
-			expectStore: coverage.SchemaCoverageStore{
-				Node: coverage.PropertyCoverageNode{
+			expectStore: structuralize.SchemaCoverage{
+				Node: structuralize.PropertyCoverageNode{
 					TotalAmount:   4,
 					CoveredAmount: 3,
-					Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+					Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+							Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 								addr.MustParsePropertySegment("not_covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 0,
-									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 								},
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 								},
 							},
 						},
 						addr.MustParsePropertySegment("prop2"): {
 							TotalAmount:   1,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+							Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 								},
 							},
 						},
@@ -91,7 +91,7 @@ func TestSchemaCoverageStore_Add(t *testing.T) {
 							CoveredAmount: 1,
 							Granted:       true,
 							GrantMessage:  "granted",
-							Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+							Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 						},
 					},
 				},
@@ -100,9 +100,9 @@ func TestSchemaCoverageStore_Add(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store := coverage.SchemaCoverageStore{
-			Node: coverage.PropertyCoverageNode{
-				Children: coverage.PropertyCoverageNodes{},
+		store := structuralize.SchemaCoverage{
+			Node: structuralize.PropertyCoverageNode{
+				Children: structuralize.PropertyCoverageNodes{},
 			},
 		}
 		for idx2, prop := range c.propertiesToAdd {
@@ -125,33 +125,33 @@ func TestSchemaCoverageStore_FindCoverage(t *testing.T) {
 	}
 
 	cases := []struct {
-		store               coverage.SchemaCoverageStore
+		store               structuralize.SchemaCoverage
 		subtest             []subtest
 		expectTotalCoverage result
 	}{
 		{
-			store: coverage.SchemaCoverageStore{
-				Node: coverage.PropertyCoverageNode{
+			store: structuralize.SchemaCoverage{
+				Node: structuralize.PropertyCoverageNode{
 					TotalAmount:   3,
 					CoveredAmount: 1,
-					Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+					Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+							Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 								addr.MustParsePropertySegment("nest"): {
 									TotalAmount:   2,
 									CoveredAmount: 1,
-									Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+									Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 										addr.MustParsePropertySegment("covered"): {
 											TotalAmount:   1,
 											CoveredAmount: 1,
-											Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+											Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 										},
 										addr.MustParsePropertySegment("uncovered"): {
 											TotalAmount:   1,
 											CoveredAmount: 0,
-											Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+											Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 										},
 									},
 								},
@@ -160,7 +160,7 @@ func TestSchemaCoverageStore_FindCoverage(t *testing.T) {
 						addr.MustParsePropertySegment("uncovered"): {
 							TotalAmount:   1,
 							CoveredAmount: 0,
-							Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+							Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 						},
 					},
 				},
@@ -244,7 +244,7 @@ func TestSchemaCoverageStore_FindCoverage(t *testing.T) {
 func TestNewSchemaCoverageStore(t *testing.T) {
 	cases := []struct {
 		schema swagger.Schema
-		expect *coverage.SchemaCoverageStore
+		expect *structuralize.SchemaCoverage
 	}{
 		{
 			schema: swagger.Schema{
@@ -270,46 +270,45 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 					},
 				},
 			},
-			expect: &coverage.SchemaCoverageStore{
+			expect: &structuralize.SchemaCoverage{
 				Name:      "foo",
 				URL:       "foo/resource-manager/Microsoft.Foo/preview/2021-02-01/foo.json",
-				Active:    true,
 				IsPreview: true,
-				Node: coverage.PropertyCoverageNode{
+				Node: structuralize.PropertyCoverageNode{
 					TotalAmount:   5,
 					CoveredAmount: 4,
-					Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+					Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 						addr.MustParsePropertySegment("prop1"): {
 							TotalAmount:   2,
 							CoveredAmount: 1,
-							Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+							Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 								addr.MustParsePropertySegment("not_covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 0,
-									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 								},
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 								},
 							},
 						},
 						addr.MustParsePropertySegment("prop2"): {
 							TotalAmount:   2,
 							CoveredAmount: 2,
-							Children: map[addr.PropertySegment]*coverage.PropertyCoverageNode{
+							Children: map[addr.PropertySegment]*structuralize.PropertyCoverageNode{
 								addr.MustParsePropertySegment("covered"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
-									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 								},
 								addr.MustParsePropertySegment("granted"): {
 									TotalAmount:   1,
 									CoveredAmount: 1,
 									Granted:       true,
 									GrantMessage:  "granted",
-									Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+									Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 								},
 							},
 						},
@@ -319,7 +318,7 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 							CoveredAmount: 1,
 							Granted:       true,
 							GrantMessage:  "granted",
-							Children:      map[addr.PropertySegment]*coverage.PropertyCoverageNode{},
+							Children:      map[addr.PropertySegment]*structuralize.PropertyCoverageNode{},
 						},
 					},
 				},
@@ -328,7 +327,7 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store, err := coverage.NewSchemaCoverageStore("", c.schema, true)
+		store, err := structuralize.NewSchemaCoverage("", c.schema)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, store, idx)
 	}

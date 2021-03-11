@@ -517,6 +517,8 @@ func (props Properties) MarshalJSON() ([]byte, error) {
 		case propertyStateGranted:
 			mm["state"] = state.State
 			mm["grant_comment"] = state.GrantComment
+		case propertyStateIgnored:
+			mm["state"] = state.State
 		default:
 			panic("will not happen")
 		}
