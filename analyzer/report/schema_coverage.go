@@ -1,4 +1,4 @@
-package structuralize
+package report
 
 import (
 	"encoding/json"

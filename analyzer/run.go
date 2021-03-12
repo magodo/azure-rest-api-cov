@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/structuralize"
+	"github.com/magodo/azure-rest-api-cov/analyzer/report"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
@@ -248,10 +248,10 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 		}
 		sort.Sort(keys)
 
-		var covs []*structuralize.SchemaCoverage
+		var covs []*report.SchemaCoverage
 		for _, k := range keys {
 			schema := schemas[k]
-			cov, err := structuralize.NewSchemaCoverage(azureRepoURLPrefix, schema)
+			cov, err := report.NewSchemaCoverage(azureRepoURLPrefix, schema)
 			if err != nil {
 				return "", err
 			}
@@ -266,7 +266,7 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 	}
 
 	// Complement the coverage report with all uncovered models.
-	cov := structuralize.NewEmptyCoverage(*(wsp.AzureRepoIndex), ctx.AdditionalMessage)
+	cov := report.NewEmptyCoverage(*(wsp.AzureRepoIndex), ctx.AdditionalMessage)
 	for k, schema := range schemas {
 		if err := cov.AddSchema(azureRepoURLPrefix, schema, k.SchemaLocator); err != nil {
 			return "", err

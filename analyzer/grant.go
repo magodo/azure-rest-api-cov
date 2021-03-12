@@ -21,20 +21,16 @@ type GrantContext struct {
 // grant leverage the grant repo to grant the schemas (both active and predicted schemas).
 // In case there is any grant exist but is for some other API version, a hint message will be returned.
 // If tryMigrate is specified, these API mismatched grant will take effect.
-func Grant(coverageIn io.Reader, ctx GrantContext) (string, error) {
+func Grant(in io.Reader, ctx GrantContext) (string, error) {
 	log.Info("Processing grant...")
+
 	wsp, err := workspace.Init(ctx.WorkspaceOpt)
 	if err != nil {
 		return "", err
 	}
 
-	grants, err := grant.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepo.SpecRootDir, nil)
-	if err != nil {
-		return "", err
-	}
-
 	// Parse the coverage
-	b, err := ioutil.ReadAll(coverageIn)
+	b, err := ioutil.ReadAll(in)
 	if err != nil {
 		return "", err
 	}
@@ -44,6 +40,11 @@ func Grant(coverageIn io.Reader, ctx GrantContext) (string, error) {
 	}
 
 	flatCov := cov.Flatten()
+
+	grants, err := grant.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepo.SpecRootDir, nil)
+	if err != nil {
+		return "", err
+	}
 
 	var hintMessages []string
 	for k := range flatCov {

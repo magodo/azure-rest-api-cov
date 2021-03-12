@@ -1,4 +1,4 @@
-package structuralize_test
+package report_test
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/structuralize"
+	"github.com/magodo/azure-rest-api-cov/analyzer/report"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 
 	"github.com/stretchr/testify/require"
@@ -20,37 +20,37 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 	require.NoError(t, err, "pwd")
 	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
 
-	expect := structuralize.Coverage{
+	expect := report.Coverage{
 		Commit: "xxx",
-		ResourceProviders: structuralize.ResourceProviders{
-			"dummy": structuralize.APIPaths{
-				"/{host}/{bar}": structuralize.Operations{},
-				"/{host}/{foo}/def_foo": structuralize.Operations{
-					"PUT": structuralize.APIVersions{
+		ResourceProviders: report.ResourceProviders{
+			"dummy": report.APIPaths{
+				"/{host}/{bar}": report.Operations{},
+				"/{host}/{foo}/def_foo": report.Operations{
+					"PUT": report.APIVersions{
 						"2020-12-01": nil,
 					},
-					"GET": structuralize.APIVersions{
-						"2020-12-01": nil,
-						"2021-01-01": nil,
-					},
-				},
-				"/{host}/{foo}/def_bar": structuralize.Operations{
-					"POST": structuralize.APIVersions{
-						"2020-12-01": nil,
-					},
-				},
-				"/{host}/{foo}/def_base": structuralize.Operations{
-					"PUT": structuralize.APIVersions{
+					"GET": report.APIVersions{
 						"2020-12-01": nil,
 						"2021-01-01": nil,
 					},
 				},
-				"/{host}/{foo}/def_regular": structuralize.Operations{
-					"GET": structuralize.APIVersions{
+				"/{host}/{foo}/def_bar": report.Operations{
+					"POST": report.APIVersions{
+						"2020-12-01": nil,
+					},
+				},
+				"/{host}/{foo}/def_base": report.Operations{
+					"PUT": report.APIVersions{
 						"2020-12-01": nil,
 						"2021-01-01": nil,
 					},
-					"PUT": structuralize.APIVersions{
+				},
+				"/{host}/{foo}/def_regular": report.Operations{
+					"GET": report.APIVersions{
+						"2020-12-01": nil,
+						"2021-01-01": nil,
+					},
+					"PUT": report.APIVersions{
 						"2020-12-01": nil,
 						"2021-01-01": nil,
 					},
@@ -61,7 +61,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 
 	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
 	require.NoError(t, err, "generate index")
-	cov := structuralize.NewEmptyCoverage(*idx, "")
+	cov := report.NewEmptyCoverage(*idx, "")
 	require.Equal(t, expect, cov)
 }
 
@@ -196,7 +196,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
-		cov := structuralize.NewEmptyCoverage(*index, "")
+		cov := report.NewEmptyCoverage(*index, "")
 		var schemaInput schemainput.SchemaInput
 
 		// Add active schemaInput
@@ -222,22 +222,22 @@ func TestCoverageStoreAddSchema(t *testing.T) {
 
 func TestCoverageStoreMarshal(t *testing.T) {
 	cases := []struct {
-		input  structuralize.Coverage
+		input  report.Coverage
 		expect string
 	}{
 		{
-			input: structuralize.Coverage{
+			input: report.Coverage{
 				AdditionalMessage: "source: xxx",
 				Commit:            "xxx",
-				ResourceProviders: structuralize.ResourceProviders{
-					"rp1": structuralize.APIPaths{
-						"path1": structuralize.Operations{
-							"PUT": structuralize.APIVersions{
-								"version1": &structuralize.SchemaCoverage{
+				ResourceProviders: report.ResourceProviders{
+					"rp1": report.APIPaths{
+						"path1": report.Operations{
+							"PUT": report.APIVersions{
+								"version1": &report.SchemaCoverage{
 									Active: true,
 									Name:   "schema1",
 									URL:    "foo/bar.json",
-									Node: structuralize.PropertyCoverageNode{
+									Node: report.PropertyCoverageNode{
 										TotalAmount:   1,
 										CoveredAmount: 1,
 									},
@@ -285,7 +285,7 @@ func TestCoverageStoreMarshal(t *testing.T) {
 func TestCoverageStoreUnmarshal(t *testing.T) {
 	cases := []struct {
 		input  string
-		expect structuralize.Coverage
+		expect report.Coverage
 	}{
 		{
 			input: `
@@ -311,17 +311,17 @@ func TestCoverageStoreUnmarshal(t *testing.T) {
   }
 }
 `,
-			expect: structuralize.Coverage{
+			expect: report.Coverage{
 				Commit: "xxx",
-				ResourceProviders: structuralize.ResourceProviders{
-					"rp1": structuralize.APIPaths{
-						"path1": structuralize.Operations{
-							"PUT": structuralize.APIVersions{
-								"version1": &structuralize.SchemaCoverage{
+				ResourceProviders: report.ResourceProviders{
+					"rp1": report.APIPaths{
+						"path1": report.Operations{
+							"PUT": report.APIVersions{
+								"version1": &report.SchemaCoverage{
 									Active: true,
 									Name:   "schema1",
 									URL:    "foo/bar.json",
-									Node: structuralize.PropertyCoverageNode{
+									Node: report.PropertyCoverageNode{
 										TotalAmount:   1,
 										CoveredAmount: 1,
 									},
@@ -336,7 +336,7 @@ func TestCoverageStoreUnmarshal(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		cov := structuralize.Coverage{}
+		cov := report.Coverage{}
 		err := json.Unmarshal([]byte(c.input), &cov)
 		require.NoError(t, err, i)
 		require.Equal(t, c.expect, cov, i)

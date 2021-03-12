@@ -221,6 +221,66 @@ func main() {
 				Usage: "Generate coverage report",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
+						Name:    "input",
+						Aliases: []string{"i"},
+						Usage:   `The path to the coverage input file, which is usually the output of cmd "coverage" or "grant"`,
+					},
+					&cli.StringFlag{
+						Name:    "additional-message",
+						Aliases: []string{"m"},
+						Usage:   "Additional message that will include in the coverage report",
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					initLog(ctx.String("log-level"))
+
+					if ctx.Bool("profile-cpu") {
+						defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+					}
+
+					workspaceDir := ctx.String("workspace-dir")
+					force := ctx.Bool("workspace-force-new")
+					regenIndex := ctx.Bool("index-renew")
+					specRepoRef := ctx.String("spec-ref")
+					inputPath := ctx.String("input")
+
+					additionalMessage := ctx.String("additional-message")
+
+					wspOpt := workspace.InitOption{
+						WorkspaceDir: workspaceDir,
+						Force:        force,
+						RegenIndex:   regenIndex,
+						SpecRepoRef:  specRepoRef,
+					}
+
+					var covIn io.Reader = os.Stdin
+					if inputPath != "" {
+						covFile, err := os.Open(inputPath)
+						if err != nil {
+							return err
+						}
+						defer covFile.Close()
+						covIn = covFile
+					}
+
+					rctx := analyzer.ReportContext{
+						WorkspaceOpt:      wspOpt,
+						AdditionalMessage: additionalMessage,
+					}
+
+					output, err := analyzer.Report(covIn, rctx)
+					if err != nil {
+						return err
+					}
+					fmt.Println(output)
+					return nil
+				},
+			},
+			{
+				Name:  "run-all",
+				Usage: "Generate coverage report",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
 						Name:     "input",
 						Required: true,
 						Aliases:  []string{"i"},

@@ -22,15 +22,16 @@ type CoverageContext struct {
 	IgnoreSchema []string
 }
 
-func Coverage(schemaInputsIn io.Reader, ctx CoverageContext) (string, error) {
-	// Initialize the workspace, which will return the repo and repo index.
+func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
+	log.Info("Processing coverage...")
+
 	wsp, err := workspace.Init(ctx.WorkspaceOpt)
 	if err != nil {
 		return "", err
 	}
 
 	// Parse the schema inputs
-	b, err := ioutil.ReadAll(schemaInputsIn)
+	b, err := ioutil.ReadAll(in)
 	if err != nil {
 		return "", err
 	}
