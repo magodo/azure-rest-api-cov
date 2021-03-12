@@ -24,7 +24,7 @@ type CoverageContext struct {
 }
 
 func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
-	log.Info("Processing coverage...")
+	log.Info("CMD: Coverage")
 
 	wsp, err := workspace.Init(ctx.WorkspaceOpt)
 	if err != nil {

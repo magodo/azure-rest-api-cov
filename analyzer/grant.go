@@ -22,7 +22,7 @@ type GrantContext struct {
 // In case there is any grant exist but is for some other API version, a hint message will be returned.
 // If tryMigrate is specified, these API mismatched grant will take effect.
 func Grant(in io.Reader, ctx GrantContext) (string, error) {
-	log.Info("Processing grant...")
+	log.Info("CMD: Grant")
 
 	wsp, err := workspace.Init(ctx.WorkspaceOpt)
 	if err != nil {

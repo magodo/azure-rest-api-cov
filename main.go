@@ -154,14 +154,15 @@ func main() {
 				Usage: "Grant the coverage file against a grant repo",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
+						Name:     "grant-repo-url",
+						Aliases:  []string{"g"},
+						Required: true,
+						Usage:    "The grant repo URL",
+					},
+					&cli.StringFlag{
 						Name:    "input",
 						Aliases: []string{"i"},
 						Usage:   `The path to the coverage input file, which is usually the output of cmd "coverage"`,
-					},
-					&cli.StringFlag{
-						Name:    "grant-repo-url",
-						Aliases: []string{"g"},
-						Usage:   "The grant repo URL",
 					},
 					&cli.StringFlag{
 						Name:  "grant-ref",

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/magodo/azure-rest-api-cov/analyzer/grant"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,6 +17,8 @@ import (
 )
 
 func MigrateGrant(workspaceOpt workspace.InitOption, grantRepoDir, rp, spec, srcVersion, dstVersion, outDir string) error {
+	log.Info("CMD: Migrate Grant")
+
 	// Initialize the workspace, which will return the repo and repo index.
 	wsp, err := workspace.Init(workspaceOpt)
 	if err != nil {

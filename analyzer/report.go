@@ -20,7 +20,7 @@ type ReportContext struct {
 }
 
 func Report(in io.Reader, ctx ReportContext) (string, error) {
-	log.Info("Processing report...")
+	log.Info("CMD: Report")
 
 	wsp, err := workspace.Init(ctx.WorkspaceOpt)
 	if err != nil {
