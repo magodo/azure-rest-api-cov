@@ -1,6 +1,8 @@
-package swagger
+package grant
 
 import (
+	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +15,7 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	specBasePath = filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
+	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
 	grantNormalBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "normal")
 	grantAbnormalPropBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "abnormal_prop")
 	grantAbnormalNonExistBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "abnormal_non_exist")
@@ -26,20 +28,20 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 		{
 			path: grantNormalBaseDir,
 			expect: map[string]SchemaGrant{
-				SchemaMetaInfo{
+				swagger.SchemaMetaInfo{
 					Name:           "def_foo",
 					SwaggerRelPath: "foo.json",
 				}.Ref(): {
 					Comment: "schema",
 				},
-				SchemaMetaInfo{
+				swagger.SchemaMetaInfo{
 					Name:           "def_base",
 					SwaggerRelPath: "foo.json",
 				}.Ref(): {
 					Variant: "def_variant1",
 					Comment: "schema variant",
 				},
-				SchemaMetaInfo{
+				swagger.SchemaMetaInfo{
 					Name:           "def_regular",
 					SwaggerRelPath: "foo.json",
 				}.Ref(): {
@@ -133,5 +135,114 @@ func TestSchemaGrantFor(t *testing.T) {
 			grant: grant,
 			exact: matchRef == c.ref,
 		}, idx)
+	}
+}
+
+func TestSchemaGrant_Grant(t *testing.T) {
+	schemaMetaInfo := swagger.SchemaMetaInfo{
+		SwaggerRelPath: specpath.Path("path"),
+		Name:           "schema1",
+	}
+	var cases = []struct {
+		schema       swagger.Schema
+		grant        SchemaGrant
+		expectSchema swagger.Schema
+		hasError     bool
+	}{
+		// 0: schema is granted
+		{
+			schema: swagger.Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				Properties: map[string]*swagger.Property{
+					"prop1": {},
+				},
+			},
+			grant: SchemaGrant{
+				Comment: "granted",
+			},
+			expectSchema: swagger.Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				IsGranted:      true,
+				GrantComment:   "granted",
+			},
+		},
+		// 1: property granted
+		{
+			schema: swagger.Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				Properties: map[string]*swagger.Property{
+					"prop1":   {},
+					"prop2":   {},
+					"prop2_2": {},
+					"prop3":   {},
+				},
+			},
+			grant: SchemaGrant{
+				Properties: map[string]string{
+					"prop2_2": "granted",
+					"prop3":   "granted",
+				},
+			},
+			expectSchema: swagger.Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				Properties: map[string]*swagger.Property{
+					"prop1": {},
+					"prop2": {},
+					"prop2_2": {
+						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
+					},
+					"prop3": {
+						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
+					},
+				},
+			},
+		},
+		// 2: grant unknown property cause error
+		{
+			schema: swagger.Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				Properties: map[string]*swagger.Property{
+					"prop1":   {},
+					"prop2":   {},
+					"prop2_2": {},
+					"prop3":   {},
+				},
+			},
+			grant: SchemaGrant{
+				Properties: map[string]string{
+					"prop2_2":      "granted",
+					"prop3":        "granted",
+					"unknown_prop": "granted",
+				},
+			},
+			hasError: true,
+		},
+		// 3: grant property of non-uncovered state cause error
+		{
+			schema: swagger.Schema{
+				SchemaMetaInfo: schemaMetaInfo,
+				Properties: map[string]*swagger.Property{
+					"prop1": {
+						PropertyState: swagger.NewPropertyState(swagger.PropStateCovered, ""),
+					},
+				},
+			},
+			grant: SchemaGrant{
+				Properties: map[string]string{
+					"prop1": "granted",
+				},
+			},
+			hasError: true,
+		},
+	}
+
+	for idx, c := range cases {
+		err := c.grant.Grant(&c.schema, true)
+		if c.hasError {
+			require.Error(t, err, idx)
+			continue
+		}
+		require.NoError(t, err, idx)
+		require.Equal(t, c.expectSchema, c.schema, idx)
 	}
 }

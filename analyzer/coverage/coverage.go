@@ -210,73 +210,37 @@ predictLoop:
 	return nil
 }
 
-//func (cov *Coverage) Predict(activeSchemaInputs []schemainput.SchemaInput, idx *workspace.AzureRepoIndex) error {
-//	activeSchemaInputMap := map[workspace.SchemaLocator]bool{}
-//	for _, schemaInput := range activeSchemaInputs {
-//		activeSchemaInputMap[schemaInput.SchemaLocator] = true
-//	}
-//
-//predictLoop:
-//	for _, schemaInput := range activeSchemaInputs {
-//		specPath, err := idx.LocateSpec(schemaInput.SpecLocator)
-//		if err != nil {
-//			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
-//				log.Warn(err)
-//				continue
-//			}
-//			return err
-//		}
-//
-//		pathInfo, err := specPath.PathInfo()
-//		if err != nil {
-//			return err
-//		}
-//
-//		swg, err := swaggerloader.LoadSwagger(filepath.Join(idx.SpecRootDir, string(specPath)))
-//		if err != nil {
-//			return err
-//		}
-//
-//		rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
-//
-//		var newApiVersions []workspace.APIVersion
-//		for apiVersion := range idx.ResourceProviders[workspace.ResourceProvider(rp)] {
-//			if string(apiVersion) > currentVersion {
-//				// Modify the API version to shift to the newer ones
-//				schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
-//
-//				// If at least one newer version has already been explicitly specified via schemaInput files, then skip prediction based on current
-//				// schemaInput. We should use the latest existing schemaInput to do the prediction on newer versions.
-//				if activeSchemaInputMap[schemaInput.SchemaLocator] {
-//					continue predictLoop
-//				}
-//				newApiVersions = append(newApiVersions, apiVersion)
-//			}
-//		}
-//
-//		for _, apiVersion := range newApiVersions {
-//			// Modify the API version to shift to the newer ones
-//			schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
-//
-//			// Log out the current schema under prediction
-//			msg := fmt.Sprintf("Processing (predict): %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
-//			if schemaInput.Variant != "" {
-//				msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
-//			}
-//			log.Infoln(msg)
-//
-//			schema, err := schemaInput.ToSchema(idx, false, false)
-//			if err != nil {
-//				if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
-//					log.Warn(err)
-//					continue
-//				}
-//				return err
-//			}
-//			if err := cov.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
-//				return err
-//			}
-//		}
-//	}
-//	return nil
-//}
+type FlatCoverage map[workspace.SchemaLocator]swagger.Schema
+
+// Schemas return the flattened coverage which is basically a map whose key is the schema locator, and the value is the schema.
+func (cov Coverage) Flatten() FlatCoverage {
+	flatCov := FlatCoverage{}
+	for _, apiPaths := range cov {
+		for apiPath, apiOperations := range apiPaths {
+			for apiOperation, apiVersions := range apiOperations {
+				for apiVersion, schema := range apiVersions {
+					schemaLocator := workspace.SchemaLocator{
+						SpecLocator: workspace.SpecLocator{
+							ApiVersion: apiVersion,
+							ApiPath:    apiPath,
+						},
+						Operation: workspace.OperationKind(apiOperation),
+					}
+
+					flatCov[schemaLocator] = schema
+				}
+			}
+		}
+	}
+	return flatCov
+}
+
+func (flatCov FlatCoverage) Structuralize() (Coverage, error) {
+	cov := NewEmptyCoverage()
+	for locator, schema := range flatCov {
+		if err := cov.AddSchema(locator, schema); err != nil {
+			return Coverage{}, err
+		}
+	}
+	return cov, nil
+}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/grant"
 	"io"
 	"io/ioutil"
 	"path/filepath"
@@ -283,13 +284,14 @@ func Run(schemaInputsIn io.Reader, ctx RunContext) (string, error) {
 // In case there is any grant exist but is for some other API version, a hint message will be returned.
 // If tryMigrate is specified, these API mismatched grant will take effect.
 func (schemas Schemas) grant(wsp *workspace.Workspace, tryMigrate bool) ([]string, error) {
-	grants, err := swagger.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir, nil)
+	grants, err := grant.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepoIndex.SpecRootDir, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	var hintMessages []string
-	for k, schema := range schemas {
+	for k := range schemas {
+		schema := schemas[k]
 		grant, matchRef, err := grants.GetGrantForSchema(schema.Ref())
 		if err != nil {
 			return nil, err
@@ -297,13 +299,13 @@ func (schemas Schemas) grant(wsp *workspace.Workspace, tryMigrate bool) ([]strin
 		if grant != nil {
 			// The grant file is exactly for this schema.
 			if matchRef == schema.Ref() {
-				if err := schema.Grant(*grant, true); err != nil {
+				if err := grant.Grant(&schema, true); err != nil {
 					return nil, fmt.Errorf("granting for schema %v: %v", k.SchemaLocator, err)
 				}
 			} else {
 				hintMessages = append(hintMessages, fmt.Sprintf("there is a grant with different API version %q, that is able to be migrated for %q", matchRef, schema.Ref()))
 				if tryMigrate {
-					if err := schema.Grant(*grant, false); err != nil {
+					if err := grant.Grant(&schema, false); err != nil {
 						return nil, fmt.Errorf("(trying) granting for schema %v: %v", k.SchemaLocator, err)
 					}
 				}

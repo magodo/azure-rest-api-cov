@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -76,10 +77,9 @@ func main() {
 				Usage: "Generate coverage file, which will contains the covered/uncovered expanded properties for each schema (optionally plus predicted schemas in newer API version)",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:     "input",
-						Required: true,
-						Aliases:  []string{"i"},
-						Usage:    "The path to the schema input file, which is expected to hold a JSON array of input schemas",
+						Name:    "input",
+						Aliases: []string{"i"},
+						Usage:   "The path to the schema input file, which is expected to hold a JSON array of input schemas",
 					},
 					&cli.BoolFlag{
 						Name:    "predict",
@@ -114,11 +114,15 @@ func main() {
 						SpecRepoRef:  specRepoRef,
 					}
 
-					schemaInputFile, err := os.Open(inputPath)
-					if err != nil {
-						return err
+					var schemaIn io.Reader = os.Stdin
+					if inputPath != "" {
+						schemaInputFile, err := os.Open(inputPath)
+						if err != nil {
+							return err
+						}
+						defer schemaInputFile.Close()
+						schemaIn = schemaInputFile
 					}
-					defer schemaInputFile.Close()
 
 					cctx := analyzer.CoverageContext{
 						WorkspaceOpt: wspOpt,
@@ -126,7 +130,85 @@ func main() {
 						IgnoreSchema: ignoreSchema,
 					}
 
-					output, err := analyzer.Coverage(schemaInputFile, cctx)
+					output, err := analyzer.Coverage(schemaIn, cctx)
+					if err != nil {
+						return err
+					}
+					fmt.Println(output)
+					return nil
+				},
+			},
+			{
+				Name:  "grant",
+				Usage: "Grant the coverage file against a grant repo",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "input",
+						Aliases: []string{"i"},
+						Usage:   `The path to the coverage input file, which is usually the output of cmd "coverage"`,
+					},
+					&cli.StringFlag{
+						Name:    "grant-repo-url",
+						Aliases: []string{"g"},
+						Usage:   "The grant repo URL",
+					},
+					&cli.StringFlag{
+						Name:  "grant-ref",
+						Usage: "The grant repo ref object to use",
+					},
+					&cli.BoolFlag{
+						Name:  "migrate-grant-hint",
+						Usage: `Report possible grant migrations (e.g. there exists some grant for a model in old API version, but absent in the current version) in a file "possible_grant_migration.txt"`,
+					},
+					&cli.BoolFlag{
+						Name:  "try-migrate",
+						Usage: `Try to migrate best match grants from older/newer API version and use it to grant the model of current API version`,
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					initLog(ctx.String("log-level"))
+
+					if ctx.Bool("profile-cpu") {
+						defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+					}
+
+					workspaceDir := ctx.String("workspace-dir")
+					force := ctx.Bool("workspace-force-new")
+					regenIndex := ctx.Bool("index-renew")
+					specRepoRef := ctx.String("spec-ref")
+					inputPath := ctx.String("input")
+
+					grantRepoUrl := ctx.String("grant-repo-url")
+					grantRepoRef := ctx.String("grant-ref")
+					migrateGrantHint := ctx.Bool("migrate-grant-hint")
+					tryMigrate := ctx.Bool("try-migrate")
+
+					wspOpt := workspace.InitOption{
+						WorkspaceDir: workspaceDir,
+						Force:        force,
+						RegenIndex:   regenIndex,
+						SpecRepoRef:  specRepoRef,
+						GrantRepoRef: grantRepoRef,
+						GrantRepoURL: grantRepoUrl,
+					}
+
+					var covIn io.Reader = os.Stdin
+					if inputPath != "" {
+						covFile, err := os.Open(inputPath)
+						if err != nil {
+							return err
+						}
+						defer covFile.Close()
+						covIn = covFile
+					}
+
+					gctx := analyzer.GrantContext{
+						WorkspaceOpt:     wspOpt,
+						TryMigrate:       tryMigrate,
+						MigrateGrantHint: migrateGrantHint,
+					}
+
+					output, err := analyzer.Grant(covIn, gctx)
 					if err != nil {
 						return err
 					}

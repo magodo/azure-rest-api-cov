@@ -46,6 +46,33 @@ type SchemaLocator struct {
 	Operation OperationKind `json:"operation"`
 }
 
+type SchemaLocators []SchemaLocator
+
+func (locators SchemaLocators) Len() int {
+	return len(locators)
+}
+
+func (locators SchemaLocators) Less(i, j int) bool {
+	if locators[i].ApiPath < locators[j].ApiPath {
+		return true
+	}
+	if locators[i].ApiPath > locators[j].ApiPath {
+		return false
+	}
+	if locators[i].ApiVersion < locators[j].ApiVersion {
+		return true
+	}
+	if locators[i].ApiVersion > locators[j].ApiVersion {
+		return false
+	}
+	return locators[i].Operation < locators[j].Operation
+}
+
+func (locators SchemaLocators) Swap(i, j int) {
+	locators[i], locators[j] = locators[j], locators[i]
+}
+
+
 // NewSchemaLocatorFromPattern create a SchemaLocator from the pattern in the format of: <API Path>:<Operation>:<API Version>
 func NewSchemaLocatorFromPattern(p string) (SchemaLocator, error) {
 	segments := strings.Split(p, ":")

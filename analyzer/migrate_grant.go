@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/grant"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -40,8 +41,8 @@ func MigrateGrant(workspaceOpt workspace.InitOption, grantRepoDir, rp, spec, src
 }
 
 func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion string) (map[string][]byte, error) {
-	srcGrants, err := swagger.NewSchemaGrantsFromFiles(grantRootDir, specRootDir,
-		&swagger.GrantFileFilter{
+	srcGrants, err := grant.NewSchemaGrantsFromFiles(grantRootDir, specRootDir,
+		&grant.GrantFileFilter{
 			RP:       rp,
 			SpecName: spec,
 			Version:  srcVersion,
@@ -50,7 +51,7 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 		return nil, err
 	}
 
-	migrateGrantFiles := map[string]swagger.SchemaGrants{}
+	migrateGrantFiles := map[string]grant.SchemaGrants{}
 	for schemaRef, srcGrant := range srcGrants {
 		// Ensure the target spec exists, which might be in either preview or stable folder.
 		metaInfo, err := swagger.ParseSchemaMetaInfoRef(schemaRef)
@@ -98,7 +99,7 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 			return nil, err
 		}
 
-		var dstGrant swagger.SchemaGrant
+		var dstGrant grant.SchemaGrant
 
 		// In case there are no properties left, it might because
 		// - All the granted properties are not existed in the newer API version: in this case we shall skip this model at all.
@@ -121,7 +122,7 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 
 		migrateGrantFile := migrateGrantFiles[string(dstPath)]
 		if migrateGrantFile == nil {
-			migrateGrantFile = swagger.SchemaGrants{}
+			migrateGrantFile = grant.SchemaGrants{}
 			migrateGrantFiles[string(dstPath)] = migrateGrantFile
 		}
 		migrateGrantFile[dstMetaInfo.Name] = dstGrant

@@ -132,6 +132,7 @@ func (s *Schema) ExpandProperties() error {
 	propsExpandedToEnd := map[string]bool{}
 	propsToExpand := map[string]bool{}
 
+	log.Debugf("Expanding properties for schema: %s", s.Ref())
 	for {
 		propsToExpand = map[string]bool{}
 		for k := range s.Properties {
@@ -429,57 +430,6 @@ func (s *Schema) Merge(os Schema) error {
 			}
 		}
 	}
-	return nil
-}
-
-// Grant inquiries the SchemaGrants to Add the granting information onto the Schema
-// If strict is on, this function will raise error if any properties appear in grant doesn't exist in the schema.
-// In the strict mode, it will also ensure the to be granted property is in state "uncovered".
-// Non-strict mode is useful for using grant from other API versions to try to grant current API version, in the best effort way.
-func (c *Schema) Grant(grant SchemaGrant, strict bool) error {
-	if grant.IsSchemaGranted() {
-		c.IsGranted = true
-		c.GrantComment = grant.Comment
-		c.Properties = nil
-		return nil
-	}
-
-	for propAddr, grantComment := range grant.Properties {
-		property, ok := c.Properties[propAddr]
-		if !ok {
-			if strict {
-				return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
-			}
-			continue
-		}
-		if property.PropertyState != nil && !property.PropertyState.IsUncovered() && strict {
-			return fmt.Errorf(`property %q that is to be granted is not an uncovered property, but %v`, propAddr, property.PropertyState.GetState())
-		}
-		property.PropertyState = NewPropertyState(PropStateGranted, grantComment)
-
-		// Following logic is to add the ability to grant a parent property. This is commented out
-		// since it seems to be an invalid requirement.
-
-		//// Check whether there is child properties of the property to grant.
-		//// If any is found, we will remove those child properties from the schema,
-		//// and put the property to grant into the schema, and mark it as granted.
-		//var isAny bool
-		//pAddr := addr.MustParseProperty(propAddr)
-		//for existPropAddr := range c.Properties {
-		//	epAddr := addr.MustParseProperty(existPropAddr)
-		//	if pAddr.Contains(epAddr) {
-		//		isAny = true
-		//		delete(c.Properties, existPropAddr)
-		//	}
-		//}
-		//if !isAny {
-		//	return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
-		//}
-		//c.Properties[propAddr] = &Property{
-		//	PropertyState: NewPropertyState(PropStateGranted, grantComment),
-		//}
-	}
-
 	return nil
 }
 

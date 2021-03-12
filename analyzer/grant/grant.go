@@ -1,8 +1,9 @@
-package swagger
+package grant
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"io/ioutil"
 	"math"
 	"os"
@@ -32,10 +33,6 @@ type GrantFileFilter struct {
 	Version   string
 	IsPreview *bool
 	SpecName  string
-}
-
-func (g SchemaGrant) IsSchemaGranted() bool {
-	return len(g.Properties) == 0
 }
 
 // NewGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
@@ -124,12 +121,12 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 				coveredProps = append(coveredProps, k)
 			}
 
-			_, err := ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, true, true, false)
+			_, err := swagger.ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, true, true, false)
 			if err != nil {
 				return err
 			}
 
-			swgGrant[SchemaMetaInfo{
+			swgGrant[swagger.SchemaMetaInfo{
 				Name:           schemaName,
 				SwaggerRelPath: specpath.Path(specRelPath),
 			}.Ref()] = schemaGrant
@@ -148,7 +145,7 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 		return &grant, schemaRef, nil
 	}
 
-	metaInfo, err := ParseSchemaMetaInfoRef(schemaRef)
+	metaInfo, err := swagger.ParseSchemaMetaInfoRef(schemaRef)
 	if err != nil {
 		return nil, "", err
 	}
@@ -161,8 +158,8 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 	versionToNum := func(ver string) (int, error) {
 		version := strings.TrimSuffix(ver, "-preview")
 		parts := strings.Split(version, "-")
-		if len(parts) != 3 {
-			return 0, fmt.Errorf("version %q doesn't conform to format yyyy-mm-dd", version)
+		if len(parts) < 3 {
+			return 0, fmt.Errorf("version %q doesn't conform to format yyyy-mm-dd[-xxx]", version)
 		}
 		y, m, d := parts[0], parts[1], parts[2]
 
@@ -188,7 +185,7 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 		leastVersionGap = math.MaxFloat64
 	)
 	for ref := range schemaGrants {
-		thisMetaInfo, err := ParseSchemaMetaInfoRef(ref)
+		thisMetaInfo, err := swagger.ParseSchemaMetaInfoRef(ref)
 		if err != nil {
 			return nil, "", err
 		}
@@ -244,8 +241,8 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 	return nil, "", nil
 }
 
-func (schemaGrant SchemaGrant) ToSchema(schemaRef string, specRootDir string, strict bool) (*Schema, error) {
-	metaInfo, err := ParseSchemaMetaInfoRef(schemaRef)
+func (schemaGrant SchemaGrant) ToSchema(schemaRef string, specRootDir string, strict bool) (*swagger.Schema, error) {
+	metaInfo, err := swagger.ParseSchemaMetaInfoRef(schemaRef)
 	if err != nil {
 		return nil, err
 	}
@@ -254,9 +251,64 @@ func (schemaGrant SchemaGrant) ToSchema(schemaRef string, specRootDir string, st
 		properties = append(properties, prop)
 	}
 
-	schema, err := ProcessCoverageForSchema(specRootDir, string(metaInfo.SwaggerRelPath), metaInfo.Name, schemaGrant.Variant, properties, true, strict, false)
+	schema, err := swagger.ProcessCoverageForSchema(specRootDir, string(metaInfo.SwaggerRelPath), metaInfo.Name, schemaGrant.Variant, properties, true, strict, false)
 	if err != nil {
 		return nil, err
 	}
 	return schema, nil
+}
+
+func (g SchemaGrant) IsSchemaGranted() bool {
+	return len(g.Properties) == 0
+}
+
+// Grant inquiries the SchemaGrants to Add the granting information onto the Schema
+// If strict is on, this function will raise error if any properties appear in grant doesn't exist in the schema.
+// In the strict mode, it will also ensure the to be granted property is in state "uncovered".
+// Non-strict mode is useful for using grant from other API versions to try to grant current API version, in the best effort way.
+func (g SchemaGrant) Grant(c *swagger.Schema, strict bool) error {
+	if g.IsSchemaGranted() {
+		c.IsGranted = true
+		c.GrantComment = g.Comment
+		c.Properties = nil
+		return nil
+	}
+
+	for propAddr, grantComment := range g.Properties {
+		property, ok := c.Properties[propAddr]
+		if !ok {
+			if strict {
+				return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
+			}
+			continue
+		}
+		if property.PropertyState != nil && !property.PropertyState.IsUncovered() && strict {
+			return fmt.Errorf(`property %q that is to be granted is not an uncovered property, but %v`, propAddr, property.PropertyState.GetState())
+		}
+		property.PropertyState = swagger.NewPropertyState(swagger.PropStateGranted, grantComment)
+
+		// Following logic is to add the ability to grant a parent property. This is commented out
+		// since it seems to be an invalid requirement.
+
+		//// Check whether there is child properties of the property to grant.
+		//// If any is found, we will remove those child properties from the schema,
+		//// and put the property to grant into the schema, and mark it as granted.
+		//var isAny bool
+		//pAddr := addr.MustParseProperty(propAddr)
+		//for existPropAddr := range c.Properties {
+		//	epAddr := addr.MustParseProperty(existPropAddr)
+		//	if pAddr.Contains(epAddr) {
+		//		isAny = true
+		//		delete(c.Properties, existPropAddr)
+		//	}
+		//}
+		//if !isAny {
+		//	return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
+		//}
+		//c.Properties[propAddr] = &Property{
+		//	PropertyState: NewPropertyState(PropStateGranted, grantComment),
+		//}
+	}
+
+	return nil
 }
