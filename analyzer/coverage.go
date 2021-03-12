@@ -3,6 +3,7 @@ package analyzer
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
@@ -68,7 +69,13 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 	// Consume the schema inputs to get the property coverage
 	cov := coverage.NewEmptyCoverage()
 	for _, schemaInput := range schemaInputs {
-		logCurrentProcessingSchemaInput(schemaInput, false)
+
+		// Log output
+		msg := fmt.Sprintf("Processing: %s (%s - %s)",  schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
+		if schemaInput.Variant != "" {
+			msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
+		}
+		log.Infoln(msg)
 
 		schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, true, true)
 		if err != nil {
@@ -96,4 +103,12 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+func logCurrentProcessingSchemaInput(schemaInput schemainput.SchemaInput) {
+	msg := fmt.Sprintf("Processing: %s (%s - %s)",  schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
+	if schemaInput.Variant != "" {
+		msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
+	}
+	log.Infoln(msg)
 }

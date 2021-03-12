@@ -54,7 +54,7 @@ func Grant(in io.Reader, ctx GrantContext) (string, error) {
 			return "", err
 		}
 		if g != nil {
-			log.Debugf("Granting for schema %v", k)
+			log.Infof("Granting for schema %v", k)
 			// The grant file is exactly for this schema.
 			if matchRef == schema.Ref() {
 				if err := g.Grant(&schema, true); err != nil {

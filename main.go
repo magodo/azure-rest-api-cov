@@ -102,16 +102,27 @@ func main() {
 					force := ctx.Bool("workspace-force-new")
 					regenIndex := ctx.Bool("index-renew")
 					specRepoRef := ctx.String("spec-ref")
+					githubUsername := ctx.String("github-username")
+					githubToken := ctx.String("github-token")
 					inputPath := ctx.String("input")
 
 					predict := ctx.Bool("predict")
 					ignoreSchema := ctx.StringSlice("ignore-schema")
+
+					var auth transport.AuthMethod
+					if githubToken != "" && githubUsername != "" {
+						auth = &http.BasicAuth{
+							Username: githubUsername,
+							Password: githubToken,
+						}
+					}
 
 					wspOpt := workspace.InitOption{
 						WorkspaceDir: workspaceDir,
 						Force:        force,
 						RegenIndex:   regenIndex,
 						SpecRepoRef:  specRepoRef,
+						RepoAuth:     auth,
 					}
 
 					var schemaIn io.Reader = os.Stdin
@@ -176,12 +187,22 @@ func main() {
 					force := ctx.Bool("workspace-force-new")
 					regenIndex := ctx.Bool("index-renew")
 					specRepoRef := ctx.String("spec-ref")
+					githubUsername := ctx.String("github-username")
+					githubToken := ctx.String("github-token")
 					inputPath := ctx.String("input")
 
 					grantRepoUrl := ctx.String("grant-repo-url")
 					grantRepoRef := ctx.String("grant-ref")
 					migrateGrantHint := ctx.Bool("migrate-grant-hint")
 					tryMigrate := ctx.Bool("try-migrate")
+
+					var auth transport.AuthMethod
+					if githubToken != "" && githubUsername != "" {
+						auth = &http.BasicAuth{
+							Username: githubUsername,
+							Password: githubToken,
+						}
+					}
 
 					wspOpt := workspace.InitOption{
 						WorkspaceDir: workspaceDir,
@@ -190,6 +211,7 @@ func main() {
 						SpecRepoRef:  specRepoRef,
 						GrantRepoRef: grantRepoRef,
 						GrantRepoURL: grantRepoUrl,
+						RepoAuth:     auth,
 					}
 
 					var covIn io.Reader = os.Stdin
@@ -269,123 +291,6 @@ func main() {
 					}
 
 					output, err := analyzer.Report(covIn, rctx)
-					if err != nil {
-						return err
-					}
-					fmt.Println(output)
-					return nil
-				},
-			},
-			{
-				Name:  "run-all",
-				Usage: "Generate coverage report",
-				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:     "input",
-						Required: true,
-						Aliases:  []string{"i"},
-						Usage:    "The path to the schema input file, which is expected to hold a JSON array of input schemas",
-					},
-					&cli.BoolFlag{
-						Name:    "all",
-						Aliases: []string{"a"},
-						Usage:   "Whether to export the RP level coverage",
-					},
-					&cli.BoolFlag{
-						Name:    "predict",
-						Aliases: []string{"p"},
-						Usage:   "Whether to predict coverage for newer API versions",
-					},
-					&cli.StringFlag{
-						Name:    "grant-repo-url",
-						Aliases: []string{"g"},
-						Usage:   "The grant repo URL",
-					},
-					&cli.StringFlag{
-						Name:  "grant-ref",
-						Usage: "The grant repo ref object to use",
-					},
-					&cli.StringFlag{
-						Name:    "additional-message",
-						Aliases: []string{"m"},
-						Usage:   "Additional message that will include in the coverage report",
-					},
-					&cli.BoolFlag{
-						Name:  "migrate-grant-hint",
-						Usage: `Report possible grant migrations (e.g. there exists some grant for a model in old API version, but absent in the current version) in a file "possible_grant_migration.txt"`,
-					},
-					&cli.BoolFlag{
-						Name:  "try-migrate",
-						Usage: `Try to migrate best match grants from older/newer API version and use it to grant the model of current API version`,
-					},
-					&cli.StringSliceFlag{
-						Name:  "ignore-schema",
-						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
-					},
-				},
-				Action: func(ctx *cli.Context) error {
-					initLog(ctx.String("log-level"))
-
-					if ctx.Bool("profile-cpu") {
-						defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
-					}
-
-					workspaceDir := ctx.String("workspace-dir")
-					force := ctx.Bool("workspace-force-new")
-					regenIndex := ctx.Bool("index-renew")
-					specRepoRef := ctx.String("spec-ref")
-					githubUsername := ctx.String("github-username")
-					githubToken := ctx.String("github-token")
-					inputPath := ctx.String("input")
-
-					all := ctx.Bool("all")
-					predict := ctx.Bool("predict")
-					grantRepoUrl := ctx.String("grant-repo-url")
-					grantRepoRef := ctx.String("grant-ref")
-					additionalMessage := ctx.String("additional-message")
-					migrateGrantHint := ctx.Bool("migrate-grant-hint")
-					tryMigrate := ctx.Bool("try-migrate")
-					ignoreSchema := ctx.StringSlice("ignore-schema")
-
-					if grantRepoRef != "" && grantRepoUrl == "" {
-						return fmt.Errorf("`-grant-ref` has to be used together with `-g`")
-					}
-
-					var auth transport.AuthMethod
-					if githubToken != "" && githubUsername != "" {
-						auth = &http.BasicAuth{
-							Username: githubUsername,
-							Password: githubToken,
-						}
-					}
-
-					wspOpt := workspace.InitOption{
-						WorkspaceDir: workspaceDir,
-						Force:        force,
-						RegenIndex:   regenIndex,
-						RepoAuth:     auth,
-						SpecRepoRef:  specRepoRef,
-						GrantRepoURL: grantRepoUrl,
-						GrantRepoRef: grantRepoRef,
-					}
-
-					schemaInputFile, err := os.Open(inputPath)
-					if err != nil {
-						return err
-					}
-					defer schemaInputFile.Close()
-
-					runCtx := analyzer.RunContext{
-						WorkspaceOpt:      wspOpt,
-						Predict:           predict,
-						All:               all,
-						AdditionalMessage: additionalMessage,
-						MigrateGrantHint:  migrateGrantHint,
-						TryMigrate:        tryMigrate,
-						IgnoreSchema:      ignoreSchema,
-					}
-
-					output, err := analyzer.Run(schemaInputFile, runCtx)
 					if err != nil {
 						return err
 					}
