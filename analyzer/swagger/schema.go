@@ -417,7 +417,7 @@ func (s Schema) HasGrantedAny() bool {
 // NOTE: This has to be called before the schema goes under granting process.
 func (s *Schema) Merge(os Schema) error {
 	if s.HasGrantedAny() {
-		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
+		return fmt.Errorf("Merge() has to be called on schema (%q) before granting", s.Ref())
 	}
 	if s.Ref() != os.Ref() {
 		return fmt.Errorf("trying to merge different schemas: %s and %s", s.Ref(), os.Ref())
