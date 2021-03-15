@@ -90,7 +90,7 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 					var isTopLevelDiscriminator bool
 					for paddr := range schema.Properties {
 						prop := addr.MustParseProperty(paddr)
-						if prop[0].DiscriminatorValue != "" {
+						if prop[0].DiscriminatorValue != "" && prop[0].Name == "" {
 							isTopLevelDiscriminator = true
 						}
 						break
