@@ -50,7 +50,10 @@ func TestToSchema(t *testing.T) {
 	"prop_array_of_primitive":{
 		"state":"Uncovered"
 	},
-	"prop_array_of_object/prop_nested":{
+	"prop_array_of_object/prop_nested1":{
+		"state":"Uncovered"
+	},
+	"prop_array_of_object/prop_nested2":{
 		"state":"Uncovered"
 	},
 	"prop_object/prop_nested":{
@@ -66,7 +69,10 @@ func TestToSchema(t *testing.T) {
 	"prop_primitive": {
 		"state": "Covered"
 	},
-	"prop_array_of_object/prop_nested":{
+	"prop_array_of_object/prop_nested1":{
+		"state":"Uncovered"
+	},
+	"prop_array_of_object/prop_nested2":{
 		"state":"Uncovered"
 	},
 	"prop_object/prop_nested":{

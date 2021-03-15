@@ -371,7 +371,17 @@ func main() {
 						SpecRepoRef:  specRepoRef,
 					}
 
-					return analyzer.MigrateGrant(wspOpt, grantRepoDir, rp, spec, srcVersion, dstVersion, outDir)
+					mctx := analyzer.MigrateGrantContext{
+						WorkspaceOpt: wspOpt,
+						GrantRepoDir: grantRepoDir,
+						RP:           rp,
+						Spec:         spec,
+						SrcVersion:   srcVersion,
+						DstVersion:   dstVersion,
+						OutDir:       outDir,
+					}
+
+					return analyzer.MigrateGrant(mctx)
 				},
 			},
 		},

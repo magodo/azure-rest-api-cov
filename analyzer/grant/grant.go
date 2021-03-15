@@ -1,15 +1,16 @@
 package grant
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
+	"gopkg.in/yaml.v2"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 
@@ -19,13 +20,66 @@ import (
 type SchemaGrants map[string]SchemaGrant // key is the Schema.Ref()
 
 type SchemaGrant struct {
-	Variant string `json:"variant,omitempty"`
+	Variant string `yaml:"variant,omitempty"`
 
-	// The grant comment why the schema is granted.
-	Comment string `json:"comment,omitempty"`
+	// The grant comment why the schema is granted. When this is set, it means the schema is to be granted at a whole.
+	Comment string `yaml:"comment,omitempty"`
 
-	// Property grant map, key is the RelProperty, and value is the grant comment.
-	Properties map[string]string `json:"properties,omitempty"`
+	PropertyGrantRules PropertyGrantRules `yaml:"property_grant_rules,omitempty"`
+
+	// A set of expanded properties that is to be granted, where the value is the property addr, and the value is the grant comment.
+	// This is evaluated from "Properties".
+	grantedProperties map[string]string
+}
+
+type PropertyGrantRules []PropertyGrantRule
+
+type PropertyGrantRule struct {
+	Prop    addr.Property
+	Negate  bool
+	Comment string
+}
+
+func (prop PropertyGrantRule) String() string {
+	if prop.Negate {
+		return fmt.Sprintf("!%s", prop.Prop)
+	}
+	return fmt.Sprintf("%s: %s", prop.Prop, prop.Comment)
+}
+
+func (props PropertyGrantRules) MarshalYAML() (interface{}, error) {
+	propertyLines := make([]string, 0, len(props))
+	for _, prop := range props {
+		propertyLines = append(propertyLines, prop.String())
+	}
+	return strings.Join(propertyLines, "\n"), nil
+}
+
+func (props *PropertyGrantRules) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var propertyLines string
+	if err := unmarshal(&propertyLines); err != nil {
+		return fmt.Errorf("unmarshaling properties: %v", err)
+	}
+
+	for _, propertyLine := range strings.Split(strings.TrimSpace(propertyLines), "\n") {
+		var prop PropertyGrantRule
+		columnIndex := strings.Index(propertyLine, ":")
+		if strings.HasPrefix(propertyLine, "!") {
+			prop.Negate = true
+			if columnIndex != -1 {
+				return fmt.Errorf("negate properrty grant (%q) shouldn't contain comment", propertyLine)
+			}
+			prop.Prop = addr.MustParseProperty(propertyLine[1:])
+		} else {
+			if columnIndex == -1 {
+				return fmt.Errorf("properrty grant (%q) should contain comment", propertyLine)
+			}
+			prop.Prop = addr.MustParseProperty(propertyLine[:columnIndex])
+			prop.Comment = strings.TrimSpace(propertyLine[columnIndex+1:])
+		}
+		*props = append(*props, prop)
+	}
+	return nil
 }
 
 type GrantFileFilter struct {
@@ -44,11 +98,18 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 			return err
 		}
 
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".json") {
-			return err
+		if info.IsDir() {
+			if info.Name() == ".git" || info.Name() == ".github" {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 
-		specRelPath, err := filepath.Rel(grantBaseDir, path)
+		if !strings.HasSuffix(info.Name(), ".yaml") && !strings.HasSuffix(info.Name(), ".yml") {
+			return nil
+		}
+
+		specRelPath, err := filepath.Rel(grantBaseDir, path[:strings.LastIndex(path, ".")]+".json")
 		if err != nil {
 			return err
 		}
@@ -94,36 +155,34 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 			return nil
 		}
 
-		if err := json.Unmarshal(b, &infileGrants); err != nil {
-			return err
+		if err := yaml.Unmarshal(b, &infileGrants); err != nil {
+			return fmt.Errorf("unmarshalling %s: %v", path, err)
 		}
 
+		// Evaluate the property grant rules reflect to the expanded properties.
 		for schemaName, schemaGrant := range infileGrants {
-
-			// Sanity check: ensure the properties are mutual exclusive.
-			for prop1 := range schemaGrant.Properties {
-				addr1 := addr.MustParseProperty(prop1)
-				for prop2 := range schemaGrant.Properties {
-					if prop1 == prop2 {
-						continue
-					}
-					addr2 := addr.MustParseProperty(prop2)
-					if addr1.Contains(addr2) || addr2.Contains(addr1) {
-						return fmt.Errorf("sanity check failed: non-mutual inclusive properties %q and %q detected in schema %q (%q)",
-							prop1, prop2, schemaName, path)
-					}
-				}
-			}
-
-			// Sanity check: ensure the schema and its properties exist.
-			coveredProps := make([]string, 0, len(schemaGrant.Properties))
-			for k := range schemaGrant.Properties {
-				coveredProps = append(coveredProps, k)
-			}
-
-			_, err := swagger.ProcessCoverageForSchema(specBaseDir, specRelPath, schemaName, schemaGrant.Variant, coveredProps, true, true, false)
+			schema, err := swagger.NewEmptySchema(specBaseDir, specRelPath, schemaName, true, false)
 			if err != nil {
 				return err
+			}
+
+			if err := schema.ExpandProperties(); err != nil {
+				return err
+			}
+
+			schemaGrant.grantedProperties = map[string]string{}
+			for _, grant := range schemaGrant.PropertyGrantRules {
+				for propName := range schema.Properties {
+					propAddr := addr.MustParseProperty(propName)
+
+					if grant.Prop.Contains(propAddr) || grant.Prop.Equals(propAddr) {
+						if grant.Negate {
+							delete(schemaGrant.grantedProperties, propName)
+						} else {
+							schemaGrant.grantedProperties[propName] = grant.Comment
+						}
+					}
+				}
 			}
 
 			swgGrant[swagger.SchemaMetaInfo{
@@ -241,25 +300,8 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 	return nil, "", nil
 }
 
-func (schemaGrant SchemaGrant) ToSchema(schemaRef string, specRootDir string, strict bool) (*swagger.Schema, error) {
-	metaInfo, err := swagger.ParseSchemaMetaInfoRef(schemaRef)
-	if err != nil {
-		return nil, err
-	}
-	properties := make([]string, 0, len(schemaGrant.Properties))
-	for prop := range schemaGrant.Properties {
-		properties = append(properties, prop)
-	}
-
-	schema, err := swagger.ProcessCoverageForSchema(specRootDir, string(metaInfo.SwaggerRelPath), metaInfo.Name, schemaGrant.Variant, properties, true, strict, false)
-	if err != nil {
-		return nil, err
-	}
-	return schema, nil
-}
-
 func (g SchemaGrant) IsSchemaGranted() bool {
-	return len(g.Properties) == 0
+	return g.Comment != "" && len(g.PropertyGrantRules) == 0
 }
 
 // Grant inquiries the SchemaGrants to Add the granting information onto the Schema
@@ -274,7 +316,7 @@ func (g SchemaGrant) Grant(c *swagger.Schema, strict bool) error {
 		return nil
 	}
 
-	for propAddr, grantComment := range g.Properties {
+	for propAddr, grantComment := range g.grantedProperties {
 		property, ok := c.Properties[propAddr]
 		if !ok {
 			if strict {
@@ -282,32 +324,15 @@ func (g SchemaGrant) Grant(c *swagger.Schema, strict bool) error {
 			}
 			continue
 		}
-		if property.PropertyState != nil && !property.PropertyState.IsUncovered() && strict {
-			return fmt.Errorf(`property %q that is to be granted is not an uncovered property, but %v`, propAddr, property.PropertyState.GetState())
+		if property.PropertyState != nil {
+			if property.IsIgnored() {
+				continue
+			}
+			if property.PropertyState.IsCovered() && strict {
+				return fmt.Errorf(`property %q that is to be granted is a covered property`, propAddr)
+			}
 		}
 		property.PropertyState = swagger.NewPropertyState(swagger.PropStateGranted, grantComment)
-
-		// Following logic is to add the ability to grant a parent property. This is commented out
-		// since it seems to be an invalid requirement.
-
-		//// Check whether there is child properties of the property to grant.
-		//// If any is found, we will remove those child properties from the schema,
-		//// and put the property to grant into the schema, and mark it as granted.
-		//var isAny bool
-		//pAddr := addr.MustParseProperty(propAddr)
-		//for existPropAddr := range c.Properties {
-		//	epAddr := addr.MustParseProperty(existPropAddr)
-		//	if pAddr.Contains(epAddr) {
-		//		isAny = true
-		//		delete(c.Properties, existPropAddr)
-		//	}
-		//}
-		//if !isAny {
-		//	return fmt.Errorf(`property %q that is to be granted doesn't exist in Swagger schema %q'`, propAddr, c.Ref())
-		//}
-		//c.Properties[propAddr] = &Property{
-		//	PropertyState: NewPropertyState(PropStateGranted, grantComment),
-		//}
 	}
 
 	return nil

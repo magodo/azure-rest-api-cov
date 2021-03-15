@@ -71,7 +71,8 @@
           "type": "array",
           "items": {
             "properties": {
-              "prop_nested": {}
+              "prop_nested1": {},
+              "prop_nested2": {}
             }
           }
         },

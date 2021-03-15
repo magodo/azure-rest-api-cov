@@ -1104,9 +1104,20 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					},
 					swaggerURI: specFooPath,
 				},
-				"prop_array_of_object/prop_nested": {
+				"prop_array_of_object/prop_nested1": {
 					PropertyState: PropertyStateUncovered,
-					schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested"],
+					schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested1"],
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_regular": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
+					},
+					swaggerURI: specFooPath,
+				},
+				"prop_array_of_object/prop_nested2": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested2"],
 					resolvedRefs: map[string]interface{}{
 						specFooPath + "#/definitions/def_regular": struct{}{},
 					},
@@ -1964,9 +1975,20 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 						},
 						swaggerURI: specFooPath,
 					},
-					"prop_array_of_object/prop_nested": {
+					"prop_array_of_object/prop_nested1": {
 						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested"],
+						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested1"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_regular": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
+						},
+						swaggerURI: specFooPath,
+					},
+					"prop_array_of_object/prop_nested2": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested2"],
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_regular": struct{}{},
 						},
@@ -3822,4 +3844,3 @@ func TestSchema_Merge(t *testing.T) {
 		require.Equal(t, c.expect, mergedSchema, idx)
 	}
 }
-

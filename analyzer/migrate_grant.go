@@ -1,14 +1,16 @@
 package analyzer
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/grant"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
@@ -16,22 +18,32 @@ import (
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 )
 
-func MigrateGrant(workspaceOpt workspace.InitOption, grantRepoDir, rp, spec, srcVersion, dstVersion, outDir string) error {
+type MigrateGrantContext struct {
+	WorkspaceOpt workspace.InitOption
+	GrantRepoDir string
+	RP           string
+	Spec         string
+	SrcVersion   string
+	DstVersion   string
+	OutDir       string
+}
+
+func MigrateGrant(ctx MigrateGrantContext) error {
 	log.Info("CMD: Migrate Grant")
 
 	// Initialize the workspace, which will return the repo and repo index.
-	wsp, err := workspace.Init(workspaceOpt)
+	wsp, err := workspace.Init(ctx.WorkspaceOpt)
 	if err != nil {
 		return err
 	}
 
-	migrateGrantFiles, err := migrateGrant(wsp.AzureRepoIndex.SpecRootDir, grantRepoDir, rp, spec, srcVersion, dstVersion)
+	migrateGrantFiles, err := migrateGrant(wsp.AzureRepoIndex.SpecRootDir, ctx.GrantRepoDir, ctx.RP, ctx.Spec, ctx.SrcVersion, ctx.DstVersion)
 	if err != nil {
 		return err
 	}
 
 	for path, content := range migrateGrantFiles {
-		ofile := filepath.Join(outDir, path)
+		ofile := filepath.Join(ctx.OutDir, path)
 		err := os.MkdirAll(filepath.Dir(ofile), 0755)
 		if err != nil && !errors.Is(err, os.ErrExist) {
 			return err
@@ -56,6 +68,8 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 
 	migrateGrantFiles := map[string]grant.SchemaGrants{}
 	for schemaRef, srcGrant := range srcGrants {
+		log.Infof("migrating grant of %q from %q to %q", schemaRef, srcVersion, dstVersion)
+
 		// Ensure the target spec exists, which might be in either preview or stable folder.
 		metaInfo, err := swagger.ParseSchemaMetaInfoRef(schemaRef)
 		if err != nil {
@@ -69,6 +83,8 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 		pathInfo.Version = dstVersion
 		dstPath := pathInfo.ToPath()
 		absPath := filepath.Join(specRootDir, string(dstPath))
+
+		// Check whether the target API version spec exists.
 		_, err = os.Stat(absPath)
 		if err == os.ErrNotExist {
 			pathInfo.IsPreview = !pathInfo.IsPreview
@@ -90,50 +106,56 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 		if err != nil {
 			return nil, err
 		}
+
+		// In case there is no such model in the target API version spec, there is nothing to migrate, simply skip it.
 		if _, ok := swg.Definitions[dstMetaInfo.Name]; !ok {
 			continue
 		}
 
-		// Here we convert the grant to a schema.Schema and try to expand it to the properties defined in the grant in non-strict mode.
-		// The resulted "covered" properties mean those properties still exist in the dst API version, and will be kept in the dst grant.
-		// The non-existed properties in the new API version will be skipped due to non-strict mode.
-		schema, err := srcGrant.ToSchema(dstMetaInfo.Ref(), specRootDir, false)
-		if err != nil {
-			return nil, err
-		}
-
 		var dstGrant grant.SchemaGrant
 
-		// In case there are no properties left, it might because
-		// - All the granted properties are not existed in the newer API version: in this case we shall skip this model at all.
-		// - The model is to be granted: in this case we shall go on granting this model as a whole.
-		if len(schema.Properties) == 0 {
-			if srcGrant.IsSchemaGranted() {
-				dstGrant = srcGrant
-			} else {
-				continue
-			}
-		} else {
+		if srcGrant.IsSchemaGranted() {
 			dstGrant = srcGrant
-			dstGrant.Properties = map[string]string{}
-			for prop, state := range schema.Properties {
-				if state.IsCovered() {
-					dstGrant.Properties[prop] = srcGrant.Properties[prop]
-				}
+		} else {
+			dstSchema, err := swagger.NewEmptySchema(specRootDir, string(dstPath), dstMetaInfo.Name, true, false)
+			if err != nil {
+				return nil, err
 			}
+
+			if err := dstSchema.ExpandProperties(); err != nil {
+				return nil, err
+			}
+
+			dstGrant = srcGrant
+			// Validate each grant rule as defined in the source grant file to see whether it is take effect on the schema of the target API vesion.
+			newGrantRules := grant.PropertyGrantRules{}
+		ruleLoop:
+			for _, grantRule := range dstGrant.PropertyGrantRules {
+				for prop := range dstSchema.Properties {
+					grantProp := grantRule.Prop
+					existProp := addr.MustParseProperty(prop)
+					if grantProp.Contains(existProp) || grantProp.Equals(existProp) {
+						newGrantRules = append(newGrantRules, grantRule)
+						continue ruleLoop
+					}
+				}
+				log.Warnf("grant rule %q is thrown away as in the destination API version there is no property affected by this rule.", grantRule)
+			}
+			dstGrant.PropertyGrantRules = newGrantRules
 		}
 
-		migrateGrantFile := migrateGrantFiles[string(dstPath)]
+		dstGrantPath := strings.ReplaceAll(string(dstPath), ".json", ".yaml")
+		migrateGrantFile := migrateGrantFiles[dstGrantPath]
 		if migrateGrantFile == nil {
 			migrateGrantFile = grant.SchemaGrants{}
-			migrateGrantFiles[string(dstPath)] = migrateGrantFile
+			migrateGrantFiles[dstGrantPath] = migrateGrantFile
 		}
 		migrateGrantFile[dstMetaInfo.Name] = dstGrant
 	}
 
 	out := map[string][]byte{}
 	for k, v := range migrateGrantFiles {
-		out[k], err = json.MarshalIndent(v, "", "  ")
+		out[k], err = yaml.Marshal(v)
 		if err != nil {
 			return nil, err
 		}

@@ -31,7 +31,6 @@
         ]
       }
     },
-
     "/{host}/{foo}/def_bar": {
       "post": {
         "parameters": [
@@ -102,7 +101,8 @@
           "type": "array",
           "items": {
             "properties": {
-              "prop_nested": {}
+              "prop_nested1": {},
+              "prop_nested2": {}
             }
           }
         },
@@ -273,7 +273,7 @@
           }
         },
         "tags": {
-          "type" : "object",
+          "type": "object",
           "properties": {
             "additionalProperties": {
               "type": "string"
@@ -348,22 +348,18 @@
         }
       }
     },
-
     "def_grant_deprecated": {},
-
     "def_grant_update": {
       "properties": {
         "p_deprecated": {},
         "p1": {}
       }
     },
-
     "def_grant_still": {},
-
     "def_contain_map": {
       "properties": {
         "tags": {
-          "type" : "object",
+          "type": "object",
           "properties": {
             "additionalProperties": {
               "type": "string"
@@ -372,17 +368,15 @@
         }
       }
     },
-
-   "def_activity": {
-     "discriminator": "type",
-     "properties": {
+    "def_activity": {
+      "discriminator": "type",
+      "properties": {
         "type": {},
         "actor": {
           "$ref": "#/definitions/def_actor"
         }
-     }
-   },
-
+      }
+    },
     "def_activity_a": {
       "allOf": [
         {
@@ -390,7 +384,6 @@
         }
       ]
     },
-
     "def_actor": {
       "discriminator": "type",
       "properties": {
@@ -400,7 +393,6 @@
         }
       }
     },
-
     "def_actor_a": {
       "allOf": [
         {

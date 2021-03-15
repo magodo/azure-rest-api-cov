@@ -9,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
-	"sort"
 )
 
 type ReportContext struct {
@@ -40,20 +39,11 @@ func Report(in io.Reader, ctx ReportContext) (string, error) {
 	flatCov := cov.Flatten()
 	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
 
-	var locators workspace.SchemaLocators
-	for k := range flatCov {
-		locators = append(locators, k)
-	}
-	sort.Sort(locators)
-
-	var covReport []*report.SchemaCoverage
-	for _, k := range locators {
-		schema := flatCov[k]
-		cov, err := report.NewSchemaCoverage(azureRepoURLPrefix, schema)
-		if err != nil {
+	covReport := report.NewEmptyCoverage(*(wsp.AzureRepoIndex), ctx.AdditionalMessage)
+	for k, schema := range flatCov {
+		if err := covReport.AddSchema(azureRepoURLPrefix, schema, k); err != nil {
 			return "", err
 		}
-		covReport = append(covReport, cov)
 	}
 
 	b, err = json.MarshalIndent(covReport, "", "  ")

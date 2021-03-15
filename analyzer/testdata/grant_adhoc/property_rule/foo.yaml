@@ -1,0 +1,4 @@
+def_regular:
+  property_grant_rules: |
+    prop_array_of_object: granted
+    !prop_array_of_object/prop_nested2

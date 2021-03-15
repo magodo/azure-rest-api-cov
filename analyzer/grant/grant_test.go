@@ -1,7 +1,7 @@
 package grant
 
 import (
-	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"os"
 	"path/filepath"
@@ -16,54 +16,106 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
-	grantNormalBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "normal")
-	grantAbnormalPropBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "abnormal_prop")
-	grantAbnormalNonExistBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc", "abnormal_non_exist")
+	grantBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc")
 
 	cases := []struct {
-		path   string
+		dir    string
 		expect SchemaGrants
 		error  bool
 	}{
+		// 0. schema granted
 		{
-			path: grantNormalBaseDir,
+			dir: "schema",
 			expect: map[string]SchemaGrant{
-				swagger.SchemaMetaInfo{
-					Name:           "def_foo",
-					SwaggerRelPath: "foo.json",
-				}.Ref(): {
-					Comment: "schema",
+				"foo.json#/definitions/def_foo": {
+					Comment:           "granted",
+					grantedProperties: map[string]string{},
 				},
-				swagger.SchemaMetaInfo{
-					Name:           "def_base",
-					SwaggerRelPath: "foo.json",
-				}.Ref(): {
-					Variant: "def_variant1",
-					Comment: "schema variant",
+			},
+		},
+
+		// 1. schema of variant granted
+		{
+			dir: "schema_variant",
+			expect: map[string]SchemaGrant{
+				"foo.json#/definitions/def_base": {
+					Comment:           "granted",
+					Variant:           "def_variant1",
+					grantedProperties: map[string]string{},
 				},
-				swagger.SchemaMetaInfo{
-					Name:           "def_regular",
-					SwaggerRelPath: "foo.json",
-				}.Ref(): {
-					Properties: map[string]string{
-						"prop_primitive":                   "property",
-						"prop_array_of_object/prop_nested": "property",
+			},
+		},
+
+		// 2. schema property granted
+		{
+			dir: "property_simple",
+			expect: map[string]SchemaGrant{
+				"foo.json#/definitions/def_regular": {
+					PropertyGrantRules: PropertyGrantRules{
+						PropertyGrantRule{
+							Prop:    addr.MustParseProperty("prop_primitive"),
+							Comment: "granted",
+						},
+						PropertyGrantRule{
+							Prop:    addr.MustParseProperty("prop_array_of_object/prop_nested1"),
+							Comment: "granted",
+						},
+					},
+					grantedProperties: map[string]string{
+						"prop_primitive":                    "granted",
+						"prop_array_of_object/prop_nested1": "granted",
 					},
 				},
 			},
 		},
+
+		// 3. schema property grant rule
 		{
-			path:  grantAbnormalPropBaseDir,
-			error: true,
+			dir: "property_rule",
+			expect: map[string]SchemaGrant{
+				"foo.json#/definitions/def_regular": {
+					PropertyGrantRules: PropertyGrantRules{
+						PropertyGrantRule{
+							Prop:    addr.MustParseProperty("prop_array_of_object"),
+							Comment: "granted",
+						},
+						PropertyGrantRule{
+							Prop:   addr.MustParseProperty("prop_array_of_object/prop_nested2"),
+							Negate: true,
+						},
+					},
+					grantedProperties: map[string]string{
+						"prop_array_of_object/prop_nested1": "granted",
+					},
+				},
+			},
 		},
+
+		// 4. schema variant property grant rule
 		{
-			path:  grantAbnormalNonExistBaseDir,
-			error: true,
+			dir: "property_variant_rule",
+			expect: map[string]SchemaGrant{
+				"foo.json#/definitions/def_to_def_base": {
+					PropertyGrantRules: PropertyGrantRules{
+						PropertyGrantRule{
+							Prop:    addr.MustParseProperty("prop"),
+							Comment: "granted",
+						},
+						PropertyGrantRule{
+							Prop:   addr.MustParseProperty("prop{def_variant1}"),
+							Negate: true,
+						},
+					},
+					grantedProperties: map[string]string{
+						"prop{def_variant2}/type": "granted",
+					},
+				},
+			},
 		},
 	}
 
 	for idx, c := range cases {
-		grants, err := NewSchemaGrantsFromFiles(c.path, specBasePath, nil)
+		grants, err := NewSchemaGrantsFromFiles(filepath.Join(grantBaseDir, c.dir), specBasePath, nil)
 		if c.error {
 			require.Error(t, err, idx)
 			continue
@@ -73,7 +125,7 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 	}
 }
 
-func TestSchemaGrantFor(t *testing.T) {
+func TestSchemaGrants_GetGrantForSchema(t *testing.T) {
 	ref20200501 := "dummy/resource-manager/Microsoft.Dummy/stable/2020-05-01/dummy.json#/definitions/Model"
 	ref20200601 := "dummy/resource-manager/Microsoft.Dummy/stable/2020-06-01/dummy.json#/definitions/Model"
 
@@ -139,59 +191,40 @@ func TestSchemaGrantFor(t *testing.T) {
 }
 
 func TestSchemaGrant_Grant(t *testing.T) {
-	schemaMetaInfo := swagger.SchemaMetaInfo{
-		SwaggerRelPath: specpath.Path("path"),
-		Name:           "schema1",
-	}
 	var cases = []struct {
-		schema       swagger.Schema
 		grant        SchemaGrant
+		schema       swagger.Schema
 		expectSchema swagger.Schema
 		hasError     bool
 	}{
 		// 0: schema is granted
 		{
-			schema: swagger.Schema{
-				SchemaMetaInfo: schemaMetaInfo,
-				Properties: map[string]*swagger.Property{
-					"prop1": {},
-				},
-			},
 			grant: SchemaGrant{
-				Comment: "granted",
+				Comment: "schema is granted",
 			},
+			schema: swagger.Schema{},
 			expectSchema: swagger.Schema{
-				SchemaMetaInfo: schemaMetaInfo,
-				IsGranted:      true,
-				GrantComment:   "granted",
+				IsGranted:    true,
+				GrantComment: "schema is granted",
 			},
 		},
 		// 1: property granted
 		{
-			schema: swagger.Schema{
-				SchemaMetaInfo: schemaMetaInfo,
-				Properties: map[string]*swagger.Property{
-					"prop1":   {},
-					"prop2":   {},
-					"prop2_2": {},
-					"prop3":   {},
+			grant: SchemaGrant{
+				grantedProperties: map[string]string{
+					"prop1": "granted",
 				},
 			},
-			grant: SchemaGrant{
-				Properties: map[string]string{
-					"prop2_2": "granted",
-					"prop3":   "granted",
+			schema: swagger.Schema{
+				Properties: map[string]*swagger.Property{
+					"prop1": {
+						PropertyState: swagger.PropertyStateUncovered,
+					},
 				},
 			},
 			expectSchema: swagger.Schema{
-				SchemaMetaInfo: schemaMetaInfo,
 				Properties: map[string]*swagger.Property{
-					"prop1": {},
-					"prop2": {},
-					"prop2_2": {
-						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
-					},
-					"prop3": {
+					"prop1": {
 						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
 					},
 				},
@@ -199,37 +232,28 @@ func TestSchemaGrant_Grant(t *testing.T) {
 		},
 		// 2: grant unknown property cause error
 		{
-			schema: swagger.Schema{
-				SchemaMetaInfo: schemaMetaInfo,
-				Properties: map[string]*swagger.Property{
-					"prop1":   {},
-					"prop2":   {},
-					"prop2_2": {},
-					"prop3":   {},
+			grant: SchemaGrant{
+				grantedProperties: map[string]string{
+					"prop1": "granted",
 				},
 			},
-			grant: SchemaGrant{
-				Properties: map[string]string{
-					"prop2_2":      "granted",
-					"prop3":        "granted",
-					"unknown_prop": "granted",
-				},
+			schema: swagger.Schema{
+				Properties: map[string]*swagger.Property{},
 			},
 			hasError: true,
 		},
 		// 3: grant property of non-uncovered state cause error
 		{
-			schema: swagger.Schema{
-				SchemaMetaInfo: schemaMetaInfo,
-				Properties: map[string]*swagger.Property{
-					"prop1": {
-						PropertyState: swagger.NewPropertyState(swagger.PropStateCovered, ""),
-					},
+			grant: SchemaGrant{
+				grantedProperties: map[string]string{
+					"prop1": "granted",
 				},
 			},
-			grant: SchemaGrant{
-				Properties: map[string]string{
-					"prop1": "granted",
+			schema: swagger.Schema{
+				Properties: map[string]*swagger.Property{
+					"prop1": {
+						PropertyState: swagger.PropertyStateCovered,
+					},
 				},
 			},
 			hasError: true,
