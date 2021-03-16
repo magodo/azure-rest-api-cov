@@ -427,11 +427,11 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	ref := prop.schema.Ref
 	if ref.String() == "" {
-		// Specially, if current schema is an array, and the items is a ref, we need to go on expand it.
 		if prop.schema.Items == nil {
 			return false, nil
 		}
 
+		// Specially, if current schema is an array, and the items is a ref, we need to go on expand it.
 		if prop.schema.Items.Schema == nil && len(prop.schema.Items.Schemas) == 0 {
 			return false, nil
 		}
@@ -500,8 +500,23 @@ func (prop Property) isLeafProperty() (bool, error) {
 		}
 	}
 
-	// In case this property is an array, we will further check whether its item has defined schema.
-	return len(p.schema.AllOf) == 0 && p.schema.Properties == nil && (p.schema.Items == nil || (p.schema.Items.Schema == nil && len(p.schema.Items.Schemas) == 0)), nil
+	if len(schema.AllOf) != 0 || schema.Properties != nil {
+		return false, nil
+	}
+
+	if schema.Items == nil {
+		return true, nil
+	}
+
+	// In case this property is an array, we will further check whether its item has defined non-primary type schema.
+	var s openapispec.Schema
+	if schema.Items.Schema != nil {
+		s = *schema.Items.Schema
+	} else {
+		s = schema.Items.Schemas[0]
+	}
+
+	return prop.propagateSubPropOfSchema(s).isLeafProperty()
 }
 
 func (props Properties) MarshalJSON() ([]byte, error) {
