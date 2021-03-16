@@ -1,11 +1,12 @@
 package grant
 
 import (
-	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
-	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 
 	"github.com/stretchr/testify/require"
 )
@@ -39,9 +40,15 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 			dir: "schema_variant",
 			expect: map[string]SchemaGrant{
 				"foo.json#/definitions/def_base": {
-					Comment:           "granted",
-					Variant:           "def_variant1",
-					grantedProperties: map[string]string{},
+					PropertyGrantRules: PropertyGrantRules{
+						PropertyGrantRule{
+							Prop:    addr.MustParseProperty("").AsVariant("def_variant1"),
+							Comment: "granted",
+						},
+					},
+					grantedProperties: map[string]string{
+						"{def_variant1}/type": "granted",
+					},
 				},
 			},
 		},

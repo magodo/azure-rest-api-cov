@@ -1,3 +1,3 @@
 def_base:
-  comment: granted
-  variant: def_variant1
+  property_grant_rules: |
+    {def_variant1}: granted

@@ -20,8 +20,6 @@ import (
 type SchemaGrants map[string]SchemaGrant // key is the Schema.Ref()
 
 type SchemaGrant struct {
-	Variant string `yaml:"variant,omitempty"`
-
 	// The grant comment why the schema is granted. When this is set, it means the schema is to be granted at a whole.
 	Comment string `yaml:"comment,omitempty"`
 
