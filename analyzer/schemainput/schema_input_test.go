@@ -28,17 +28,19 @@ func TestToSchema(t *testing.T) {
 		expectProperties string
 		err              error
 	}{
+		// 0
 		{
 			schemaInput: filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
 			expectProperties: `{
 	"{def_variant1}/type": {
 		"state": "Covered"
 	},
-	"{def_variant2}":{
+	"{def_variant2}/type":{
 		"state":"Uncovered"
 	}
 }`,
 		},
+		// 1
 		{
 			schemaInput: filepath.Join(schemaBasePath, "def_regular", "def_regular.json"),
 			expectProperties: `{
@@ -48,15 +50,18 @@ func TestToSchema(t *testing.T) {
 	"prop_array_of_primitive":{
 		"state":"Uncovered"
 	},
-	"prop_array_of_object":{
+	"prop_array_of_object/prop_nested1":{
 		"state":"Uncovered"
 	},
-	"prop_object":{
+	"prop_array_of_object/prop_nested2":{
+		"state":"Uncovered"
+	},
+	"prop_object/prop_nested":{
 		"state":"Uncovered"
 	}
 }`,
 		},
-		// New API version removes some property in old API
+		// 2. New API version removes some property in old API
 		{
 			schemaInput:  filepath.Join(schemaBasePath, "def_regular", "def_regular.json"),
 			shiftVersion: "2021-01-01",
@@ -64,10 +69,13 @@ func TestToSchema(t *testing.T) {
 	"prop_primitive": {
 		"state": "Covered"
 	},
-	"prop_array_of_object":{
+	"prop_array_of_object/prop_nested1":{
 		"state":"Uncovered"
 	},
-	"prop_object":{
+	"prop_array_of_object/prop_nested2":{
+		"state":"Uncovered"
+	},
+	"prop_object/prop_nested":{
 		"state":"Uncovered"
 	}
 }`,
@@ -116,7 +124,7 @@ func TestToSchema(t *testing.T) {
 		if c.shiftVersion != "" {
 			schemaInput.ApiVersion = c.shiftVersion
 		}
-		schema, err := schemaInput.ToSchema(index, c.shiftVersion != "")
+		schema, err := schemaInput.ToSchema(index, c.shiftVersion != "", false)
 		if c.err == nil {
 			require.NoError(t, err, idx)
 		} else {

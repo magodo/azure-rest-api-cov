@@ -3,6 +3,8 @@ package swagger
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"sync"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
@@ -129,7 +131,7 @@ type Property struct {
 	// Normalized reference to variant schemas of the schema of this property. It is nil if `isDiscriminator` is false.
 	// Note that: Non-leaf variant schema has itself as its variant schema (i.e. both pure discriminator and leaf variant
 	//            do not contain itself in the rootVariantRefSet).
-	//            This is because non-leaf variant schema is both a discriminator and a variant (can be instantiate), when
+	//            This is because non-leaf variant schema is both a discriminator, and a variant (can be instantiated), when
 	//            expanding it to its variant, we will need to both instantiate itself and its children variants.
 	rootVariantRefSet map[string]struct{}
 
@@ -147,28 +149,57 @@ func (p Properties) Merge(o Properties) {
 
 func (prop Property) copy() *Property {
 	newResolvedRefs := map[string]interface{}{}
-	if len(prop.resolvedRefs) != 0 {
-		for k, v := range prop.resolvedRefs {
-			newResolvedRefs[k] = v
-		}
+	for k, v := range prop.resolvedRefs {
+		newResolvedRefs[k] = v
 	}
+
+	newRootVariantRefSet := map[string]struct{}{}
+	for k, v := range prop.rootVariantRefSet {
+		newRootVariantRefSet[k] = v
+	}
+
+	newDirectVariantRefSet := map[string]struct{}{}
+	for k, v := range prop.directVariantRefSet {
+		newDirectVariantRefSet[k] = v
+	}
+
 	return &Property{
+		PropertyState:       prop.PropertyState,
+		schema:              prop.schema,
+		ownerSchemaRef:      prop.ownerSchemaRef,
+		resolvedRefs:        newResolvedRefs,
+		swaggerURI:          prop.swaggerURI,
+		forResponse:         prop.forResponse,
+		isDiscriminator:     prop.isDiscriminator,
+		isPureDiscriminator: prop.isPureDiscriminator,
+		rootVariantRefSet:   newRootVariantRefSet,
+		directVariantRefSet: newDirectVariantRefSet,
+	}
+}
+
+// propagateSubPropOfSchema propagates a sub property with the given schema. The sub-property contains
+// all the property level information from the parent property, except the discriminator related ones as the sub-property
+// will not inherit them in the syntax of swagger.
+func (prop *Property) propagateSubPropOfSchema(schema openapispec.Schema) *Property {
+	newResolvedRefs := map[string]interface{}{}
+	for k, v := range prop.resolvedRefs {
+		newResolvedRefs[k] = v
+	}
+
+	newProp := &Property{
 		PropertyState:  prop.PropertyState,
-		schema:         prop.schema,
+		schema:         schema,
 		ownerSchemaRef: prop.ownerSchemaRef,
 		resolvedRefs:   newResolvedRefs,
 		swaggerURI:     prop.swaggerURI,
 		forResponse:    prop.forResponse,
+		// Ignore the discriminator related properties here as the new sub-property will not be a discriminator.
 	}
-}
 
-// transformToSubProp expands current property to be one of its sub property by the sub property's schema
-func (prop *Property) transformToSubProp(schema openapispec.Schema) {
 	if !prop.forResponse && schema.ReadOnly {
-		prop.PropertyState = PropertyStateIgnoredForReqROProp
+		newProp.PropertyState = PropertyStateIgnoredForReqROProp
 	}
-
-	prop.schema = schema
+	return newProp
 }
 
 // buildProperty build a new property by providing all the needed information about this property.
@@ -183,10 +214,8 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	swaggerURI := normSchemaRef.GetURL().Path
 
 	newResolvedRefs := map[string]interface{}{}
-	if len(resolvedRefs) != 0 {
-		for k, v := range resolvedRefs {
-			newResolvedRefs[k] = v
-		}
+	for k, v := range resolvedRefs {
+		newResolvedRefs[k] = v
 	}
 
 	if !forResponse && schema.ReadOnly {
@@ -206,11 +235,12 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 		return nil, err
 	}
 	if !isDiscriminator {
-		// In case current schema is not a discriminator, we will mark it as ref-ed.
+		// In case the current schema is not a discriminator, we will mark it as ref-ed.
 		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
 		return prop, nil
 	}
 
+	// Following applies to discriminator property
 	prop.isDiscriminator = isDiscriminator
 	prop.isPureDiscriminator = pure
 
@@ -219,7 +249,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 		return nil, err
 	}
 
-	// In case current schema is a leaf variant, we will mark it as ref-ed.
+	// In case the current schema is a leaf variant, we will mark it as ref-ed.
 	if prop.isLeafVariant() {
 		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
 	}
@@ -227,6 +257,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	return prop, nil
 }
 
+// getVariantRefSet gets the variant set for both "root" and "direct".
 func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[string]struct{}, error) {
 	is, pure, rootDiscriminatorRef, err := checkDiscriminatorSchema(normSchemaRef)
 	if err != nil {
@@ -288,10 +319,32 @@ func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[s
 	return rootChildRefSet, directChildRefSet, nil
 }
 
+type AllAllOfsCache struct {
+	sync.Mutex
+	m map[string]map[string]map[string]struct{}
+}
+
+var allAllOfsCache = AllAllOfsCache{
+	Mutex: sync.Mutex{},
+	m:     map[string]map[string]map[string]struct{}{},
+}
+
 // Construct all the "allOf"s of the schemas in current spec.
 // {normRef: {normRef1, normRef2,...}, ...}
-// TODO: cache it
 func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error) {
+	var err error
+	swaggerURI, err = filepath.Abs(swaggerURI)
+	if err != nil {
+		return nil, err
+	}
+
+	allAllOfsCache.Lock()
+	defer allAllOfsCache.Unlock()
+
+	if allAllOfs, ok := allAllOfsCache.m[swaggerURI]; ok {
+		return allAllOfs, nil
+	}
+
 	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
 	if err != nil {
 		return nil, err
@@ -312,6 +365,7 @@ func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error)
 			}
 		}
 	}
+	allAllOfsCache.m[swaggerURI] = allAllOfs
 	return allAllOfs, nil
 }
 
@@ -332,13 +386,13 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 		return false, false, nil, err
 	}
 
+	if schema.Discriminator != "" {
+		return true, true, &normSchemaRef, nil
+	}
+
 	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
 	if err != nil {
 		return false, false, nil, err
-	}
-
-	if schema.Discriminator != "" {
-		return true, true, &normSchemaRef, nil
 	}
 
 	baseRefSet := map[string]struct{}{normSchemaRef.String(): {}}
@@ -373,12 +427,12 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	ref := prop.schema.Ref
 	if ref.String() == "" {
-		// Specially, if current schema is an array and the items is a ref, we need to go on expand it.
 		if prop.schema.Items == nil {
 			return false, nil
 		}
 
-		if prop.schema.Items.Schema == nil || len(prop.schema.Items.Schemas) != 0 {
+		// Specially, if current schema is an array, and the items is a ref, we need to go on expand it.
+		if prop.schema.Items.Schema == nil && len(prop.schema.Items.Schemas) == 0 {
 			return false, nil
 		}
 
@@ -412,6 +466,10 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	return prop.expandRefPropertyInPlace()
 }
 
+func (prop Property) isNonLeafVariant() bool {
+	return prop.isDiscriminator && !prop.isLeafVariant() && !prop.isPureDiscriminator
+}
+
 func (prop Property) isLeafVariant() bool {
 	if !prop.isDiscriminator {
 		return false
@@ -422,6 +480,7 @@ func (prop Property) isLeafVariant() bool {
 	return len(prop.directVariantRefSet) == 0
 }
 
+// isLeafProperty tells whether the prop is a leaf property, meaning it has no unresolved ref, sub-properties, or allOf(s).
 func (prop Property) isLeafProperty() (bool, error) {
 	p := prop.copy()
 	cyclic, err := p.expandRefPropertyInPlace()
@@ -441,7 +500,23 @@ func (prop Property) isLeafProperty() (bool, error) {
 		}
 	}
 
-	return len(p.schema.AllOf) == 0 && p.schema.Properties == nil, nil
+	if len(schema.AllOf) != 0 || schema.Properties != nil {
+		return false, nil
+	}
+
+	if schema.Items == nil {
+		return true, nil
+	}
+
+	// In case this property is an array, we will further check whether its item has defined non-primary type schema.
+	var s openapispec.Schema
+	if schema.Items.Schema != nil {
+		s = *schema.Items.Schema
+	} else {
+		s = schema.Items.Schemas[0]
+	}
+
+	return prop.propagateSubPropOfSchema(s).isLeafProperty()
 }
 
 func (props Properties) MarshalJSON() ([]byte, error) {
@@ -457,6 +532,8 @@ func (props Properties) MarshalJSON() ([]byte, error) {
 		case propertyStateGranted:
 			mm["state"] = state.State
 			mm["grant_comment"] = state.GrantComment
+		case propertyStateIgnored:
+			mm["state"] = state.State
 		default:
 			panic("will not happen")
 		}

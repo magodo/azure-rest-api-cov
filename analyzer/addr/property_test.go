@@ -85,6 +85,16 @@ func TestProperty_Contains(t *testing.T) {
 			},
 			contains: true,
 		},
+		// 7
+		{
+			addr: addr.Property{
+				{Name: "p1"},
+			},
+			oaddr: addr.Property{
+				{Name: "p1"},
+			},
+			contains: false,
+		},
 	}
 	for idx, c := range cases {
 		require.Equal(t, c.contains, c.addr.Contains(c.oaddr), idx)

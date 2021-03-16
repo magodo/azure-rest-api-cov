@@ -1,4 +1,4 @@
-package coverage_test
+package report_test
 
 import (
 	"encoding/json"
@@ -9,48 +9,48 @@ import (
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
+	"github.com/magodo/azure-rest-api-cov/analyzer/report"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewEmptyRepoCoverageStore(t *testing.T) {
+func TestNewEmptyCoverageStore(t *testing.T) {
 	pwd, err := os.Getwd()
 	require.NoError(t, err, "pwd")
 	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
 
-	expect := coverage.RepoCoverageStore{
+	expect := report.Coverage{
 		Commit: "xxx",
-		ResourceProviders: coverage.ResourceProviders{
-			"dummy": coverage.APIPaths{
-				"/{host}/{bar}": coverage.Operations{},
-				"/{host}/{foo}/def_foo": coverage.Operations{
-					"PUT": coverage.APIVersions{
+		ResourceProviders: report.ResourceProviders{
+			"dummy": report.APIPaths{
+				"/{host}/{bar}": report.Operations{},
+				"/{host}/{foo}/def_foo": report.Operations{
+					"PUT": report.APIVersions{
 						"2020-12-01": nil,
 					},
-					"GET": coverage.APIVersions{
-						"2020-12-01": nil,
-						"2021-01-01": nil,
-					},
-				},
-				"/{host}/{foo}/def_bar": coverage.Operations{
-					"POST": coverage.APIVersions{
-						"2020-12-01": nil,
-					},
-				},
-				"/{host}/{foo}/def_base": coverage.Operations{
-					"PUT": coverage.APIVersions{
+					"GET": report.APIVersions{
 						"2020-12-01": nil,
 						"2021-01-01": nil,
 					},
 				},
-				"/{host}/{foo}/def_regular": coverage.Operations{
-					"GET": coverage.APIVersions{
+				"/{host}/{foo}/def_bar": report.Operations{
+					"POST": report.APIVersions{
+						"2020-12-01": nil,
+					},
+				},
+				"/{host}/{foo}/def_base": report.Operations{
+					"PUT": report.APIVersions{
 						"2020-12-01": nil,
 						"2021-01-01": nil,
 					},
-					"PUT": coverage.APIVersions{
+				},
+				"/{host}/{foo}/def_regular": report.Operations{
+					"GET": report.APIVersions{
+						"2020-12-01": nil,
+						"2021-01-01": nil,
+					},
+					"PUT": report.APIVersions{
 						"2020-12-01": nil,
 						"2021-01-01": nil,
 					},
@@ -61,11 +61,11 @@ func TestNewEmptyRepoCoverageStore(t *testing.T) {
 
 	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
 	require.NoError(t, err, "generate index")
-	cov := coverage.NewEmptyRepoCoverageStore(*idx, "")
+	cov := report.NewEmptyCoverage(*idx, "")
 	require.Equal(t, expect, cov)
 }
 
-func TestRepoCoverageStoreAddSchema(t *testing.T) {
+func TestCoverageStoreAddSchema(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
@@ -84,26 +84,17 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
   "resource_providers": {
     "dummy": {
       "/{host}/{bar}": {},
-      "/{host}/{foo}/def_foo": {
-	    "GET": {
-          "2020-12-01": null,
-          "2021-01-01": null
-        },
-	    "PUT": {
-          "2020-12-01": null
-        }
-      },
       "/{host}/{foo}/def_bar": {
-	    "POST": {
+        "POST": {
           "2020-12-01": null
         }
       },
       "/{host}/{foo}/def_base": {
-       "PUT": {
+        "PUT": {
           "2020-12-01": {
-			"active": true,
             "name": "def_base",
             "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "active": false,
             "node": {
               "total_amount": 2,
               "covered_amount": 1,
@@ -120,27 +111,33 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
                 },
                 "{def_variant2}": {
                   "total_amount": 1,
-                  "covered_amount": 0
+                  "covered_amount": 0,
+                  "children": {
+                    "type": {
+                      "total_amount": 1,
+                      "covered_amount": 0
+                    }
+                  }
                 }
               }
             }
           },
           "2021-01-01": {
-			"active": false,
             "name": "def_base",
             "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+            "active": false,
             "node": {
-              "total_amount": 3,
+              "total_amount": 4,
               "covered_amount": 1,
               "children": {
                 "{def_variant1}": {
                   "total_amount": 2,
                   "covered_amount": 1,
                   "children": {
-					"new_prop": {
+                    "new_prop": {
                       "total_amount": 1,
                       "covered_amount": 0
-					},
+                    },
                     "type": {
                       "total_amount": 1,
                       "covered_amount": 1
@@ -148,12 +145,31 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
                   }
                 },
                 "{def_variant2}": {
-                  "total_amount": 1,
-                  "covered_amount": 0
+                  "total_amount": 2,
+                  "covered_amount": 0,
+                  "children": {
+                    "new_prop": {
+                      "total_amount": 1,
+                      "covered_amount": 0
+                    },
+                    "type": {
+                      "total_amount": 1,
+                      "covered_amount": 0
+                    }
+                  }
                 }
               }
             }
           }
+        }
+      },
+      "/{host}/{foo}/def_foo": {
+        "GET": {
+          "2020-12-01": null,
+          "2021-01-01": null
+        },
+        "PUT": {
+          "2020-12-01": null
         }
       },
       "/{host}/{foo}/def_regular": {
@@ -180,22 +196,22 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
-		cov := coverage.NewEmptyRepoCoverageStore(*index, "")
+		cov := report.NewEmptyCoverage(*index, "")
 		var schemaInput schemainput.SchemaInput
 
 		// Add active schemaInput
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		schema, err := schemaInput.ToSchema(index, true)
+		schema, err := schemaInput.ToSchema(index, true, false)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator, true), idx)
+		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator), idx)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
-		schema, err = schemaInput.ToSchema(index, true)
+		schema, err = schemaInput.ToSchema(index, true, false)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator, false), idx)
+		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator), idx)
 
 		b, err = json.MarshalIndent(cov, "", "  ")
 		require.NoError(t, err, idx)
@@ -204,24 +220,24 @@ func TestRepoCoverageStoreAddSchema(t *testing.T) {
 	}
 }
 
-func TestRepoCoverageStoreMarshal(t *testing.T) {
+func TestCoverageStoreMarshal(t *testing.T) {
 	cases := []struct {
-		input  coverage.RepoCoverageStore
+		input  report.Coverage
 		expect string
 	}{
 		{
-			input: coverage.RepoCoverageStore{
+			input: report.Coverage{
 				AdditionalMessage: "source: xxx",
 				Commit:            "xxx",
-				ResourceProviders: coverage.ResourceProviders{
-					"rp1": coverage.APIPaths{
-						"path1": coverage.Operations{
-							"PUT": coverage.APIVersions{
-								"version1": &coverage.SchemaCoverageStore{
+				ResourceProviders: report.ResourceProviders{
+					"rp1": report.APIPaths{
+						"path1": report.Operations{
+							"PUT": report.APIVersions{
+								"version1": &report.SchemaCoverage{
 									Active: true,
 									Name:   "schema1",
 									URL:    "foo/bar.json",
-									Node: coverage.PropertyCoverageNode{
+									Node: report.PropertyCoverageNode{
 										TotalAmount:   1,
 										CoveredAmount: 1,
 									},
@@ -266,10 +282,10 @@ func TestRepoCoverageStoreMarshal(t *testing.T) {
 	}
 }
 
-func TestRepoCoverageStoreUnmarshal(t *testing.T) {
+func TestCoverageStoreUnmarshal(t *testing.T) {
 	cases := []struct {
 		input  string
-		expect coverage.RepoCoverageStore
+		expect report.Coverage
 	}{
 		{
 			input: `
@@ -295,17 +311,17 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
   }
 }
 `,
-			expect: coverage.RepoCoverageStore{
+			expect: report.Coverage{
 				Commit: "xxx",
-				ResourceProviders: coverage.ResourceProviders{
-					"rp1": coverage.APIPaths{
-						"path1": coverage.Operations{
-							"PUT": coverage.APIVersions{
-								"version1": &coverage.SchemaCoverageStore{
+				ResourceProviders: report.ResourceProviders{
+					"rp1": report.APIPaths{
+						"path1": report.Operations{
+							"PUT": report.APIVersions{
+								"version1": &report.SchemaCoverage{
 									Active: true,
 									Name:   "schema1",
 									URL:    "foo/bar.json",
-									Node: coverage.PropertyCoverageNode{
+									Node: report.PropertyCoverageNode{
 										TotalAmount:   1,
 										CoveredAmount: 1,
 									},
@@ -320,7 +336,7 @@ func TestRepoCoverageStoreUnmarshal(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		cov := coverage.RepoCoverageStore{}
+		cov := report.Coverage{}
 		err := json.Unmarshal([]byte(c.input), &cov)
 		require.NoError(t, err, i)
 		require.Equal(t, c.expect, cov, i)

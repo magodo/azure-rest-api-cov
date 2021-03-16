@@ -1,4 +1,4 @@
-package coverage
+package report
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 )
 
-type SchemaCoverageStore struct {
+type SchemaCoverage struct {
 	Name      string `json:"name"`
 	URL       string `json:"url"`
 	IsPreview bool   `json:"is_preview,omitempty"`
@@ -30,16 +30,16 @@ type PropertyCoverageNode struct {
 	Children PropertyCoverageNodes `json:"children,omitempty"`
 }
 
-func NewSchemaCoverageStore(repoURLPrefix string, s swagger.Schema, active bool) (*SchemaCoverageStore, error) {
+func NewSchemaCoverage(repoURLPrefix string, s swagger.Schema) (*SchemaCoverage, error) {
 	pathInfo, err := s.SwaggerRelPath.PathInfo()
 	if err != nil {
 		return nil, err
 	}
-	store := SchemaCoverageStore{
+	store := SchemaCoverage{
 		Name:      s.Name,
 		URL:       repoURLPrefix + string(s.SwaggerRelPath),
 		IsPreview: pathInfo.IsPreview,
-		Active:    active,
+		Active:    s.Active,
 		Node: PropertyCoverageNode{
 			Children: PropertyCoverageNodes{},
 		},
@@ -54,7 +54,7 @@ func NewSchemaCoverageStore(repoURLPrefix string, s swagger.Schema, active bool)
 
 // Add adds a Property and record the coverage PropertyState in each property level.
 // If a property is added more than once, an error will be returned.
-func (store *SchemaCoverageStore) Add(propAddr addr.Property, prop swagger.Property) error {
+func (store *SchemaCoverage) Add(propAddr addr.Property, prop swagger.Property) error {
 	if _, ok := store.FindNode(propAddr); ok {
 		return fmt.Errorf("%q has already been added to the coverage store", propAddr)
 	}
@@ -67,11 +67,11 @@ func (store *SchemaCoverageStore) Add(propAddr addr.Property, prop swagger.Prope
 	return nil
 }
 
-func (store *SchemaCoverageStore) SchemaCoverage() (covered, total int) {
+func (store *SchemaCoverage) SchemaCoverage() (covered, total int) {
 	return store.Node.CoveredAmount, store.Node.TotalAmount
 }
 
-func (store *SchemaCoverageStore) FindCoverage(prop addr.Property) (covered, total int, ok bool) {
+func (store *SchemaCoverage) FindCoverage(prop addr.Property) (covered, total int, ok bool) {
 	node, ok := store.FindNode(prop)
 	if !ok {
 		return 0, 0, false
@@ -79,7 +79,7 @@ func (store *SchemaCoverageStore) FindCoverage(prop addr.Property) (covered, tot
 	return node.CoveredAmount, node.TotalAmount, true
 }
 
-func (store *SchemaCoverageStore) FindNode(prop addr.Property) (*PropertyCoverageNode, bool) {
+func (store *SchemaCoverage) FindNode(prop addr.Property) (*PropertyCoverageNode, bool) {
 	if prop == nil {
 		return nil, false
 	}

@@ -5,7 +5,30 @@ import (
 	"strings"
 )
 
+type Properties []Property
+
 type Property []PropertySegment
+
+func (props Properties) Len() int {
+	return len(props)
+}
+
+func (props Properties) Swap(i, j int) {
+	props[i], props[j] = props[j], props[i]
+}
+
+func (props Properties) Less(i, j int) bool {
+	prop, oprop := props[i], props[j]
+	for i := 0; i < len(prop) && i < len(oprop); i++ {
+		if prop[i].String() != oprop[i].String() {
+			return prop[i].String() < oprop[i].String()
+		}
+	}
+	if len(prop) != len(oprop) {
+		return len(prop) < len(oprop)
+	}
+	return true
+}
 
 func MustParseProperty(addr string) Property {
 	a, err := ParseProperty(addr)
