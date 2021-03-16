@@ -1,0 +1,4 @@
+def_to_def_base:
+  property_grant_rules: |
+    prop: granted
+    !prop{def_variant1}

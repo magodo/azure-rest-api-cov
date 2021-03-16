@@ -9,7 +9,7 @@ import (
 
 func TestMigrateGrant(t *testing.T) {
 	specRootDir := filepath.Join("testdata", "spec")
-	grantRootDir := filepath.Join("testdata", "grant")
+	grantRootDir := filepath.Join("testdata", "grant_migrate")
 
 	cases := []struct {
 		rp         string
@@ -24,16 +24,13 @@ func TestMigrateGrant(t *testing.T) {
 			srcVersion: "2020-12-01",
 			dstVersion: "2021-01-01",
 			expect: map[string][]byte{
-				filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "stable", "2021-01-01", "foo.json"): []byte(`{
-  "def_grant_still": {
-    "comment": "grant model"
-  },
-  "def_grant_update": {
-    "properties": {
-      "p1": "grant"
-    }
-  }
-}`),
+				filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "stable", "2021-01-01", "foo.yaml"): []byte(`
+def_grant_still:
+  comment: "grant model"
+
+def_grant_update:
+  property_grant_rules: |
+    p1: grant`),
 			},
 		},
 	}
@@ -43,7 +40,7 @@ func TestMigrateGrant(t *testing.T) {
 		require.NoError(t, err, idx)
 		require.Equal(t, len(c.expect), len(out), idx)
 		for k, v := range out {
-			require.JSONEq(t, string(c.expect[k]), string(v), idx)
+			require.YAMLEq(t, string(c.expect[k]), string(v), idx)
 		}
 	}
 }

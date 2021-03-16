@@ -1,8 +1,0 @@
-{
-    "def_regular": {
-        "properties": {
-            "prop_array_of_object": "granted",
-            "prop_array_of_object/prop_nested": "granted"
-        }
-    }
-}

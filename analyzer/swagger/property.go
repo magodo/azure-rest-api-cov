@@ -131,7 +131,7 @@ type Property struct {
 	// Normalized reference to variant schemas of the schema of this property. It is nil if `isDiscriminator` is false.
 	// Note that: Non-leaf variant schema has itself as its variant schema (i.e. both pure discriminator and leaf variant
 	//            do not contain itself in the rootVariantRefSet).
-	//            This is because non-leaf variant schema is both a discriminator and a variant (can be instantiate), when
+	//            This is because non-leaf variant schema is both a discriminator, and a variant (can be instantiated), when
 	//            expanding it to its variant, we will need to both instantiate itself and its children variants.
 	rootVariantRefSet map[string]struct{}
 
@@ -427,11 +427,11 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	ref := prop.schema.Ref
 	if ref.String() == "" {
-		// Specially, if current schema is an array and the items is a ref, we need to go on expand it.
 		if prop.schema.Items == nil {
 			return false, nil
 		}
 
+		// Specially, if current schema is an array, and the items is a ref, we need to go on expand it.
 		if prop.schema.Items.Schema == nil && len(prop.schema.Items.Schemas) == 0 {
 			return false, nil
 		}
@@ -466,6 +466,10 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	return prop.expandRefPropertyInPlace()
 }
 
+func (prop Property) isNonLeafVariant() bool {
+	return prop.isDiscriminator && !prop.isLeafVariant() && !prop.isPureDiscriminator
+}
+
 func (prop Property) isLeafVariant() bool {
 	if !prop.isDiscriminator {
 		return false
@@ -496,7 +500,23 @@ func (prop Property) isLeafProperty() (bool, error) {
 		}
 	}
 
-	return len(p.schema.AllOf) == 0 && p.schema.Properties == nil, nil
+	if len(schema.AllOf) != 0 || schema.Properties != nil {
+		return false, nil
+	}
+
+	if schema.Items == nil {
+		return true, nil
+	}
+
+	// In case this property is an array, we will further check whether its item has defined non-primary type schema.
+	var s openapispec.Schema
+	if schema.Items.Schema != nil {
+		s = *schema.Items.Schema
+	} else {
+		s = schema.Items.Schemas[0]
+	}
+
+	return prop.propagateSubPropOfSchema(s).isLeafProperty()
 }
 
 func (props Properties) MarshalJSON() ([]byte, error) {
@@ -512,6 +532,8 @@ func (props Properties) MarshalJSON() ([]byte, error) {
 		case propertyStateGranted:
 			mm["state"] = state.State
 			mm["grant_comment"] = state.GrantComment
+		case propertyStateIgnored:
+			mm["state"] = state.State
 		default:
 			panic("will not happen")
 		}
