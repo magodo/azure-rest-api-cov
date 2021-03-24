@@ -24,35 +24,43 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 		Commit: "xxx",
 		ResourceProviders: report.ResourceProviders{
 			"dummy": report.APIPaths{
-				"/{host}/{bar}": report.Operations{},
-				"/{host}/{foo}/def_foo": report.Operations{
-					"PUT": report.APIVersions{
-						"2020-12-01": nil,
-					},
-					"GET": report.APIVersions{
-						"2020-12-01": nil,
-						"2021-01-01": nil,
-					},
-				},
-				"/{host}/{foo}/def_bar": report.Operations{
-					"POST": report.APIVersions{
-						"2020-12-01": nil,
+				"/{host}/{bar}": report.APIPath{Operations: report.Operations{}},
+				"/{host}/{foo}/def_foo": report.APIPath{
+					Operations: map[string]report.APIVersions{
+						"PUT": {
+							"2020-12-01": nil,
+						},
+						"GET": {
+							"2020-12-01": nil,
+							"2021-01-01": nil,
+						},
 					},
 				},
-				"/{host}/{foo}/def_base": report.Operations{
-					"PUT": report.APIVersions{
-						"2020-12-01": nil,
-						"2021-01-01": nil,
+				"/{host}/{foo}/def_bar": report.APIPath{
+					Operations: map[string]report.APIVersions{
+						"POST": {
+							"2020-12-01": nil,
+						},
 					},
 				},
-				"/{host}/{foo}/def_regular": report.Operations{
-					"GET": report.APIVersions{
-						"2020-12-01": nil,
-						"2021-01-01": nil,
+				"/{host}/{foo}/def_base": report.APIPath{
+					Operations: map[string]report.APIVersions{
+						"PUT": {
+							"2020-12-01": nil,
+							"2021-01-01": nil,
+						},
 					},
-					"PUT": report.APIVersions{
-						"2020-12-01": nil,
-						"2021-01-01": nil,
+				},
+				"/{host}/{foo}/def_regular": report.APIPath{
+					Operations: map[string]report.APIVersions{
+						"GET": {
+							"2020-12-01": nil,
+							"2021-01-01": nil,
+						},
+						"PUT": {
+							"2020-12-01": nil,
+							"2021-01-01": nil,
+						},
 					},
 				},
 			},
@@ -83,78 +91,83 @@ func TestCoverageStoreAddSchema(t *testing.T) {
   "commit": "",
   "resource_providers": {
     "dummy": {
-      "/{host}/{bar}": {},
+      "/{host}/{bar}": {
+      },
       "/{host}/{foo}/def_bar": {
-        "POST": {
-          "2020-12-01": null
+        "operations": {
+          "POST": {
+            "2020-12-01": null
+          }
         }
       },
       "/{host}/{foo}/def_base": {
-        "PUT": {
-          "2020-12-01": {
-            "name": "def_base",
-            "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
-            "active": false,
-            "node": {
-              "total_amount": 2,
-              "covered_amount": 1,
-              "children": {
-                "{def_variant1}": {
-                  "total_amount": 1,
-                  "covered_amount": 1,
-                  "children": {
-                    "type": {
-                      "total_amount": 1,
-                      "covered_amount": 1
+        "operations": {
+          "PUT": {
+            "2020-12-01": {
+              "name": "def_base",
+              "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "active": false,
+              "node": {
+                "total_amount": 2,
+                "covered_amount": 1,
+                "children": {
+                  "{def_variant1}": {
+                    "total_amount": 1,
+                    "covered_amount": 1,
+                    "children": {
+                      "type": {
+                        "total_amount": 1,
+                        "covered_amount": 1
+                      }
                     }
-                  }
-                },
-                "{def_variant2}": {
-                  "total_amount": 1,
-                  "covered_amount": 0,
-                  "children": {
-                    "type": {
-                      "total_amount": 1,
-                      "covered_amount": 0
+                  },
+                  "{def_variant2}": {
+                    "total_amount": 1,
+                    "covered_amount": 0,
+                    "children": {
+                      "type": {
+                        "total_amount": 1,
+                        "covered_amount": 0
+                      }
                     }
                   }
                 }
               }
-            }
-          },
-          "2021-01-01": {
-            "name": "def_base",
-            "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
-            "active": false,
-            "node": {
-              "total_amount": 4,
-              "covered_amount": 1,
-              "children": {
-                "{def_variant1}": {
-                  "total_amount": 2,
-                  "covered_amount": 1,
-                  "children": {
-                    "new_prop": {
-                      "total_amount": 1,
-                      "covered_amount": 0
-                    },
-                    "type": {
-                      "total_amount": 1,
-                      "covered_amount": 1
+            },
+            "2021-01-01": {
+              "name": "def_base",
+              "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+              "active": false,
+              "node": {
+                "total_amount": 4,
+                "covered_amount": 1,
+                "children": {
+                  "{def_variant1}": {
+                    "total_amount": 2,
+                    "covered_amount": 1,
+                    "children": {
+                      "new_prop": {
+                        "total_amount": 1,
+                        "covered_amount": 0
+                      },
+                      "type": {
+                        "total_amount": 1,
+                        "covered_amount": 1
+                      }
                     }
-                  }
-                },
-                "{def_variant2}": {
-                  "total_amount": 2,
-                  "covered_amount": 0,
-                  "children": {
-                    "new_prop": {
-                      "total_amount": 1,
-                      "covered_amount": 0
-                    },
-                    "type": {
-                      "total_amount": 1,
-                      "covered_amount": 0
+                  },
+                  "{def_variant2}": {
+                    "total_amount": 2,
+                    "covered_amount": 0,
+                    "children": {
+                      "new_prop": {
+                        "total_amount": 1,
+                        "covered_amount": 0
+                      },
+                      "type": {
+                        "total_amount": 1,
+                        "covered_amount": 0
+                      }
                     }
                   }
                 }
@@ -164,22 +177,26 @@ func TestCoverageStoreAddSchema(t *testing.T) {
         }
       },
       "/{host}/{foo}/def_foo": {
-        "GET": {
-          "2020-12-01": null,
-          "2021-01-01": null
-        },
-        "PUT": {
-          "2020-12-01": null
+        "operations": {
+          "GET": {
+            "2020-12-01": null,
+            "2021-01-01": null
+          },
+          "PUT": {
+            "2020-12-01": null
+          }
         }
       },
       "/{host}/{foo}/def_regular": {
-        "GET": {
-          "2020-12-01": null,
-          "2021-01-01": null
-        },
-        "PUT": {
-          "2020-12-01": null,
-          "2021-01-01": null
+        "operations": {
+          "GET": {
+            "2020-12-01": null,
+            "2021-01-01": null
+          },
+          "PUT": {
+            "2020-12-01": null,
+            "2021-01-01": null
+          }
         }
       }
     }
@@ -231,19 +248,24 @@ func TestCoverageStoreMarshal(t *testing.T) {
 				Commit:            "xxx",
 				ResourceProviders: report.ResourceProviders{
 					"rp1": report.APIPaths{
-						"path1": report.Operations{
-							"PUT": report.APIVersions{
-								"version1": &report.SchemaCoverage{
-									Active: true,
-									Name:   "schema1",
-									URL:    "foo/bar.json",
-									Node: report.PropertyCoverageNode{
-										TotalAmount:   1,
-										CoveredAmount: 1,
+						"path1": report.APIPath{
+							Operations: map[string]report.APIVersions{
+								"PUT": {
+									"version1": &report.SchemaCoverage{
+										Active: true,
+										Name:   "schema1",
+										URL:    "foo/bar.json",
+										Node: report.PropertyCoverageNode{
+											TotalAmount:   1,
+											CoveredAmount: 1,
+										},
 									},
+									"version2": nil,
 								},
-								"version2": nil,
 							},
+						},
+						"path2": report.APIPath{
+							GrantComment: "granted",
 						},
 					},
 				},
@@ -255,18 +277,23 @@ func TestCoverageStoreMarshal(t *testing.T) {
   "resource_providers": {
     "rp1": {
       "path1": {
-		"PUT": {
-          "version1": {
-			"active": true,
-            "name": "schema1",
-            "url": "foo/bar.json",
-            "node": {
-              "total_amount": 1,
-              "covered_amount": 1
-            }
-          },
-          "version2": null
-		}
+        "operations": {
+          "PUT": {
+            "version1": {
+              "name": "schema1",
+              "url": "foo/bar.json",
+              "active": true,
+              "node": {
+                "total_amount": 1,
+                "covered_amount": 1
+              }
+            },
+            "version2": null
+          }
+        }
+      },
+      "path2": {
+        "grant_comment": "granted"
       }
     }
   }
@@ -278,6 +305,7 @@ func TestCoverageStoreMarshal(t *testing.T) {
 	for i, c := range cases {
 		b, err := json.MarshalIndent(c.input, "", "  ")
 		require.NoError(t, err, i)
+		t.Log(string(b))
 		require.JSONEq(t, c.expect, string(b), i)
 	}
 }
@@ -291,43 +319,55 @@ func TestCoverageStoreUnmarshal(t *testing.T) {
 			input: `
 {
   "commit": "xxx",
+  "additional_message": "source: xxx",
   "resource_providers": {
     "rp1": {
       "path1": {
-		"PUT": {
-          "version1": {
-			"active": true,
-            "name": "schema1",
-            "url": "foo/bar.json",
-            "node": {
-              "total_amount": 1,
-              "covered_amount": 1
-            }
-          },
-          "version2": null
-		}
+        "operations": {
+          "PUT": {
+            "version1": {
+              "name": "schema1",
+              "url": "foo/bar.json",
+              "active": true,
+              "node": {
+                "total_amount": 1,
+                "covered_amount": 1
+              }
+            },
+            "version2": null
+          }
+        }
+      },
+      "path2": {
+        "grant_comment": "granted"
       }
     }
   }
 }
 `,
 			expect: report.Coverage{
-				Commit: "xxx",
+				Commit:            "xxx",
+				AdditionalMessage: "source: xxx",
 				ResourceProviders: report.ResourceProviders{
 					"rp1": report.APIPaths{
-						"path1": report.Operations{
-							"PUT": report.APIVersions{
-								"version1": &report.SchemaCoverage{
-									Active: true,
-									Name:   "schema1",
-									URL:    "foo/bar.json",
-									Node: report.PropertyCoverageNode{
-										TotalAmount:   1,
-										CoveredAmount: 1,
+						"path1": report.APIPath{
+							Operations: map[string]report.APIVersions{
+								"PUT": {
+									"version1": &report.SchemaCoverage{
+										Active: true,
+										Name:   "schema1",
+										URL:    "foo/bar.json",
+										Node: report.PropertyCoverageNode{
+											TotalAmount:   1,
+											CoveredAmount: 1,
+										},
 									},
+									"version2": nil,
 								},
-								"version2": nil,
 							},
+						},
+						"path2": report.APIPath{
+							GrantComment: "granted",
 						},
 					},
 				},

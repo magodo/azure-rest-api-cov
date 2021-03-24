@@ -18,7 +18,12 @@ type ResourceProviders map[ResourceProvider]APIPaths
 
 type ResourceProvider string
 
-type APIPaths map[string]Operations
+type APIPaths map[string]APIPath
+
+type APIPath struct {
+	GrantComment string     `json:"grant_comment,omitempty"`
+	Operations   Operations `json:"operations,omitempty"`
+}
 
 type Operations map[string]APIVersions
 
@@ -38,18 +43,20 @@ func NewEmptyCoverage(index workspace.AzureRepoIndex, additionalMessage string) 
 			for _, apiPaths := range specs {
 				for apiPath, ops := range apiPaths {
 
-					covOps, ok := paths[apiPath]
+					path, ok := paths[apiPath]
 					if !ok {
-						covOps = Operations{}
-						paths[apiPath] = covOps
+						path = APIPath{
+							Operations: Operations{},
+						}
+						paths[apiPath] = path
 					}
 
 					for op := range ops {
 
-						covVersions, ok := covOps[string(op)]
+						covVersions, ok := path.Operations[string(op)]
 						if !ok {
 							covVersions = APIVersions{}
-							covOps[string(op)] = covVersions
+							path.Operations[string(op)] = covVersions
 						}
 
 						covVersions[string(version)] = nil
@@ -80,12 +87,12 @@ func (cov *Coverage) AddSchema(repoURLPrefix string, s swagger.Schema, locator w
 		return fmt.Errorf("no resource provider %q found", rp)
 	}
 
-	ops, ok := paths[locator.ApiPath]
+	path, ok := paths[locator.ApiPath]
 	if !ok {
 		return fmt.Errorf("no API path %q found for resource provider %q", locator.ApiPath, rp)
 	}
 
-	versions, ok := ops[string(locator.Operation)]
+	versions, ok := path.Operations[string(locator.Operation)]
 	if !ok {
 		return fmt.Errorf("no operation %q found for API path %q, resource provider %q", locator.Operation, locator.ApiPath, rp)
 	}

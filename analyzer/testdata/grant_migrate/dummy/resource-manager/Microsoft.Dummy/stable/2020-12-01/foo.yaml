@@ -1,9 +1,3 @@
-def_grant_deprecated:
-  comment: "grant model"
-
-def_grant_still:
-  comment: "grant model"
-
 def_grant_update:
   property_grant_rules: |
     p_deprecated: grant
