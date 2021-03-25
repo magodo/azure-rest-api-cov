@@ -16,19 +16,18 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
-	grantBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc")
+	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	grantBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "schema_grants")
 
 	cases := []struct {
 		dir    string
 		expect SchemaGrants
-		error  bool
 	}{
 		// 0. schema of variant granted
 		{
 			dir: "schema_variant",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_base": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_base": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("").AsVariant("def_variant1"),
@@ -46,7 +45,7 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 		{
 			dir: "property_simple",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_regular": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_regular": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("prop_primitive"),
@@ -69,7 +68,7 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 		{
 			dir: "property_rule",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_regular": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_regular": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("prop_array_of_object"),
@@ -91,7 +90,7 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 		{
 			dir: "property_variant_rule",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_to_def_base": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_to_def_base": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("prop"),
@@ -112,10 +111,6 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 
 	for idx, c := range cases {
 		grants, err := NewSchemaGrantsFromFiles(filepath.Join(grantBaseDir, c.dir), specBasePath, nil)
-		if c.error {
-			require.Error(t, err, idx)
-			continue
-		}
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, grants, idx)
 	}

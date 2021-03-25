@@ -3,20 +3,26 @@ package coverage
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
-	"path/filepath"
 )
 
 type Coverage ResourceProviders
 
-type ResourceProviders map[string]APIPaths
+type ResourceProviders map[string]*APIPaths
 
-type APIPaths map[string]Operations
+type APIPaths map[string]*APIPath
+
+type APIPath struct {
+	GrantComment string     `json:"grant_comment,omitempty"`
+	Operations   Operations `json:"operations,omitempty"`
+}
 
 type Operations map[string]APIVersions
 
@@ -37,20 +43,22 @@ func (cov *Coverage) AddSchema(schemaLocator workspace.SchemaLocator, schema swa
 
 	apiPaths, ok := (*cov)[rp]
 	if !ok {
-		apiPaths = APIPaths{}
+		apiPaths = &APIPaths{}
 		(*cov)[rp] = apiPaths
 	}
 
-	operations, ok := apiPaths[apiPath]
+	path, ok := (*apiPaths)[apiPath]
 	if !ok {
-		operations = Operations{}
-		apiPaths[apiPath] = operations
+		path = &APIPath{
+			Operations: Operations{},
+		}
+		(*apiPaths)[apiPath] = path
 	}
 
-	apiVersions, ok := operations[op]
+	apiVersions, ok := path.Operations[op]
 	if !ok {
 		apiVersions = APIVersions{}
-		operations[op] = apiVersions
+		path.Operations[op] = apiVersions
 	}
 
 	existSchema, ok := apiVersions[apiVersion]
@@ -61,13 +69,14 @@ func (cov *Coverage) AddSchema(schemaLocator workspace.SchemaLocator, schema swa
 	return existSchema.Merge(schema)
 }
 
-// ToSchemaInputs converts the coverage back to an array of SchemaInputs. Note that the order in the SchemaInputs are not guaranteed.
+// ToSchemaInputs converts the coverage back to an array of SchemaInputs.
+// Note that the order in the SchemaInputs are not guaranteed. Also, the granted api path are not converted.
 func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 	var schemaInputs []schemainput.SchemaInput
 
 	for _, apiPaths := range cov {
-		for apiPath, apiOperations := range apiPaths {
-			for apiOperation, apiVersions := range apiOperations {
+		for apiPath, path := range *apiPaths {
+			for apiOperation, apiVersions := range path.Operations {
 				for apiVersion, schema := range apiVersions {
 					schemaLocator := workspace.SchemaLocator{
 						SpecLocator: workspace.SpecLocator{
@@ -213,11 +222,12 @@ predictLoop:
 type FlatCoverage map[workspace.SchemaLocator]swagger.Schema
 
 // Schemas return the flattened coverage which is basically a map whose key is the schema locator, and the value is the schema.
+// Note: the granted api path are not converted.
 func (cov Coverage) Flatten() FlatCoverage {
 	flatCov := FlatCoverage{}
 	for _, apiPaths := range cov {
-		for apiPath, apiOperations := range apiPaths {
-			for apiOperation, apiVersions := range apiOperations {
+		for apiPath, path := range *apiPaths {
+			for apiOperation, apiVersions := range path.Operations {
 				for apiVersion, schema := range apiVersions {
 					schemaLocator := workspace.SchemaLocator{
 						SpecLocator: workspace.SpecLocator{

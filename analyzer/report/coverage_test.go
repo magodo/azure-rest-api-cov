@@ -23,9 +23,9 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 	expect := report.Coverage{
 		Commit: "xxx",
 		ResourceProviders: report.ResourceProviders{
-			"dummy": report.APIPaths{
-				"/{host}/{bar}": report.APIPath{Operations: report.Operations{}},
-				"/{host}/{foo}/def_foo": report.APIPath{
+			"dummy": &report.APIPaths{
+				"/{host}/{bar}": &report.APIPath{},
+				"/{host}/{foo}/def_foo": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
@@ -36,14 +36,14 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 						},
 					},
 				},
-				"/{host}/{foo}/def_bar": report.APIPath{
+				"/{host}/{foo}/def_bar": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"POST": {
 							"2020-12-01": nil,
 						},
 					},
 				},
-				"/{host}/{foo}/def_base": report.APIPath{
+				"/{host}/{foo}/def_base": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
@@ -51,7 +51,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 						},
 					},
 				},
-				"/{host}/{foo}/def_regular": report.APIPath{
+				"/{host}/{foo}/def_regular": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"GET": {
 							"2020-12-01": nil,
@@ -247,8 +247,8 @@ func TestCoverageStoreMarshal(t *testing.T) {
 				AdditionalMessage: "source: xxx",
 				Commit:            "xxx",
 				ResourceProviders: report.ResourceProviders{
-					"rp1": report.APIPaths{
-						"path1": report.APIPath{
+					"rp1": &report.APIPaths{
+						"path1": &report.APIPath{
 							Operations: map[string]report.APIVersions{
 								"PUT": {
 									"version1": &report.SchemaCoverage{
@@ -264,7 +264,7 @@ func TestCoverageStoreMarshal(t *testing.T) {
 								},
 							},
 						},
-						"path2": report.APIPath{
+						"path2": &report.APIPath{
 							GrantComment: "granted",
 						},
 					},
@@ -349,8 +349,8 @@ func TestCoverageStoreUnmarshal(t *testing.T) {
 				Commit:            "xxx",
 				AdditionalMessage: "source: xxx",
 				ResourceProviders: report.ResourceProviders{
-					"rp1": report.APIPaths{
-						"path1": report.APIPath{
+					"rp1": &report.APIPaths{
+						"path1": &report.APIPath{
 							Operations: map[string]report.APIVersions{
 								"PUT": {
 									"version1": &report.SchemaCoverage{
@@ -366,7 +366,7 @@ func TestCoverageStoreUnmarshal(t *testing.T) {
 								},
 							},
 						},
-						"path2": report.APIPath{
+						"path2": &report.APIPath{
 							GrantComment: "granted",
 						},
 					},

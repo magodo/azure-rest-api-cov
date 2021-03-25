@@ -84,7 +84,7 @@ type GrantFileFilter struct {
 	SpecName  string
 }
 
-// NewGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
+// NewSchemaGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
 // folder layout as defined by the SchemaAddr.
 func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *GrantFileFilter) (SchemaGrants, error) {
 	var swgGrant = SchemaGrants{}
@@ -107,6 +107,11 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 		specRelPath, err := filepath.Rel(grantBaseDir, path[:strings.LastIndex(path, ".")]+".json")
 		if err != nil {
 			return err
+		}
+
+		// Avoid consuming the rp grant files.
+		if !specpath.Path(specRelPath).IsSpec() {
+			return nil
 		}
 
 		if filter != nil {

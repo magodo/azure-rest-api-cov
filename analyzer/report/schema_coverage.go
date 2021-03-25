@@ -25,7 +25,7 @@ type PropertyCoverageNode struct {
 	CoveredAmount int `json:"covered_amount"`
 
 	Granted      bool   `json:"granted,omitempty"`
-	GrantMessage string `json:"grant_message,omitempty"`
+	GrantComment string `json:"grant_comment,omitempty"`
 
 	Children PropertyCoverageNodes `json:"children,omitempty"`
 }
@@ -128,7 +128,7 @@ func (node *PropertyCoverageNode) Add(propAddr addr.Property, state swagger.Prop
 	if len(propAddr) == 0 {
 		if state.IsGranted() {
 			node.Granted = true
-			node.GrantMessage = state.Message()
+			node.GrantComment = state.Message()
 		}
 
 		return

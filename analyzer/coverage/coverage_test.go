@@ -2,13 +2,14 @@ package coverage
 
 import (
 	"encoding/json"
-	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
-	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
+	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCoverage_AddSchema(t *testing.T) {
@@ -28,18 +29,20 @@ func TestCoverage_AddSchema(t *testing.T) {
 {
   "dummy": {
     "/{host}/{foo}/def_base": {
-      "PUT": {
-        "2020-12-01": {
-          "name": "def_base",
-          "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
-          "active": false,
-          "properties": {
-            "{def_variant1}/type": {
-              "state": "Covered"
+      "operations": {
+        "PUT": {
+          "2020-12-01": {
+            "name": "def_base",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "properties": {
+              "{def_variant1}/type": {
+                "state": "Covered"
+              },
+              "{def_variant2}/type": {
+                "state": "Covered"
+              }
             },
-            "{def_variant2}/type": {
-              "state": "Covered"
-            }
+            "active": false
           }
         }
       }
@@ -153,37 +156,39 @@ func TestCoverage_Predict(t *testing.T) {
 {
   "dummy": {
     "/{host}/{foo}/def_base": {
-      "PUT": {
-        "2020-12-01": {
-          "name": "def_base",
-          "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
-          "active": false,
-          "properties": {
-            "{def_variant1}/type": {
-              "state": "Covered"
+      "operations": {
+        "PUT": {
+          "2020-12-01": {
+            "name": "def_base",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "properties": {
+              "{def_variant1}/type": {
+                "state": "Covered"
+              },
+              "{def_variant2}/type": {
+                "state": "Covered"
+              }
             },
-            "{def_variant2}/type": {
-              "state": "Covered"
-            }
-          }
-        },
-        "2021-01-01": {
-          "name": "def_base",
-          "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
-          "active": false,
-          "properties": {
-            "{def_variant1}/type": {
-              "state": "Covered"
+            "active": false
+          },
+          "2021-01-01": {
+            "name": "def_base",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+            "properties": {
+              "{def_variant1}/new_prop": {
+                "state": "Uncovered"
+              },
+              "{def_variant1}/type": {
+                "state": "Covered"
+              },
+              "{def_variant2}/new_prop": {
+                "state": "Uncovered"
+              },
+              "{def_variant2}/type": {
+                "state": "Covered"
+              }
             },
-            "{def_variant1}/new_prop": {
-              "state": "Uncovered"
-            },
-            "{def_variant2}/type": {
-              "state": "Covered"
-            },
-            "{def_variant2}/new_prop": {
-              "state": "Uncovered"
-            }
+            "active": false
           }
         }
       }
