@@ -3,14 +3,15 @@ package analyzer
 import (
 	"errors"
 	"fmt"
-	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
-	"github.com/magodo/azure-rest-api-cov/analyzer/grant"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
+	"github.com/magodo/azure-rest-api-cov/analyzer/grant"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
@@ -114,35 +115,31 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 
 		var dstGrant grant.SchemaGrant
 
-		if srcGrant.IsSchemaGranted() {
-			dstGrant = srcGrant
-		} else {
-			dstSchema, err := swagger.NewEmptySchema(specRootDir, string(dstPath), dstMetaInfo.Name, true, false)
-			if err != nil {
-				return nil, err
-			}
-
-			if err := dstSchema.ExpandProperties(); err != nil {
-				return nil, err
-			}
-
-			dstGrant = srcGrant
-			// Validate each grant rule as defined in the source grant file to see whether it is take effect on the schema of the target API vesion.
-			newGrantRules := grant.PropertyGrantRules{}
-		ruleLoop:
-			for _, grantRule := range dstGrant.PropertyGrantRules {
-				for prop := range dstSchema.Properties {
-					grantProp := grantRule.Prop
-					existProp := addr.MustParseProperty(prop)
-					if grantProp.Contains(existProp) || grantProp.Equals(existProp) {
-						newGrantRules = append(newGrantRules, grantRule)
-						continue ruleLoop
-					}
-				}
-				log.Warnf("grant rule %q is thrown away as in the destination API version there is no property affected by this rule.", grantRule)
-			}
-			dstGrant.PropertyGrantRules = newGrantRules
+		dstSchema, err := swagger.NewEmptySchema(specRootDir, string(dstPath), dstMetaInfo.Name, true, false)
+		if err != nil {
+			return nil, err
 		}
+
+		if err := dstSchema.ExpandProperties(); err != nil {
+			return nil, err
+		}
+
+		dstGrant = srcGrant
+		// Validate each grant rule as defined in the source grant file to see whether it is take effect on the schema of the target API vesion.
+		newGrantRules := grant.PropertyGrantRules{}
+	ruleLoop:
+		for _, grantRule := range dstGrant.PropertyGrantRules {
+			for prop := range dstSchema.Properties {
+				grantProp := grantRule.Prop
+				existProp := addr.MustParseProperty(prop)
+				if grantProp.Contains(existProp) || grantProp.Equals(existProp) {
+					newGrantRules = append(newGrantRules, grantRule)
+					continue ruleLoop
+				}
+			}
+			log.Warnf("grant rule %q is thrown away as in the destination API version there is no property affected by this rule.", grantRule)
+		}
+		dstGrant.PropertyGrantRules = newGrantRules
 
 		dstGrantPath := strings.ReplaceAll(string(dstPath), ".json", ".yaml")
 		migrateGrantFile := migrateGrantFiles[dstGrantPath]

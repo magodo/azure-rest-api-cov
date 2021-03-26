@@ -20,9 +20,6 @@ import (
 type SchemaGrants map[string]SchemaGrant // key is the Schema.Ref()
 
 type SchemaGrant struct {
-	// The grant comment why the schema is granted. When this is set, it means the schema is to be granted at a whole.
-	Comment string `yaml:"comment,omitempty"`
-
 	PropertyGrantRules PropertyGrantRules `yaml:"property_grant_rules,omitempty"`
 
 	// A set of expanded properties that is to be granted, where the value is the property addr, and the value is the grant comment.
@@ -87,7 +84,7 @@ type GrantFileFilter struct {
 	SpecName  string
 }
 
-// NewGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
+// NewSchemaGrantsFromFiles construct a SchemaGrants from a grant folder which contains the
 // folder layout as defined by the SchemaAddr.
 func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *GrantFileFilter) (SchemaGrants, error) {
 	var swgGrant = SchemaGrants{}
@@ -110,6 +107,11 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 		specRelPath, err := filepath.Rel(grantBaseDir, path[:strings.LastIndex(path, ".")]+".json")
 		if err != nil {
 			return err
+		}
+
+		// Avoid consuming the rp grant files.
+		if !specpath.Path(specRelPath).IsSpec() {
+			return nil
 		}
 
 		if filter != nil {
@@ -298,22 +300,11 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 	return nil, "", nil
 }
 
-func (g SchemaGrant) IsSchemaGranted() bool {
-	return g.Comment != "" && len(g.PropertyGrantRules) == 0
-}
-
 // Grant inquiries the SchemaGrants to Add the granting information onto the Schema
 // If strict is on, this function will raise error if any properties appear in grant doesn't exist in the schema.
 // In the strict mode, it will also ensure the to be granted property is in state "uncovered".
 // Non-strict mode is useful for using grant from other API versions to try to grant current API version, in the best effort way.
 func (g SchemaGrant) Grant(c *swagger.Schema, strict bool) error {
-	if g.IsSchemaGranted() {
-		c.IsGranted = true
-		c.GrantComment = g.Comment
-		c.Properties = nil
-		return nil
-	}
-
 	for propAddr, grantComment := range g.grantedProperties {
 		property, ok := c.Properties[propAddr]
 		if !ok {

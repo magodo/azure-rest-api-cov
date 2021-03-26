@@ -3,13 +3,14 @@ package analyzer
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"strings"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/grant"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
-	"strings"
 )
 
 type GrantContext struct {
@@ -39,9 +40,11 @@ func Grant(in io.Reader, ctx GrantContext) (string, error) {
 		return "", err
 	}
 
+	// Grant schemas
+
 	flatCov := cov.Flatten()
 
-	grants, err := grant.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepo.SpecRootDir, nil)
+	sgs, err := grant.NewSchemaGrantsFromFiles(wsp.GrantRepo.RootDir, wsp.AzureRepo.SpecRootDir, nil)
 	if err != nil {
 		return "", err
 	}
@@ -49,7 +52,7 @@ func Grant(in io.Reader, ctx GrantContext) (string, error) {
 	var hintMessages []string
 	for k := range flatCov {
 		schema := flatCov[k]
-		g, matchRef, err := grants.GetGrantForSchema(schema.Ref())
+		g, matchRef, err := sgs.GetGrantForSchema(schema.Ref())
 		if err != nil {
 			return "", err
 		}
@@ -80,6 +83,30 @@ func Grant(in io.Reader, ctx GrantContext) (string, error) {
 	cov, err = flatCov.Structuralize()
 	if err != nil {
 		return "", err
+	}
+
+	// Grant rps
+	rpgs, err := grant.NewRPGrantsFromFiles(wsp.GrantRepo.RootDir)
+	if err != nil {
+		return "", err
+	}
+
+	for rp, rpg := range rpgs {
+		log.Infof("Granting for RP %v", rp)
+		apiPaths, ok := cov[rp]
+		if !ok {
+			apiPaths = &coverage.APIPaths{}
+			cov[rp] = apiPaths
+		}
+
+		for path, grantComment := range rpg {
+			apiPath, ok := (*apiPaths)[path]
+			if !ok {
+				apiPath = &coverage.APIPath{}
+				(*apiPaths)[path] = apiPath
+			}
+			apiPath.GrantComment = grantComment
+		}
 	}
 
 	b, err = json.MarshalIndent(cov, "", "  ")

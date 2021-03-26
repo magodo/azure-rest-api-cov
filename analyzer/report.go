@@ -3,12 +3,13 @@ package analyzer
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/report"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
 )
 
 type ReportContext struct {
@@ -36,6 +37,7 @@ func Report(in io.Reader, ctx ReportContext) (string, error) {
 		return "", err
 	}
 
+	// Adding the schema coverage to report
 	flatCov := cov.Flatten()
 	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
 
@@ -43,6 +45,15 @@ func Report(in io.Reader, ctx ReportContext) (string, error) {
 	for k, schema := range flatCov {
 		if err := covReport.AddSchema(azureRepoURLPrefix, schema, k); err != nil {
 			return "", err
+		}
+	}
+
+	// Adding any granted api path to report
+	for rpName, apiPaths := range cov {
+		for pathName, apiPath := range *apiPaths {
+			if apiPath.GrantComment != "" {
+				(*covReport.ResourceProviders[report.ResourceProvider(rpName)])[pathName].GrantComment = apiPath.GrantComment
+			}
 		}
 	}
 

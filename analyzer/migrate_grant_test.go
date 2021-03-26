@@ -25,9 +25,6 @@ func TestMigrateGrant(t *testing.T) {
 			dstVersion: "2021-01-01",
 			expect: map[string][]byte{
 				filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "stable", "2021-01-01", "foo.yaml"): []byte(`
-def_grant_still:
-  comment: "grant model"
-
 def_grant_update:
   property_grant_rules: |
     p1: grant`),

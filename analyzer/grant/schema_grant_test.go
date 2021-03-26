@@ -16,30 +16,18 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "swagger")
-	grantBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "grant_adhoc")
+	specBasePath := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
+	grantBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "schema_grants")
 
 	cases := []struct {
 		dir    string
 		expect SchemaGrants
-		error  bool
 	}{
-		// 0. schema granted
-		{
-			dir: "schema",
-			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_foo": {
-					Comment:           "granted",
-					grantedProperties: map[string]string{},
-				},
-			},
-		},
-
-		// 1. schema of variant granted
+		// 0. schema of variant granted
 		{
 			dir: "schema_variant",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_base": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_base": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("").AsVariant("def_variant1"),
@@ -53,11 +41,11 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 			},
 		},
 
-		// 2. schema property granted
+		// 1. schema property granted
 		{
 			dir: "property_simple",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_regular": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_regular": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("prop_primitive"),
@@ -76,11 +64,11 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 			},
 		},
 
-		// 3. schema property grant rule
+		// 2. schema property grant rule
 		{
 			dir: "property_rule",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_regular": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_regular": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("prop_array_of_object"),
@@ -98,11 +86,11 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 			},
 		},
 
-		// 4. schema variant property grant rule
+		// 3. schema variant property grant rule
 		{
 			dir: "property_variant_rule",
 			expect: map[string]SchemaGrant{
-				"foo.json#/definitions/def_to_def_base": {
+				"dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json#/definitions/def_to_def_base": {
 					PropertyGrantRules: PropertyGrantRules{
 						PropertyGrantRule{
 							Prop:    addr.MustParseProperty("prop"),
@@ -123,10 +111,6 @@ func TestNewSchemaGrantsFromFiles(t *testing.T) {
 
 	for idx, c := range cases {
 		grants, err := NewSchemaGrantsFromFiles(filepath.Join(grantBaseDir, c.dir), specBasePath, nil)
-		if c.error {
-			require.Error(t, err, idx)
-			continue
-		}
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, grants, idx)
 	}
@@ -204,18 +188,7 @@ func TestSchemaGrant_Grant(t *testing.T) {
 		expectSchema swagger.Schema
 		hasError     bool
 	}{
-		// 0: schema is granted
-		{
-			grant: SchemaGrant{
-				Comment: "schema is granted",
-			},
-			schema: swagger.Schema{},
-			expectSchema: swagger.Schema{
-				IsGranted:    true,
-				GrantComment: "schema is granted",
-			},
-		},
-		// 1: property granted
+		// 0: property granted
 		{
 			grant: SchemaGrant{
 				grantedProperties: map[string]string{
@@ -237,7 +210,7 @@ func TestSchemaGrant_Grant(t *testing.T) {
 				},
 			},
 		},
-		// 2: grant unknown property cause error
+		// 1: grant unknown property cause error
 		{
 			grant: SchemaGrant{
 				grantedProperties: map[string]string{
@@ -249,7 +222,7 @@ func TestSchemaGrant_Grant(t *testing.T) {
 			},
 			hasError: true,
 		},
-		// 3: grant property of non-uncovered state cause error
+		// 2: grant property of non-uncovered state cause error
 		{
 			grant: SchemaGrant{
 				grantedProperties: map[string]string{

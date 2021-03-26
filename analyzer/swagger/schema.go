@@ -45,10 +45,6 @@ type Schema struct {
 	SchemaMetaInfo
 	Properties Properties `json:"properties"`
 
-	// Whether this property is granted to be not to implement in Terraform?
-	IsGranted    bool   `json:",omitempty"`
-	GrantComment string `json:",omitempty"`
-
 	// Whether this schema is from the schemaInput? Otherwise, it means the schema is from prediction.
 	Active bool `json:"active"`
 
@@ -402,9 +398,6 @@ func (s *Schema) addProperties(props Properties) {
 }
 
 func (s Schema) HasGrantedAny() bool {
-	if s.IsGranted {
-		return true
-	}
 	for _, prop := range s.Properties {
 		if prop.IsGranted() {
 			return true

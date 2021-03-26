@@ -72,7 +72,6 @@ func (locators SchemaLocators) Swap(i, j int) {
 	locators[i], locators[j] = locators[j], locators[i]
 }
 
-
 // NewSchemaLocatorFromPattern create a SchemaLocator from the pattern in the format of: <API Path>:<Operation>:<API Version>
 func NewSchemaLocatorFromPattern(p string) (SchemaLocator, error) {
 	segments := strings.Split(p, ":")
@@ -490,7 +489,7 @@ func (index *AzureRepoIndex) SpecLookupView() map[SpecLocator]specpath.Path {
 func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (specpath.Path, error) {
 	p, ok := index.SpecLookupView()[locator]
 	if !ok {
-		return "", fmt.Errorf("can't locate swagger spec by (%q, %q), this might because this tuple ends up with multiple swagger specs: %w",
+		return "", fmt.Errorf("Can't locate swagger spec by (%q, %q). This might either because this tuple ends up with multiple swagger specs, or the API version you're predicting dones't contain this api path: %w",
 			locator.ApiVersion, locator.ApiPath, ErrFailedToLocateSwagger)
 	}
 	return p, nil
