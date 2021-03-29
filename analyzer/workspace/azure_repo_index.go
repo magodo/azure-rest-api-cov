@@ -28,12 +28,14 @@ var (
 type OperationKind string
 
 const (
-	OperationKindGet    OperationKind = "GET"
-	OperationKindPut                  = "PUT"
-	OperationKindPost                 = "POST"
-	OperationKindPatch                = "PATCH"
-	OperationKindDelete               = "DELETE"
-	OperationKindGlob                 = "*"
+	OperationKindGet     OperationKind = "GET"
+	OperationKindPut                   = "PUT"
+	OperationKindPost                  = "POST"
+	OperationKindDelete                = "DELETE"
+	OperationKindOptions               = "OPTIONS"
+	OperationKindHead                  = "HEAD"
+	OperationKindPatch                 = "PATCH"
+	OperationKindGlob                  = "*"
 )
 
 type SpecLocator struct {
@@ -278,11 +280,13 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 	}
 
 	ops := map[OperationKind]*openapispec.Operation{
-		OperationKindGet:    pathItem.Get,
-		OperationKindPut:    pathItem.Put,
-		OperationKindPost:   pathItem.Post,
-		OperationKindPatch:  pathItem.Patch,
-		OperationKindDelete: pathItem.Delete,
+		OperationKindGet:     pathItem.Get,
+		OperationKindPut:     pathItem.Put,
+		OperationKindPost:    pathItem.Post,
+		OperationKindDelete:  pathItem.Delete,
+		OperationKindOptions: pathItem.Options,
+		OperationKindHead:    pathItem.Head,
+		OperationKindPatch:   pathItem.Patch,
 	}
 	infos := map[OperationKind]*SchemaInfo{}
 	for kind, op := range ops {
@@ -301,7 +305,7 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 			info, err = getSchemaInfoFromParameter(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
 		case OperationKindGet:
 			info, err = getSchemaInfoFromResponse(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
-		case OperationKindDelete:
+		case OperationKindDelete, OperationKindHead, OperationKindOptions:
 			// do nothing as the schema info is always null
 		default:
 			return nil, fmt.Errorf("invalid operation kind %q for api path %q", kind, apiPath)
