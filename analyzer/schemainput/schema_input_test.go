@@ -80,6 +80,7 @@ func TestToSchema(t *testing.T) {
 	}
 }`,
 		},
+		// 3
 		{
 			schemaInput: filepath.Join(schemaBasePath, "def_bar", "def_bar.json"),
 			expectProperties: `{
@@ -88,7 +89,11 @@ func TestToSchema(t *testing.T) {
 	}
 }`,
 		},
-		// New API version removed the API path
+		// 4. schema-less operation
+		{
+			schemaInput: filepath.Join(schemaBasePath, "def_foo", "def_foo_delete.json"),
+		},
+		// 5. New API version removed the API path
 		{
 			schemaInput:  filepath.Join(schemaBasePath, "def_bar", "def_bar.json"),
 			shiftVersion: "2021-01-01",
@@ -102,7 +107,7 @@ func TestToSchema(t *testing.T) {
 	}
 }`,
 		},
-		// New API version removed the API operation
+		// 6. New API version removed the API operation
 		{
 			schemaInput:  filepath.Join(schemaBasePath, "def_foo", "def_foo.json"),
 			shiftVersion: "2021-01-01",
@@ -129,6 +134,10 @@ func TestToSchema(t *testing.T) {
 			require.NoError(t, err, idx)
 		} else {
 			require.Condition(t, func() bool { return errors.Is(err, c.err) }, idx)
+			continue
+		}
+
+		if schema.Properties == nil {
 			continue
 		}
 

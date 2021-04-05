@@ -37,6 +37,10 @@ func TestNewAzureRepoIndex(t *testing.T) {
             "GET": {
               "name": "def_foo",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+            },
+            "DELETE": {
+              "name": "",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
             }
           },
           "/{host}/{foo}/def_bar": {
@@ -68,6 +72,10 @@ func TestNewAzureRepoIndex(t *testing.T) {
           "/{host}/{foo}/def_foo": {
             "GET": {
               "name": "def_foo",
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+            },
+            "DELETE": {
+              "name": "",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
             }
           },
@@ -194,11 +202,11 @@ func TestAzureRepoIndexLocateSchema(t *testing.T) {
 	require.NoError(t, err)
 
 	for idx, c := range cases {
-		name, p, err := index.LocateSchema(c.locator)
+		info, err := index.LocateSchema(c.locator)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, result{
-			schemaName:  name,
-			specRelPath: string(p),
+			schemaName:  info.Name,
+			specRelPath: string(info.SpecRelPath),
 		}, idx)
 	}
 }

@@ -34,6 +34,10 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 							"2020-12-01": nil,
 							"2021-01-01": nil,
 						},
+						"DELETE": {
+							"2020-12-01": nil,
+							"2021-01-01": nil,
+						},
 					},
 				},
 				"/{host}/{foo}/def_bar": &report.APIPath{
@@ -184,6 +188,10 @@ func TestCoverageStoreAddSchema(t *testing.T) {
           },
           "PUT": {
             "2020-12-01": null
+          },
+          "DELETE": {
+            "2020-12-01": null,
+            "2021-01-01": null
           }
         }
       },

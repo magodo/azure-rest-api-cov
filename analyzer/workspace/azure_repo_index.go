@@ -306,12 +306,19 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 		case OperationKindGet:
 			info, err = getSchemaInfoFromResponse(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
 		case OperationKindDelete, OperationKindHead, OperationKindOptions:
-			// do nothing as the schema info is always null
 		default:
 			return nil, fmt.Errorf("invalid operation kind %q for api path %q", kind, apiPath)
 		}
 		if err != nil {
 			return nil, err
+		}
+
+		// For schema-less operations, only set the spec relative path.
+		if info == nil {
+			info = &SchemaInfo{
+				Name:        "",
+				SpecRelPath: specpath.Path(specRelPathDefAPI),
+			}
 		}
 		infos[kind] = info
 	}
@@ -499,35 +506,33 @@ func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (specpath.Path, err
 	return p, nil
 }
 
-// LocateSchema locates the schema name and the Swagger Spec that defines the "in-body" parameter (for PUT/POST/PATCH operations)
+// LocateSchema locates the schema info that defines the "in-body" parameter (for PUT/POST/PATCH operations)
 // or 200 response (for GET operation) on the API path of the API version as defined in the locator.
+// For other operations, it returns a info with an empty name and a repl path to the swagger file defining the api path.
 // The spec path might be different that the one that defines the API path.
-// On success, it returns the schema name and the relative path to the swagger spec.
-func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (schemaName string, swaggerRelPath specpath.Path, err error) {
+func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (info *SchemaInfo, err error) {
 	swaggerRelPathDefApiPath, err := index.LocateSpec(locator.SpecLocator)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
-	swaggerPathDefApiPath := filepath.Join(index.SpecRootDir, string(swaggerRelPathDefApiPath))
-
-	swg, err := swaggerloader.LoadSwagger(swaggerPathDefApiPath)
+	swg, err := swaggerloader.LoadSwagger(filepath.Join(index.SpecRootDir, string(swaggerRelPathDefApiPath)))
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	pathItem := swg.Paths.Paths[locator.ApiPath]
 	schemaInfos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 
 	info, ok := schemaInfos[locator.Operation]
 	if !ok {
-		return "", "", fmt.Errorf("no schema info found for schema locator %v: %w", locator, ErrFailedToLocateSchema)
+		return nil, fmt.Errorf("no schema info found for schema locator %v: %w", locator, ErrFailedToLocateSchema)
 	}
 
-	return info.Name, info.SpecRelPath, nil
+	return info, nil
 }
 
 //func (index *AzureRepoIndex) Refresh() error {
