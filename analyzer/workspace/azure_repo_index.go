@@ -48,6 +48,10 @@ type SchemaLocator struct {
 	Operation OperationKind `json:"operation"`
 }
 
+func (s SchemaLocator) String() string {
+	return fmt.Sprintf("%s %s %s", s.ApiPath, s.Operation, s.ApiVersion)
+}
+
 type SchemaLocators []SchemaLocator
 
 func (locators SchemaLocators) Len() int {
