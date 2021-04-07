@@ -29,7 +29,8 @@
             }
           }
         ]
-      }
+      },
+      "delete": {}
     },
     "/{host}/{foo}/def_bar": {
       "post": {
@@ -355,19 +356,16 @@
         "p1": {}
       }
     },
-
     "def_grant_still": {},
-
     "def_activity": {
       "discriminator": "type",
       "properties": {
-         "type": {},
-         "actor": {
-           "$ref": "#/definitions/def_actor"
-         }
+        "type": {},
+        "actor": {
+          "$ref": "#/definitions/def_actor"
+        }
       }
     },
-
     "def_grant_still": {},
     "def_contain_map": {
       "properties": {
@@ -390,7 +388,6 @@
         }
       }
     },
-
     "def_activity_a": {
       "allOf": [
         {
@@ -398,7 +395,6 @@
         }
       ]
     },
-
     "def_actor": {
       "discriminator": "type",
       "properties": {
@@ -408,7 +404,6 @@
         }
       }
     },
-
     "def_actor_a": {
       "allOf": [
         {

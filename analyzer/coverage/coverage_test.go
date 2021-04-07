@@ -24,7 +24,9 @@ func TestCoverage_AddSchema(t *testing.T) {
 		expect       string
 	}{
 		{
-			schemaInputs: []string{filepath.Join(schemaBasePath, "def_base", "def_variant1.json"), filepath.Join(schemaBasePath, "def_base", "def_variant2.json")},
+			schemaInputs: []string{filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
+				filepath.Join(schemaBasePath, "def_base", "def_variant2.json"),
+				filepath.Join(schemaBasePath, "def_foo", "def_foo_delete.json")},
 			expect: `
 {
   "dummy": {
@@ -42,7 +44,19 @@ func TestCoverage_AddSchema(t *testing.T) {
                 "state": "Covered"
               }
             },
-            "active": false
+            "active": true
+          }
+        }
+      }
+    },
+    "/{host}/{foo}/def_foo": {
+      "operations": {
+        "DELETE": {
+          "2020-12-01": {
+            "name": "",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "properties": {},
+            "active": true
           }
         }
       }
@@ -67,7 +81,7 @@ func TestCoverage_AddSchema(t *testing.T) {
 			err = json.Unmarshal(b, &schemaInput)
 			require.NoError(t, err, idx)
 
-			schema, err := schemaInput.ToSchema(index, true, false)
+			schema, err := schemaInput.ToSchema(index, true, true)
 			require.NoError(t, err, idx)
 			require.NoError(t, cov.AddSchema(schemaInput.SchemaLocator, *schema), idx)
 		}
@@ -90,7 +104,9 @@ func TestCoverage_ToSchemaInputs(t *testing.T) {
 		schemaInputs []string
 	}{
 		{
-			schemaInputs: []string{filepath.Join(schemaBasePath, "def_base", "def_variant1.json"), filepath.Join(schemaBasePath, "def_base", "def_variant2.json")},
+			schemaInputs: []string{filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
+				filepath.Join(schemaBasePath, "def_base", "def_variant2.json"),
+				filepath.Join(schemaBasePath, "def_foo", "def_foo_delete.json")},
 		},
 	}
 
@@ -151,10 +167,30 @@ func TestCoverage_Predict(t *testing.T) {
 		expect       string
 	}{
 		{
-			schemaInputs: []string{filepath.Join(schemaBasePath, "def_base", "def_variant1.json"), filepath.Join(schemaBasePath, "def_base", "def_variant2.json")},
+			schemaInputs: []string{filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
+				filepath.Join(schemaBasePath, "def_base", "def_variant2.json"),
+				filepath.Join(schemaBasePath, "def_foo", "def_foo_delete.json")},
 			expect: `
 {
   "dummy": {
+    "/{host}/{foo}/def_foo": {
+      "operations": {
+        "DELETE": {
+          "2020-12-01": {
+            "name": "",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+            "properties": {},
+            "active": true
+          },
+          "2021-01-01": {
+            "name": "",
+            "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+            "properties": {},
+            "active": false
+          }
+        }
+      }
+    },
     "/{host}/{foo}/def_base": {
       "operations": {
         "PUT": {
@@ -169,7 +205,7 @@ func TestCoverage_Predict(t *testing.T) {
                 "state": "Covered"
               }
             },
-            "active": false
+            "active": true
           },
           "2021-01-01": {
             "name": "def_base",
@@ -218,7 +254,7 @@ func TestCoverage_Predict(t *testing.T) {
 		}
 
 		for _, schemaInput := range activeSchemaInputs {
-			schema, err := schemaInput.ToSchema(index, true, false)
+			schema, err := schemaInput.ToSchema(index, true, true)
 			require.NoError(t, err, idx)
 			require.NoError(t, cov.AddSchema(schemaInput.SchemaLocator, *schema), idx)
 		}

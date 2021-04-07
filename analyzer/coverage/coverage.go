@@ -211,6 +211,7 @@ predictLoop:
 				}
 				return err
 			}
+
 			if err := cov.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
 				return err
 			}

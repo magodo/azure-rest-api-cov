@@ -19,8 +19,14 @@ const swaggerExtensionMSDiscriminatorValue = "x-ms-discriminator-value"
 const rootProp = ""
 
 type SchemaMetaInfo struct {
-	Name           string        `json:"name"`
+	// In case this is a schema-less operation's meta info, the Name is empty string.
+	Name string `json:"name"`
+
+	// The rel path to the Swagger defining this schema. Especially, for schema-less operation's meta info, this is the path to the Swagger defining the API path.
 	SwaggerRelPath specpath.Path `json:"swagger_rel_path"`
+
+	// Whether this schema is from the schemaInput? Otherwise, it means the schema is from prediction.
+	Active bool `json:"active"`
 }
 
 // Ref returns a hypothetical schema reference. It is mainly used as a unique ID of the schema, to be used in log message or map key.
@@ -41,12 +47,10 @@ func ParseSchemaMetaInfoRef(input string) (*SchemaMetaInfo, error) {
 
 }
 
+// Schema records the information for a schema. Especially, it is also used for storing meta information for schema-less operations.
 type Schema struct {
 	SchemaMetaInfo
 	Properties Properties `json:"properties"`
-
-	// Whether this schema is from the schemaInput? Otherwise, it means the schema is from prediction.
-	Active bool `json:"active"`
 
 	// The full URI of the Swagger file that defines this schema.
 	swaggerURI string
@@ -59,8 +63,8 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forRespon
 		SchemaMetaInfo: SchemaMetaInfo{
 			Name:           schemaName,
 			SwaggerRelPath: specpath.Path(swaggerRelPath),
+			Active:         active,
 		},
-		Active:     active,
 		swaggerURI: swaggerURI,
 	}
 

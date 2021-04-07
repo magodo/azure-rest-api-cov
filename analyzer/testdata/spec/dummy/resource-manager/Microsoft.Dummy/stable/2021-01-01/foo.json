@@ -18,7 +18,8 @@
             }
           }
         }
-      }
+      },
+      "delete": {}
     },
     "/{host}/{foo}/def_regular": {
       "get": {

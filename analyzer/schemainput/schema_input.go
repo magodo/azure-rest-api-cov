@@ -12,11 +12,23 @@ type SchemaInput struct {
 }
 
 func (schemaInput SchemaInput) ToSchema(index *workspace.AzureRepoIndex, strict, active bool) (*swagger.Schema, error) {
-	name, relPath, err := index.LocateSchema(schemaInput.SchemaLocator)
+	info, err := index.LocateSchema(schemaInput.SchemaLocator)
 	if err != nil {
 		return nil, err
 	}
 
+	// For schema-less operations, e.g. DELETE, just return nil.
+	if info.Name == "" {
+		return &swagger.Schema{
+			SchemaMetaInfo: swagger.SchemaMetaInfo{
+				Name:           info.Name,
+				SwaggerRelPath: info.SpecRelPath,
+				Active:         active,
+			},
+		}, nil
+	}
+
+	name, relPath := info.Name, info.SpecRelPath
 	schema, err := swagger.ProcessCoverageForSchema(index.SpecRootDir, string(relPath), name, schemaInput.Variant, schemaInput.Properties, schemaInput.Operation == workspace.OperationKindGet, strict, active)
 	if err != nil {
 		return nil, err
