@@ -24,8 +24,8 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 		Commit: "xxx",
 		ResourceProviders: report.ResourceProviders{
 			"dummy": &report.APIPaths{
-				"/{host}/{bar}": &report.APIPath{},
-				"/{host}/{foo}/def_foo": &report.APIPath{
+				"/{}/{}": &report.APIPath{},
+				"/{}/{}/DEF_FOO": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
@@ -40,14 +40,14 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 						},
 					},
 				},
-				"/{host}/{foo}/def_bar": &report.APIPath{
+				"/{}/{}/DEF_BAR": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"POST": {
 							"2020-12-01": nil,
 						},
 					},
 				},
-				"/{host}/{foo}/def_base": &report.APIPath{
+				"/{}/{}/DEF_BASE": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
@@ -55,7 +55,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 						},
 					},
 				},
-				"/{host}/{foo}/def_regular": &report.APIPath{
+				"/{}/{}/DEF_REGULAR": &report.APIPath{
 					Operations: map[string]report.APIVersions{
 						"GET": {
 							"2020-12-01": nil,
@@ -95,16 +95,16 @@ func TestCoverageStoreAddSchema(t *testing.T) {
   "commit": "",
   "resource_providers": {
     "dummy": {
-      "/{host}/{bar}": {
+      "/{}/{}": {
       },
-      "/{host}/{foo}/def_bar": {
+      "/{}/{}/DEF_BAR": {
         "operations": {
           "POST": {
             "2020-12-01": null
           }
         }
       },
-      "/{host}/{foo}/def_base": {
+      "/{}/{}/DEF_BASE": {
         "operations": {
           "PUT": {
             "2020-12-01": {
@@ -180,7 +180,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
           }
         }
       },
-      "/{host}/{foo}/def_foo": {
+      "/{}/{}/DEF_FOO": {
         "operations": {
           "GET": {
             "2020-12-01": null,
@@ -195,7 +195,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
           }
         }
       },
-      "/{host}/{foo}/def_regular": {
+      "/{}/{}/DEF_REGULAR": {
         "operations": {
           "GET": {
             "2020-12-01": null,

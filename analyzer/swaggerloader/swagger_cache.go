@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
+
 	"github.com/go-openapi/loads"
 	openapispec "github.com/go-openapi/spec"
 )
@@ -39,6 +41,16 @@ func LoadSwagger(swaggerURI string) (*openapispec.Swagger, error) {
 	doc, err := loads.Spec(swaggerURI)
 	if err != nil {
 		return nil, fmt.Errorf("loading swagger spec %s: %w", swaggerURI, err)
+	}
+
+	spec := doc.Spec()
+
+	// Normalize the API path
+	if spec.Paths != nil {
+		for p, item := range spec.Paths.Paths {
+			delete(spec.Paths.Paths, p)
+			spec.Paths.Paths[utils.NormalizeAPIPath(p)] = item
+		}
 	}
 
 	swaggerCache.m[swaggerURI] = doc.Spec()

@@ -1,6 +1,6 @@
 {
   "api_version": "2020-12-01",
-  "api_path": "/{host}/{foo}/def_bar",
+  "api_path": "/{}/{}/DEF_BAR",
   "operation": "POST",
   "properties": [
     "bar"

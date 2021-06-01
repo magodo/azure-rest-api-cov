@@ -222,7 +222,7 @@ predictLoop:
 
 type FlatCoverage map[workspace.SchemaLocator]swagger.Schema
 
-// Schemas return the flattened coverage which is basically a map whose key is the schema locator, and the value is the schema.
+// Flatten return the flattened coverage which is basically a map whose key is the schema locator, and the value is the schema.
 // Note: the granted api path are not converted.
 func (cov Coverage) Flatten() FlatCoverage {
 	flatCov := FlatCoverage{}

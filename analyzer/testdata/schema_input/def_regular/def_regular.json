@@ -1,6 +1,6 @@
 {
   "api_version": "2020-12-01",
-  "api_path": "/{host}/{foo}/def_regular",
+  "api_path": "/{}/{}/DEF_REGULAR",
   "operation": "PUT",
   "properties": [
     "prop_primitive"
