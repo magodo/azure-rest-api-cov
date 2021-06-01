@@ -1,6 +1,6 @@
 {
   "api_version": "2020-12-01",
-  "api_path": "/{host}/{foo}/def_base",
+  "api_path": "/{}/{}/DEF_BASE",
   "operation": "PUT",
   "variant": "def_variant2",
   "properties": [

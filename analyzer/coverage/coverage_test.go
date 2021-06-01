@@ -30,7 +30,7 @@ func TestCoverage_AddSchema(t *testing.T) {
 			expect: `
 {
   "dummy": {
-    "/{host}/{foo}/def_base": {
+    "/{}/{}/DEF_BASE": {
       "operations": {
         "PUT": {
           "2020-12-01": {
@@ -49,7 +49,7 @@ func TestCoverage_AddSchema(t *testing.T) {
         }
       }
     },
-    "/{host}/{foo}/def_foo": {
+    "/{}/{}/DEF_FOO": {
       "operations": {
         "DELETE": {
           "2020-12-01": {
@@ -173,7 +173,7 @@ func TestCoverage_Predict(t *testing.T) {
 			expect: `
 {
   "dummy": {
-    "/{host}/{foo}/def_foo": {
+    "/{}/{}/DEF_FOO": {
       "operations": {
         "DELETE": {
           "2020-12-01": {
@@ -191,7 +191,7 @@ func TestCoverage_Predict(t *testing.T) {
         }
       }
     },
-    "/{host}/{foo}/def_base": {
+    "/{}/{}/DEF_BASE": {
       "operations": {
         "PUT": {
           "2020-12-01": {

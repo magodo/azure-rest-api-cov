@@ -24,12 +24,12 @@ func TestNewAzureRepoIndex(t *testing.T) {
     "dummy": {
       "2020-12-01-preview": {
         "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json": {
-          "/{host}/{bar}": {}
+          "/{}/{}": {}
         }
       },
       "2020-12-01": {
         "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
-          "/{host}/{foo}/def_foo": {
+          "/{}/{}/DEF_FOO": {
             "PUT": {
               "name": "def_foo",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
@@ -43,19 +43,19 @@ func TestNewAzureRepoIndex(t *testing.T) {
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
             }
           },
-          "/{host}/{foo}/def_bar": {
+          "/{}/{}/DEF_BAR": {
             "POST": {
               "name": "def_bar",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json"
             }
           },
-          "/{host}/{foo}/def_base": {
+          "/{}/{}/DEF_BASE": {
             "PUT": {
               "name": "def_base",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
             }
           },
-          "/{host}/{foo}/def_regular": {
+          "/{}/{}/DEF_REGULAR": {
             "GET": {
               "name": "def_regular",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
@@ -69,7 +69,7 @@ func TestNewAzureRepoIndex(t *testing.T) {
       },
       "2021-01-01": {
         "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json": {
-          "/{host}/{foo}/def_foo": {
+          "/{}/{}/DEF_FOO": {
             "GET": {
               "name": "def_foo",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
@@ -79,13 +79,13 @@ func TestNewAzureRepoIndex(t *testing.T) {
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
             }
           },
-          "/{host}/{foo}/def_base": {
+          "/{}/{}/DEF_BASE": {
             "PUT": {
               "name": "def_base",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
             }
           },
-          "/{host}/{foo}/def_regular": {
+          "/{}/{}/DEF_REGULAR": {
             "GET": {
               "name": "def_regular",
               "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
@@ -187,7 +187,7 @@ func TestAzureRepoIndexLocateSchema(t *testing.T) {
 			locator: workspace.SchemaLocator{
 				SpecLocator: workspace.SpecLocator{
 					ApiVersion: "2020-12-01",
-					ApiPath:    "/{host}/{foo}/def_bar",
+					ApiPath:    "/{}/{}/DEF_BAR",
 				},
 				Operation: "POST",
 			},

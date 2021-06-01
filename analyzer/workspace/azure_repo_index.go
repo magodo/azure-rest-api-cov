@@ -174,11 +174,11 @@ func (p APIPath) Provider() (string, error) {
 
 		// Catch the subscriptionID before it can be overwritten by another "subscriptions"
 		// value in the ID which is the case for the Service Bus subscription resource
-		if key == "providers" {
+		if key == "PROVIDERS" {
 			return value, nil
 		}
 	}
-	return "", fmt.Errorf("API path %q has no `provider` component", path)
+	return "", fmt.Errorf("API path %q has no `PROVIDERS` component", path)
 }
 
 type SchemaInfo struct {
@@ -306,9 +306,9 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 		case OperationKindPost,
 			OperationKindPut,
 			OperationKindPatch:
-			info, err = getSchemaInfoFromParameter(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
+			info, err = getSchemaInfoFromParameter(swg, specRootPath, specRelPathDefAPI, *op)
 		case OperationKindGet:
-			info, err = getSchemaInfoFromResponse(swg, specRootPath, specRelPathDefAPI, apiPath, *op)
+			info, err = getSchemaInfoFromResponse(swg, specRootPath, specRelPathDefAPI, *op)
 		case OperationKindDelete, OperationKindHead, OperationKindOptions:
 		default:
 			return nil, fmt.Errorf("invalid operation kind %q for api path %q", kind, apiPath)
@@ -330,7 +330,7 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 }
 
 //  getSchemaInfoFromParameter get the information for in-body parameter if any. Otherwise, it returns nil.
-func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, apiPath APIPath, operation openapispec.Operation) (*SchemaInfo, error) {
+func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*SchemaInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	for _, param := range operation.Parameters {
 		// The param is a ref, we simply deref it for once.
@@ -374,7 +374,7 @@ func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelP
 }
 
 //  getSchemaInfoFromResponse get the information for the response of code 200 if any. Otherwise, it returns nil.
-func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, apiPath APIPath, operation openapispec.Operation) (*SchemaInfo, error) {
+func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*SchemaInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	resp, ok := operation.Responses.ResponsesProps.StatusCodeResponses[200]
 	if !ok {
