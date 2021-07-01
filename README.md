@@ -51,12 +51,12 @@ The schema input is a json array, where each element is a json object of followi
     "api_version": "2019-11-01",
     ```
     
-- `api_path` (REQUIRED): The path in the [Paths Object](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#pathsObject)
+- `api_path` (REQUIRED): The path in the [Paths Object](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#pathsObject). The path is normalized by uppercase the invariant path segments and remove the variant segments around the `{}`.
 
     E.g. 
     
     ```json
-    "api_path": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataShare/accounts/{accountName}/shares/{shareName}/dataSets/{dataSetName}",
+    "api_path": "/SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.DATASHARE/ACCOUNTS/{}/SHARES/{}/DATASETS/{}",
     ```
 
 - `operation` (REQUIRED): One of `GET`, `PUT`, `POST`, `PATCH`, `DELETE`.
