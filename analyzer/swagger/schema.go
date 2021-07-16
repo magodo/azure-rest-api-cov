@@ -31,7 +31,7 @@ type SchemaMetaInfo struct {
 
 // Ref returns a hypothetical schema reference. It is mainly used as a unique ID of the schema, to be used in log message or map key.
 func (i SchemaMetaInfo) Ref() string {
-	ref := SchemaNameToRef(i.Name, string(i.SwaggerRelPath))
+	ref := SchemaNameToRef(string(i.SwaggerRelPath), i.Name)
 	return ref.String()
 }
 
@@ -71,7 +71,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forRespon
 	rootProperty, err := buildProperty(
 		PropertyStateUncovered,
 		map[string]interface{}{},
-		SchemaNameToRef(schemaName, swaggerURI),
+		SchemaNameToRef(swaggerURI, schemaName),
 		forResponse,
 	)
 	if err != nil {
@@ -156,7 +156,6 @@ func (s *Schema) ExpandProperties() error {
 			if end {
 				propsExpandedToEnd[existRAddr] = true
 			}
-
 		}
 	}
 	return nil
@@ -226,8 +225,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 
 	// If the property to be expanded is a cyclic reference, we will do nothing but keep that property
 	if isCyclic {
-		end = true
-		return
+		return true, nil
 	}
 
 	// temporarily store the Properties expanded in this level
@@ -251,33 +249,19 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	// In case current property is not a discriminator schema, we will simply return here and do not do the expanding to variants below.
 	if !prop.isDiscriminator {
 		s.addProperties(levelProperties)
-		end = len(levelProperties) == 0
-		return
+		return len(levelProperties) == 0, nil
 	}
 
-	switch {
-	case prop.isPureDiscriminator:
-		// continue
-	case prop.isLeafVariant():
+	// In case current property is a leaf variant, we will simply return here and do not do the expanding to variants below.
+	if prop.isLeafDiscriminator() {
 		s.addProperties(levelProperties)
-		end = len(levelProperties) == 0
-		return
-	case prop.isNonLeafVariant():
-		// A non-leaf variant, we shall check whether it has been resolved yet.
-		// If it is resolved, it means the variant has been expanded along the expansion of current property,
-		// then we shall stop expanding its children variants and set its properties here.
-		if _, resolved := prop.resolvedRefs[prop.ownerSchemaRef.String()]; resolved {
-			s.addProperties(levelProperties)
-			end = len(levelProperties) == 0
-			return
-		}
-	default:
-		panic("will not reach here")
+		return len(levelProperties) == 0, nil
 	}
 
-	// A pure discriminator or a non-leaf variant that has not been resolved yet. We'll further expand their variants.
+	// A non-leaf discriminator or that has not been resolved yet. We'll further expand its variants.
+	delete(prop.resolvedRefs, prop.ownerSchemaRef.String())
 	skipped := 0
-	for variantRef := range prop.rootVariantRefSet {
+	for variantRef := range prop.directVariantRefSet {
 		if _, resolved := prop.resolvedRefs[variantRef]; resolved {
 			skipped++
 			continue
@@ -296,7 +280,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 			descValue = v
 		}
 
-		// Since we removed the discriminator base schema from the "resolvedRefs" when we creat the Property, we should in turn Add the
+		// Since we removed the discriminator base schema from the "resolvedRefs" when we create the Property, we should in turn Add the
 		// exact variant schema expanded to the "resolvedRefs".
 		resolvedRefs := map[string]interface{}{}
 		for k, v := range prop.resolvedRefs {
@@ -313,15 +297,8 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	}
 
 	// In case all the variants are skipped, we will potentially mark this expansion as end as there is no new properties got expanded.
-	if skipped == len(prop.rootVariantRefSet) {
-		// Especially, in case this is a non-leaf variant prop, we will further ensure there is no sub-properties got expanded.
-		if prop.isNonLeafVariant() {
-			end = len(levelProperties) == 0
-			return
-		}
-
-		end = true
-		return
+	if skipped == len(prop.directVariantRefSet) {
+		return true, nil
 	}
 
 	return false, nil
@@ -439,6 +416,6 @@ func SchemaInfoFromRef(ref openapispec.Ref) (name string, path string) {
 	return fragments[len(fragments)-1], ref.GetURL().Path
 }
 
-func SchemaNameToRef(schemaName string, path string) openapispec.Ref {
+func SchemaNameToRef(path string, schemaName string) openapispec.Ref {
 	return openapispec.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", path, schemaName))
 }

@@ -275,10 +275,8 @@
         },
         "tags": {
           "type": "object",
-          "properties": {
-            "additionalProperties": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           }
         }
       }
@@ -371,10 +369,8 @@
       "properties": {
         "tags": {
           "type": "object",
-          "properties": {
-            "additionalProperties": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           }
         }
       }
