@@ -122,20 +122,10 @@ type Property struct {
 	// See: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#fixed-fields-13
 	forResponse bool
 
-	// Whether the schema of this property is a discriminator (either pure or derived schema)
+	// Whether the schema of this property is a discriminator
 	isDiscriminator bool
 
-	// Whether the schema of this property is a pure discriminator
-	isPureDiscriminator bool
-
-	// Normalized reference to variant schemas of the schema of this property. It is nil if `isDiscriminator` is false.
-	// Note that: Non-leaf variant schema has itself as its variant schema (i.e. both pure discriminator and leaf variant
-	//            do not contain itself in the rootVariantRefSet).
-	//            This is because non-leaf variant schema is both a discriminator, and a variant (can be instantiated), when
-	//            expanding it to its variant, we will need to both instantiate itself and its children variants.
-	rootVariantRefSet map[string]struct{}
-
-	// Similar to rootVariantRefSet, but only count for the variants under current schema of this property in turns of allOf hierarchy.
+	// Normalized reference to variant schemas of this property's schema of this property. It is nil if `isDiscriminator` is false.
 	directVariantRefSet map[string]struct{}
 }
 
@@ -153,11 +143,6 @@ func (prop Property) copy() *Property {
 		newResolvedRefs[k] = v
 	}
 
-	newRootVariantRefSet := map[string]struct{}{}
-	for k, v := range prop.rootVariantRefSet {
-		newRootVariantRefSet[k] = v
-	}
-
 	newDirectVariantRefSet := map[string]struct{}{}
 	for k, v := range prop.directVariantRefSet {
 		newDirectVariantRefSet[k] = v
@@ -171,8 +156,6 @@ func (prop Property) copy() *Property {
 		swaggerURI:          prop.swaggerURI,
 		forResponse:         prop.forResponse,
 		isDiscriminator:     prop.isDiscriminator,
-		isPureDiscriminator: prop.isPureDiscriminator,
-		rootVariantRefSet:   newRootVariantRefSet,
 		directVariantRefSet: newDirectVariantRefSet,
 	}
 }
@@ -230,7 +213,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 		forResponse:    forResponse,
 	}
 
-	isDiscriminator, pure, _, err := checkDiscriminatorSchema(normSchemaRef)
+	isDiscriminator, err := isDiscriminator(normSchemaRef)
 	if err != nil {
 		return nil, err
 	}
@@ -242,15 +225,13 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 
 	// Following applies to discriminator property
 	prop.isDiscriminator = isDiscriminator
-	prop.isPureDiscriminator = pure
-
-	prop.rootVariantRefSet, prop.directVariantRefSet, err = getVariantRefSet(normSchemaRef)
+	prop.directVariantRefSet, err = getVariantRefSet(normSchemaRef)
 	if err != nil {
 		return nil, err
 	}
 
 	// In case the current schema is a leaf variant, we will mark it as ref-ed.
-	if prop.isLeafVariant() {
+	if prop.isLeafDiscriminator() {
 		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
 	}
 
@@ -258,19 +239,19 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 }
 
 // getVariantRefSet gets the variant set for both "root" and "direct".
-func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[string]struct{}, error) {
-	is, pure, rootDiscriminatorRef, err := checkDiscriminatorSchema(normSchemaRef)
+func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, error) {
+	is, err := isDiscriminator(normSchemaRef)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if !is {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	swaggerURI := normSchemaRef.GetURL().Path
 	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	fillInChildRefSet := func(in *map[string]struct{}) {
@@ -284,11 +265,17 @@ func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[s
 			}
 
 			for ref := range oldChildRefSet {
+				hasChild := false
 				// Collect its children
 				for childSchemaRef, allOfs := range allAllOfs {
 					if _, ok := allOfs[ref]; ok {
+						hasChild = true
 						childRefSet[childSchemaRef] = struct{}{}
 					}
+				}
+				// Remove the ref to the schema under iteration if it is a non-leaf discriminator
+				if hasChild {
+					delete(childRefSet, ref)
 				}
 			}
 		}
@@ -296,27 +283,11 @@ func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, map[s
 	}
 
 	// Find all the child variants which derives from this schema.
-	directChildRefSet := map[string]struct{}{normSchemaRef.String(): {}}
-	fillInChildRefSet(&directChildRefSet)
+	childRefSet := map[string]struct{}{normSchemaRef.String(): {}}
+	fillInChildRefSet(&childRefSet)
+	delete(childRefSet, normSchemaRef.String())
 
-	// Find all the child variants which derives from the root discriminator schema.
-	//
-	// This is because currently in the Azure Go SDK (track1), all the derived concrete types will implement the root discriminator interface.
-	// Whilst in the cov-terraform tool, when analyzing the variants of a field of type interface, we will check all its possible implementors
-	// (including the directly inherited models and sibling models in Swagger).
-	// Though this is currently observed in Go SDK, since Go SDK is based from autorest modeler, which is common base for other generators.
-	// Therefore, this behavior should be the same for other SDKs.
-	rootChildRefSet := map[string]struct{}{rootDiscriminatorRef.String(): {}}
-	fillInChildRefSet(&rootChildRefSet)
-
-	// Keep this schema ref in the child ref only if this schema is a non-leaf variant and non-pure discriminator (i.e. an intermediate discrminator).
-	if pure || len(directChildRefSet) == 1 {
-		delete(directChildRefSet, normSchemaRef.String())
-	}
-
-	delete(rootChildRefSet, rootDiscriminatorRef.String())
-
-	return rootChildRefSet, directChildRefSet, nil
+	return childRefSet, nil
 }
 
 type AllAllOfsCache struct {
@@ -354,7 +325,7 @@ func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error)
 		if len(schema.AllOf) == 0 {
 			continue
 		}
-		ref := SchemaNameToRef(name, swaggerURI)
+		ref := SchemaNameToRef(swaggerURI, name)
 		allOfRefs := map[string]struct{}{}
 		allAllOfs[ref.String()] = allOfRefs
 
@@ -369,30 +340,28 @@ func swaggerAllAllOfs(swaggerURI string) (map[string]map[string]struct{}, error)
 	return allAllOfs, nil
 }
 
-// checkDiscriminatorSchema tells whether the specified schema is a discriminator (either pure discriminator or derived schema).
+// isDiscriminator tells whether the specified schema is a discriminator (either pure discriminator or derived schema).
 // Note that in Azure rest api spec (OpenAPI 2), a schema is a discriminator when itself directly defines "discriminator", or it is a derived schema (variant),
 // as derived schema also inherits the "discriminator" property.
-// This function goes backwards the "allOf" chain to find the nearest parent who explicitly defines the discriminator. If it finds any such parent schema,
-// `is` is `true`. Additionally, if the property itself corresponds to a direct discriminator, `pure` is set to `true`. This pure discriminator parent will also be returned.
-func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool, rootDiscriminatorRef *openapispec.Ref, err error) {
+// This function goes backwards the "allOf" chain to find the nearest parent who explicitly defines the discriminator.
+func isDiscriminator(normSchemaRef openapispec.Ref) (is bool, err error) {
 	schema, err := openapispec.ResolveRefWithBase(nil, &normSchemaRef, nil)
 	if err != nil {
-		return false, false, nil, err
+		return false, err
+	}
+	if schema.Discriminator != "" {
+		return true, nil
 	}
 
 	swaggerURI := normSchemaRef.GetURL().Path
 	swagger, err := swaggerloader.LoadSwagger(swaggerURI)
 	if err != nil {
-		return false, false, nil, err
-	}
-
-	if schema.Discriminator != "" {
-		return true, true, &normSchemaRef, nil
+		return false, err
 	}
 
 	allAllOfs, err := swaggerAllAllOfs(swaggerURI)
 	if err != nil {
-		return false, false, nil, err
+		return false, err
 	}
 
 	baseRefSet := map[string]struct{}{normSchemaRef.String(): {}}
@@ -412,15 +381,15 @@ func checkDiscriminatorSchema(normSchemaRef openapispec.Ref) (is bool, pure bool
 			apiRef := openapispec.MustCreateRef(ref)
 			schema, err := openapispec.ResolveRefWithBase(swagger, &apiRef, &openapispec.ExpandOptions{RelativeBase: swaggerURI})
 			if err != nil {
-				return false, false, nil, err
+				return false, err
 			}
 			if schema.Discriminator != "" {
-				return true, false, &apiRef, nil
+				return true, nil
 			}
 		}
 		baseRefSet = newBaseRefSet
 	}
-	return false, false, nil, nil
+	return false, nil
 }
 
 // expandRefPropertyInPlace expand a property itself IN-PLACE until either it is a concrete schemas (i.e. not a ref) or hit a cyclic ref.
@@ -466,15 +435,8 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 	return prop.expandRefPropertyInPlace()
 }
 
-func (prop Property) isNonLeafVariant() bool {
-	return prop.isDiscriminator && !prop.isLeafVariant() && !prop.isPureDiscriminator
-}
-
-func (prop Property) isLeafVariant() bool {
+func (prop Property) isLeafDiscriminator() bool {
 	if !prop.isDiscriminator {
-		return false
-	}
-	if prop.isPureDiscriminator {
 		return false
 	}
 	return len(prop.directVariantRefSet) == 0
@@ -491,32 +453,26 @@ func (prop Property) isLeafProperty() (bool, error) {
 		return false, nil
 	}
 
-	// Model with Map/Dictionary properties needs special handling
-	// See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#model-with-mapdictionary-properties
 	schema := p.schema
-	if schema.Type.Contains("object") {
-		if _, ok := schema.Properties["additionalProperties"]; ok {
-			return true, nil
-		}
-	}
 
 	if len(schema.AllOf) != 0 || schema.Properties != nil {
 		return false, nil
 	}
 
-	if schema.Items == nil {
-		return true, nil
-	}
-
 	// In case this property is an array, we will further check whether its item has defined non-primary type schema.
-	var s openapispec.Schema
-	if schema.Items.Schema != nil {
-		s = *schema.Items.Schema
-	} else {
-		s = schema.Items.Schemas[0]
+	if schema.Items != nil {
+		var s openapispec.Schema
+		if schema.Items.Schema != nil {
+			s = *schema.Items.Schema
+		} else {
+			s = schema.Items.Schemas[0]
+		}
+		return prop.propagateSubPropOfSchema(s).isLeafProperty()
 	}
 
-	return prop.propagateSubPropOfSchema(s).isLeafProperty()
+	// TODO: In case this is a map, we should follow the schema if the map value.
+	return true, nil
+
 }
 
 func (props Properties) MarshalJSON() ([]byte, error) {
