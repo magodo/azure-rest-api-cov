@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 
@@ -122,6 +123,7 @@ type AzureRepoIndex struct {
 	Commit            string                        `json:"commit"`
 	ResourceProviders ResourceProviders             `json:"resource_providers"`
 	specLookupView    map[SpecLocator]specpath.Path // value is the spec rel path
+	viewMutex         sync.Mutex
 }
 
 type ResourceProviders map[ResourceProvider]APIVersions
@@ -512,6 +514,8 @@ func (index *AzureRepoIndex) buildSpecLookupView() {
 }
 
 func (index *AzureRepoIndex) SpecLookupView() map[SpecLocator]specpath.Path {
+	index.viewMutex.Lock()
+	defer index.viewMutex.Unlock()
 	if index.specLookupView != nil {
 		return index.specLookupView
 	}

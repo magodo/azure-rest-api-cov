@@ -145,7 +145,7 @@ func (s *Schema) ExpandProperties() error {
 			break
 		}
 
-		log.Debugf("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
+		log.Tracef("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
 		for existRAddr := range propsToExpand {
 			existPropAddr := addr.MustParseProperty(existRAddr)
 			end, err := s.expandPropertyOneLevelDeep(existPropAddr)

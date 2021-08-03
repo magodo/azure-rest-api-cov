@@ -313,6 +313,15 @@ func main() {
 						Aliases: []string{"c"},
 						Usage:   "Build comment that will include in the coverage report",
 					},
+					&cli.StringSliceFlag{
+						Name:  "ignore-schema",
+						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
+					},
+					&cli.StringFlag{
+						Name:    "output-dir",
+						Aliases: []string{"o"},
+						Usage:   "The output directory",
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -328,6 +337,8 @@ func main() {
 					inputPath := ctx.String("input")
 
 					buildComment := ctx.String("build-comment")
+					ignoreSchema := ctx.StringSlice("ignore-schema")
+					outdir := ctx.String("output-dir")
 
 					wspOpt := workspace.InitOption{
 						WorkspaceDir: workspaceDir,
@@ -347,16 +358,13 @@ func main() {
 					}
 
 					fctx := analyzer.FeedDBContext{
-						WorkspaceOpt:      wspOpt,
+						WorkspaceOpt: wspOpt,
 						BuildComment: buildComment,
+						IgnoreSchema: ignoreSchema,
+						Outdir:       outdir,
 					}
 
-					output, err := analyzer.FeedDB(covIn, fctx)
-					if err != nil {
-						return err
-					}
-					fmt.Println(output)
-					return nil
+					return analyzer.FeedDB(covIn, fctx)
 				},
 			},
 			{
@@ -389,9 +397,10 @@ func main() {
 						Required: true,
 					},
 					&cli.StringFlag{
-						Name:    "output",
-						Aliases: []string{"o"},
-						Usage:   "The output directory for the migrated grant files",
+						Name:     "output",
+						Aliases:  []string{"o"},
+						Usage:    "The output directory for the migrated grant files",
+						Required: true,
 					},
 				},
 				Action: func(ctx *cli.Context) error {
