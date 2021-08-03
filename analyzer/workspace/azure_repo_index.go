@@ -333,12 +333,23 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*SchemaInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	for _, param := range operation.Parameters {
+		relPath := specRelPathDefAPI
 		// The param is a ref, we simply deref it for once.
 		if param.Ref.String() != "" {
 			refParam, err := openapispec.ResolveParameterWithBase(swg, param.Ref, &openapispec.ExpandOptions{RelativeBase: specAbsPathDefAPI})
 			if err != nil {
 				return nil, fmt.Errorf("resolve param ref %q: %v", param.Ref.String(), err)
 			}
+			// Update the relPath to using the swagger spec which indeed defines that parameter schema.
+			_, refPath := swagger.SchemaInfoFromRef(param.Ref)
+			if refPath != "" {
+				if filepath.IsAbs(refPath) {
+					return nil, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
+				}
+				relPath = filepath.Clean(filepath.Join(filepath.Dir(relPath), refPath))
+			}
+
+			// Update the param
 			param = *refParam
 		}
 
@@ -357,8 +368,6 @@ func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelP
 			// E.g. The in-body parameter of "ApiOperationsPolicy_CreateOrUpdate" in: specification/apimanagement/resource-manager/Microsoft.ApiManagement/stable/2016-10-10/apimapis.json.
 			return nil, nil
 		}
-
-		relPath := specRelPathDefAPI
 		if refPath != "" {
 			if filepath.IsAbs(refPath) {
 				return nil, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
@@ -376,6 +385,7 @@ func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelP
 //  getSchemaInfoFromResponse get the information for the response of code 200 if any. Otherwise, it returns nil.
 func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*SchemaInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
+	relPath := specRelPathDefAPI
 	resp, ok := operation.Responses.ResponsesProps.StatusCodeResponses[200]
 	if !ok {
 		return nil, nil
@@ -387,6 +397,17 @@ func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPa
 		if err != nil {
 			return nil, fmt.Errorf("resolve response ref %q: %v", resp.Ref.String(), err)
 		}
+
+		// Update the relPath to using the swagger spec which indeed defines that response schema.
+		_, refPath := swagger.SchemaInfoFromRef(resp.Ref)
+		if refPath != "" {
+			if filepath.IsAbs(refPath) {
+				return nil, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
+			}
+			relPath = filepath.Clean(filepath.Join(filepath.Dir(relPath), refPath))
+		}
+
+		// Update the resp
 		resp = *refRespones
 	}
 
@@ -398,7 +419,6 @@ func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPa
 	if name == "" {
 		return nil, nil
 	}
-	relPath := specRelPathDefAPI
 	if refPath != "" {
 		if filepath.IsAbs(refPath) {
 			return nil, fmt.Errorf("un-expected absolute swagger path appears in json ref: %s", refPath)
