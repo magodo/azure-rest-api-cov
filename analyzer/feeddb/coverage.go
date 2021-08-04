@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"os"
 	"path/filepath"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
@@ -192,6 +193,11 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 
 		for pathName, path := range rp.Paths {
 			for opName, op := range path.Operations {
+				// TODO: add supports for all operation kinds
+				if opName != "PUT" && opName != "DELETE" && opName != "POST" && opName != "PATCH" {
+					continue
+				}
+
 				// Iterate all the versions to see whether there is an active one, if so it means this operation is covered already, we don't need to expand the uncovered ones.
 				// Since in this case we only need to expand the newer API versions, which has been done in the "coverage" stage (with "-predict").
 				var hasActive bool
@@ -249,6 +255,9 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 				continue
 			}
 			o := res.Value.(output)
+			if o.opInfo == nil {
+				continue
+			}
 			uncoveredOps[o.loc] = o.opInfo
 		}
 
@@ -276,6 +285,7 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 }
 
 // getUncoveredOperation search the index for an uncovered operation. If that operation has a model, further expands it to its end.
+// Note that the returned operation info might be nil when the index failed to look up the locator, which indicates that locator is ambiguous in most cases.
 func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureRepoIndex) (*operation.Info, error) {
 	log.Infof("Processing (uncovered) %q", loc)
 	opInfo, err := idx.LocateOperation(loc)
