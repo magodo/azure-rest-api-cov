@@ -3,6 +3,7 @@ package workspace_test
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,84 +23,115 @@ func TestNewAzureRepoIndex(t *testing.T) {
   "commit": "",
   "resource_providers": {
     "dummy": {
+      "2020-12-01": {
+        "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
+          "/{}/{}/DEF_BAR": {
+            "POST": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "model": {
+                "name": "def_bar",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json"
+              }
+            }
+          },
+          "/{}/{}/DEF_BASE": {
+            "PUT": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "model": {
+                "name": "def_base",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+              }
+            }
+          },
+          "/{}/{}/DEF_FOO": {
+            "DELETE": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "model": null
+            },
+            "GET": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "model": {
+                "name": "def_foo",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+              }
+            },
+            "PUT": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "model": {
+                "name": "def_foo",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+              }
+            }
+          },
+          "/{}/{}/DEF_REGULAR": {
+            "GET": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "model": {
+                "name": "def_regular",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+              }
+            },
+            "PUT": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
+              "model": {
+                "name": "def_regular",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
+              }
+            }
+          }
+        }
+      },
       "2020-12-01-preview": {
         "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json": {
           "/{}/{}": {}
         }
       },
-      "2020-12-01": {
-        "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json": {
-          "/{}/{}/DEF_FOO": {
-            "PUT": {
-              "name": "def_foo",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
-            },
-            "GET": {
-              "name": "def_foo",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
-            },
-            "DELETE": {
-              "name": "",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
-            }
-          },
-          "/{}/{}/DEF_BAR": {
-            "POST": {
-              "name": "def_bar",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json"
-            }
-          },
-          "/{}/{}/DEF_BASE": {
-            "PUT": {
-              "name": "def_base",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
-            }
-          },
-          "/{}/{}/DEF_REGULAR": {
-            "GET": {
-              "name": "def_regular",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
-            },
-            "PUT": {
-              "name": "def_regular",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json"
-            }
-          }
-        }
-      },
       "2021-01-01": {
         "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json": {
-          "/{}/{}/DEF_FOO": {
-            "GET": {
-              "name": "def_foo",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
-            },
-            "DELETE": {
-              "name": "",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
-            }
-          },
           "/{}/{}/DEF_BASE": {
             "PUT": {
-              "name": "def_base",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+              "model": {
+                "name": "def_base",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+              }
+            }
+          },
+          "/{}/{}/DEF_FOO": {
+            "DELETE": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+              "model": null
+            },
+            "GET": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+              "model": {
+                "name": "def_foo",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+              }
             }
           },
           "/{}/{}/DEF_REGULAR": {
             "GET": {
-              "name": "def_regular",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+              "model": {
+                "name": "def_regular",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+              }
             },
             "PUT": {
-              "name": "def_regular",
-              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
+              "model": {
+                "name": "def_regular",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json"
+              }
             }
           }
         }
       }
     }
   }
-}`, specRootDir)
+}
+`, specRootDir)
 	idx, err := workspace.NewAzureRepoIndex(specRootDir, "")
 	require.NoError(t, err, "generate index")
 	b, err := json.MarshalIndent(idx, "", "  ")
@@ -167,33 +199,31 @@ func TestAzureRepoIndexExportImport(t *testing.T) {
 	require.Equal(t, idx, newidx)
 }
 
-func TestAzureRepoIndexLocateSchema(t *testing.T) {
+func TestAzureRepoIndexLocateOperation(t *testing.T) {
 	pwd, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 	specBaseDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
 
-	type result struct {
-		schemaName  string
-		specRelPath string
-	}
-
 	cases := []struct {
-		locator workspace.SchemaLocator
-		expect  result
+		locator workspace.OperationLocator
+		expect  *workspace.OperationInfo
 	}{
 		{
-			locator: workspace.SchemaLocator{
+			locator: workspace.OperationLocator{
 				SpecLocator: workspace.SpecLocator{
 					ApiVersion: "2020-12-01",
 					ApiPath:    "/{}/{}/DEF_BAR",
 				},
 				Operation: "POST",
 			},
-			expect: result{
-				schemaName:  "def_bar",
-				specRelPath: filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "preview", "2020-12-01-preview", "bar.json"),
+			expect: &workspace.OperationInfo{
+				Model: &workspace.ModelInfo{
+					Name:        "def_bar",
+					SpecRelPath: filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "preview", "2020-12-01-preview", "bar.json"),
+				},
+				SpecRelPath: specpath.Path(filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "stable", "2020-12-01", "foo.json")),
 			},
 		},
 	}
@@ -202,11 +232,8 @@ func TestAzureRepoIndexLocateSchema(t *testing.T) {
 	require.NoError(t, err)
 
 	for idx, c := range cases {
-		info, err := index.LocateSchema(c.locator)
+		info, err := index.LocateOperation(c.locator)
 		require.NoError(t, err, idx)
-		require.Equal(t, c.expect, result{
-			schemaName:  info.Name,
-			specRelPath: string(info.SpecRelPath),
-		}, idx)
+		require.Equal(t, c.expect, info, idx)
 	}
 }

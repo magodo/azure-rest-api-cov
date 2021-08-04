@@ -1,13 +1,14 @@
 package coverage
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"path/filepath"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
-	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
@@ -24,22 +25,16 @@ type APIPath struct {
 	Operations   Operations `json:"operations,omitempty"`
 }
 
-type Operations map[string]APIVersions
+type Operations map[string]*APIVersions
 
-type APIVersions map[string]swagger.Schema
+type APIVersions map[string]*operation.Info
 
 func NewEmptyCoverage() Coverage {
 	return Coverage{}
 }
 
-func (cov *Coverage) AddSchema(schemaLocator workspace.SchemaLocator, schema swagger.Schema) error {
-	p := schema.SwaggerRelPath
-	pathInfo, err := p.PathInfo()
-	if err != nil {
-		return err
-	}
-	rp := pathInfo.ResourceProvider
-	apiPath, op, apiVersion := schemaLocator.ApiPath, string(schemaLocator.Operation), schemaLocator.ApiVersion
+func (cov *Coverage) AddOperation(opInfo *operation.Info) error {
+	rp, apiPath, op, apiVersion := opInfo.RP, opInfo.APIPath, string(opInfo.Operation), opInfo.APIVersion
 
 	apiPaths, ok := (*cov)[rp]
 	if !ok {
@@ -57,16 +52,21 @@ func (cov *Coverage) AddSchema(schemaLocator workspace.SchemaLocator, schema swa
 
 	apiVersions, ok := path.Operations[op]
 	if !ok {
-		apiVersions = APIVersions{}
+		apiVersions = &APIVersions{}
 		path.Operations[op] = apiVersions
 	}
 
-	existSchema, ok := apiVersions[apiVersion]
+	existOp, ok := (*apiVersions)[apiVersion]
 	if !ok {
-		apiVersions[apiVersion] = schema
+		(*apiVersions)[apiVersion] = opInfo
 		return nil
 	}
-	return existSchema.Merge(schema)
+
+	if existOp.Model == nil || opInfo.Model == nil {
+		return nil
+	}
+
+	return existOp.Model.Merge(*opInfo.Model)
 }
 
 // ToSchemaInputs converts the coverage back to an array of SchemaInputs.
@@ -77,8 +77,8 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 	for _, apiPaths := range cov {
 		for apiPath, path := range *apiPaths {
 			for apiOperation, apiVersions := range path.Operations {
-				for apiVersion, schema := range apiVersions {
-					schemaLocator := workspace.SchemaLocator{
+				for apiVersion, opInfo := range *apiVersions {
+					schemaLocator := workspace.OperationLocator{
 						SpecLocator: workspace.SpecLocator{
 							ApiVersion: apiVersion,
 							ApiPath:    apiPath,
@@ -86,18 +86,18 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 						Operation: workspace.OperationKind(apiOperation),
 					}
 
-					if len(schema.Properties) == 0 {
+					if opInfo.Model == nil {
 						schemaInputs = append(schemaInputs, schemainput.SchemaInput{
-							SchemaLocator: schemaLocator,
+							OperationLocator: schemaLocator,
 						})
 						continue
 					}
 
-					// If the schema has top level variant, then it will be transforms to numerous schemaInputs, each corresponds to a variant.
+					// If the schema has top level variant, then it will be transformed to numerous schemaInputs, each corresponds to a variant.
 					// We peek any property to see whether it is a top level variant, since when a schema contains top level properties, all the property addresses
 					// start with a variant.
 					var isTopLevelDiscriminator bool
-					for paddr := range schema.Properties {
+					for paddr := range opInfo.Model.Properties {
 						prop := addr.MustParseProperty(paddr)
 						if prop[0].DiscriminatorValue != "" && prop[0].Name == "" {
 							isTopLevelDiscriminator = true
@@ -107,9 +107,9 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 
 					if !isTopLevelDiscriminator {
 						schemaInput := schemainput.SchemaInput{
-							SchemaLocator: schemaLocator,
+							OperationLocator: schemaLocator,
 						}
-						for paddr, prop := range schema.Properties {
+						for paddr, prop := range opInfo.Model.Properties {
 							if prop.IsCovered() {
 								schemaInput.Properties = append(schemaInput.Properties, paddr)
 							}
@@ -119,7 +119,7 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 					}
 
 					variantProperties := map[string][]string{}
-					for paddr := range schema.Properties {
+					for paddr := range opInfo.Model.Properties {
 						prop := addr.MustParseProperty(paddr)
 						if len(prop) > 1 {
 							variantProps := variantProperties[prop[0].DiscriminatorValue]
@@ -133,9 +133,9 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 
 					for variant, variantProps := range variantProperties {
 						schemaInputs = append(schemaInputs, schemainput.SchemaInput{
-							SchemaLocator: schemaLocator,
-							Variant:       variant,
-							Properties:    variantProps,
+							OperationLocator: schemaLocator,
+							Variant:          variant,
+							Properties:       variantProps,
 						})
 					}
 				}
@@ -149,9 +149,9 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 func (cov *Coverage) Predict(idx *workspace.AzureRepoIndex) error {
 	activeSchemaInputs := cov.ToSchemaInputs()
 
-	activeSchemaInputMap := map[workspace.SchemaLocator]bool{}
+	activeSchemaInputMap := map[workspace.OperationLocator]bool{}
 	for _, schemaInput := range activeSchemaInputs {
-		activeSchemaInputMap[schemaInput.SchemaLocator] = true
+		activeSchemaInputMap[schemaInput.OperationLocator] = true
 	}
 
 predictLoop:
@@ -181,11 +181,11 @@ predictLoop:
 		for apiVersion := range idx.ResourceProviders[workspace.ResourceProvider(rp)] {
 			if string(apiVersion) > currentVersion {
 				// Modify the API version to shift to the newer ones
-				schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
+				schemaInput.OperationLocator.SpecLocator.ApiVersion = string(apiVersion)
 
 				// If at least one newer version has already been explicitly specified via schemaInput files, then skip prediction based on current
 				// schemaInput. We should use the latest existing schemaInput to do the prediction on newer versions.
-				if activeSchemaInputMap[schemaInput.SchemaLocator] {
+				if activeSchemaInputMap[schemaInput.OperationLocator] {
 					continue predictLoop
 				}
 				newApiVersions = append(newApiVersions, apiVersion)
@@ -194,7 +194,7 @@ predictLoop:
 
 		for _, apiVersion := range newApiVersions {
 			// Modify the API version to shift to the newer ones
-			schemaInput.SchemaLocator.SpecLocator.ApiVersion = string(apiVersion)
+			schemaInput.OperationLocator.SpecLocator.ApiVersion = string(apiVersion)
 
 			// Log out the current schema under prediction
 			msg := fmt.Sprintf("Processing (predict): %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
@@ -203,7 +203,7 @@ predictLoop:
 			}
 			log.Infoln(msg)
 
-			schema, err := schemaInput.ToSchema(idx, false, false)
+			opInfo, err := schemaInput.ToOperationInfo(idx, false, false)
 			if err != nil {
 				if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
 					log.Warn(err)
@@ -212,7 +212,7 @@ predictLoop:
 				return err
 			}
 
-			if err := cov.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
+			if err := cov.AddOperation(opInfo); err != nil {
 				return err
 			}
 		}
@@ -220,17 +220,17 @@ predictLoop:
 	return nil
 }
 
-type FlatCoverage map[workspace.SchemaLocator]swagger.Schema
+type FlatCoverage map[workspace.OperationLocator]*operation.Info
 
-// Flatten return the flattened coverage which is basically a map whose key is the schema locator, and the value is the schema.
+// Flatten return the flattened coverage which is basically a map whose key is the operation locator, and the value is the operation info.
 // Note: the granted api path are not converted.
 func (cov Coverage) Flatten() FlatCoverage {
 	flatCov := FlatCoverage{}
 	for _, apiPaths := range cov {
 		for apiPath, path := range *apiPaths {
 			for apiOperation, apiVersions := range path.Operations {
-				for apiVersion, schema := range apiVersions {
-					schemaLocator := workspace.SchemaLocator{
+				for apiVersion, opInfo := range *apiVersions {
+					opLoc := workspace.OperationLocator{
 						SpecLocator: workspace.SpecLocator{
 							ApiVersion: apiVersion,
 							ApiPath:    apiPath,
@@ -238,7 +238,7 @@ func (cov Coverage) Flatten() FlatCoverage {
 						Operation: workspace.OperationKind(apiOperation),
 					}
 
-					flatCov[schemaLocator] = schema
+					flatCov[opLoc] = opInfo
 				}
 			}
 		}
@@ -248,10 +248,33 @@ func (cov Coverage) Flatten() FlatCoverage {
 
 func (flatCov FlatCoverage) Structuralize() (Coverage, error) {
 	cov := NewEmptyCoverage()
-	for locator, schema := range flatCov {
-		if err := cov.AddSchema(locator, schema); err != nil {
+	for _, opInfo := range flatCov {
+		if err := cov.AddOperation(opInfo); err != nil {
 			return Coverage{}, err
 		}
 	}
 	return cov, nil
+}
+
+func (cov *Coverage) UnmarshalJSON(b []byte) error {
+	rps := map[string]*APIPaths{}
+	if err := json.Unmarshal(b, &rps); err != nil {
+		return err
+	}
+
+	for rpName, paths := range rps {
+		for pathName, path := range *paths {
+			for opName, versions := range path.Operations {
+				for verName, ver := range *versions {
+					ver.RP = rpName
+					ver.APIPath = pathName
+					ver.Operation = workspace.OperationKind(opName)
+					ver.APIVersion = verName
+				}
+			}
+		}
+	}
+
+	*cov = rps
+	return nil
 }

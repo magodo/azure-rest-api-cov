@@ -923,7 +923,7 @@ func TestSchema(t *testing.T) {
 	for idx, c := range cases {
 		msg := fmt.Sprintf("(%d) %s: %s", idx, filepath.Join(c.specBaseURL, c.specRelPath), c.schemaName)
 		for i := 0; i <= c.repeat; i++ {
-			actual, err := NewEmptySchema(c.specBaseURL, c.specRelPath, c.schemaName, c.forResponse, false)
+			actual, err := NewEmptySchema(c.specBaseURL, c.specRelPath, c.schemaName, c.forResponse)
 			if c.err {
 				require.Errorf(t, err, msg)
 				continue
@@ -1650,7 +1650,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 
 	for idx, c := range cases {
 		for i := 0; i <= c.repeat; i++ {
-			schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse, false)
+			schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
 			require.NoError(t, err, i)
 
 			require.NoError(t, schema.ExpandProperties(), c.name, idx)
@@ -2785,7 +2785,7 @@ func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
 
 	for idx, c := range cases {
 		for i := 0; i <= c.repeat; i++ {
-			swgschema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse, false)
+			swgschema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
 			require.NoError(t, err, i)
 			for _, addr := range c.expandAddrs {
 				_, err := swgschema.expandPropertyOneLevelDeep(addr)
@@ -3034,7 +3034,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse, false)
+		schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
 		require.NoError(t, err, idx)
 		require.NoError(t, schema.ExpandProperties(), idx)
 		if err == nil {
@@ -3069,7 +3069,6 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_regular",
-	"active": true,
     "properties": {
         "prop_array_of_primitive": {
 		  "state": "Uncovered"
@@ -3092,7 +3091,6 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_prop_in_file_ref",
-	"active": true,
     "properties": {
         "prop": {
 		  "state": "Uncovered"
@@ -3106,7 +3104,6 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_all_of",
-	"active": true,
     "properties": {
 		"prop_nested": {
 		  "state": "Uncovered"
@@ -3137,7 +3134,6 @@ func TestSchema_Marshal(t *testing.T) {
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
     "name": "def_cov",
-	"active": true,
     "properties": {
 		"p1": {
 		  "state": "Uncovered"
@@ -3157,7 +3153,7 @@ func TestSchema_Marshal(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse, true)
+		schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
 		require.NoError(t, err, idx)
 		if c.process != nil {
 			c.process(schema)

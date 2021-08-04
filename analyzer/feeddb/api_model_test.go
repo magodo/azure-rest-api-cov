@@ -79,7 +79,6 @@ func TestNewAPIModel(t *testing.T) {
 				SchemaMetaInfo: swagger.SchemaMetaInfo{
 					Name:           "foo",
 					SwaggerRelPath: "foo/resource-manager/Microsoft.Foo/preview/2021-02-01/foo.json",
-					Active:         true,
 				},
 				Properties: swagger.Properties{
 					"prop1/covered": &swagger.Property{

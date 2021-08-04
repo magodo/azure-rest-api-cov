@@ -43,7 +43,7 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 
 	// Ignore some specified schemaInput
 	if ctx.IgnoreSchema != nil {
-		var ignorePatterns []workspace.SchemaLocator
+		var ignorePatterns []workspace.OperationLocator
 		for _, p := range ctx.IgnoreSchema {
 			loc, err := workspace.NewSchemaLocatorFromPattern(p)
 			if err != nil {
@@ -56,8 +56,8 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 	ignoreLoop:
 		for _, schemaInput := range schemaInputs {
 			for _, loc := range ignorePatterns {
-				if loc.Match(schemaInput.SchemaLocator) {
-					log.Infof("schema %q is ignored for property coverage calculation", schemaInput.SchemaLocator)
+				if loc.Match(schemaInput.OperationLocator) {
+					log.Infof("schema %q is ignored for property coverage calculation", schemaInput.OperationLocator)
 					continue ignoreLoop
 				}
 			}
@@ -77,7 +77,7 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 		}
 		log.Infoln(msg)
 
-		schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, true, true)
+		opInfo, err := schemaInput.ToOperationInfo(wsp.AzureRepoIndex, true, true)
 		if err != nil {
 			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 				log.Warn(err)
@@ -86,7 +86,7 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 			return "", err
 		}
 
-		if err := cov.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
+		if err := cov.AddOperation(opInfo); err != nil {
 			return "", err
 		}
 	}

@@ -51,7 +51,11 @@ func Grant(in io.Reader, ctx GrantContext) (string, error) {
 
 	var hintMessages []string
 	for k := range flatCov {
-		schema := flatCov[k]
+		opInfo := flatCov[k]
+		if opInfo.Model == nil {
+			continue
+		}
+		schema := opInfo.Model
 		g, matchRef, err := sgs.GetGrantForSchema(schema.Ref())
 		if err != nil {
 			return "", err
@@ -60,13 +64,13 @@ func Grant(in io.Reader, ctx GrantContext) (string, error) {
 			log.Infof("Granting for schema %v", k)
 			// The grant file is exactly for this schema.
 			if matchRef == schema.Ref() {
-				if err := g.Grant(&schema, true); err != nil {
+				if err := g.Grant(schema, true); err != nil {
 					return "", fmt.Errorf("granting for schema %v: %v", k, err)
 				}
 			} else {
 				hintMessages = append(hintMessages, fmt.Sprintf("there is a grant with different API version %q, that is able to be migrated for %q", matchRef, schema.Ref()))
 				if ctx.TryMigrate {
-					if err := g.Grant(&schema, false); err != nil {
+					if err := g.Grant(schema, false); err != nil {
 						return "", fmt.Errorf("(trying) granting for schema %v: %v", k, err)
 					}
 				}

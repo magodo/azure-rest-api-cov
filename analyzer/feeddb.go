@@ -59,9 +59,9 @@ func FeedDB(in io.Reader, ctx FeedDBContext) error {
 	// Adding the schema coverage to report
 	flatCov := cov.Flatten()
 	covReport := feeddb.NewEmptyCoverage(wsp.AzureRepoIndex, ctx.BuildComment)
-	for k, schema := range flatCov {
+	for k, v := range flatCov {
 		log.Infof("Processing: %s", k)
-		if err := covReport.AddSchema(schema, k); err != nil {
+		if err := covReport.AddOperation(v); err != nil {
 			return err
 		}
 	}

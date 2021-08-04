@@ -3,6 +3,7 @@ package report
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 
@@ -30,23 +31,28 @@ type PropertyCoverageNode struct {
 	Children PropertyCoverageNodes `json:"children,omitempty"`
 }
 
-func NewSchemaCoverage(repoURLPrefix string, s swagger.Schema) (*SchemaCoverage, error) {
-	pathInfo, err := s.SwaggerRelPath.PathInfo()
-	if err != nil {
-		return nil, err
+func NewSchemaCoverage(repoURLPrefix string, opInfo *operation.Info) (*SchemaCoverage, error) {
+	name := ""
+	relUrl := string(opInfo.SwaggerRelPath)
+	if opInfo.Model != nil {
+		name = opInfo.Model.Name
+		relUrl = opInfo.Model.SwaggerRelPath
 	}
+
 	store := SchemaCoverage{
-		Name:      s.Name,
-		URL:       repoURLPrefix + string(s.SwaggerRelPath),
-		IsPreview: pathInfo.IsPreview,
-		Active:    s.Active,
+		Name:      name,
+		URL:       repoURLPrefix + relUrl,
+		IsPreview: opInfo.IsPreview,
+		Active:    opInfo.IsActive,
 		Node: PropertyCoverageNode{
 			Children: PropertyCoverageNodes{},
 		},
 	}
-	for propRAddr, prop := range s.Properties {
-		if err := store.Add(addr.MustParseProperty(propRAddr), *prop); err != nil {
-			return nil, fmt.Errorf("adding property %q: %v", propRAddr, err)
+	if opInfo.Model != nil {
+		for propRAddr, prop := range opInfo.Model.Properties {
+			if err := store.Add(addr.MustParseProperty(propRAddr), *prop); err != nil {
+				return nil, fmt.Errorf("adding property %q: %v", propRAddr, err)
+			}
 		}
 	}
 	return &store, nil

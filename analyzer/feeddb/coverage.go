@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"os"
 	"path/filepath"
 
@@ -99,54 +100,46 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 	return coverage
 }
 
-func (cov *Coverage) AddSchema(s swagger.Schema, locator workspace.SchemaLocator) error {
-	p := s.SwaggerRelPath
-	pathInfo, err := p.PathInfo()
-	if err != nil {
-		return err
-	}
-
-	rpName := pathInfo.ResourceProvider
+func (cov *Coverage) AddOperation(opInfo *operation.Info) error {
+	rpName := opInfo.RP
 	rp, ok := cov.ResourceProviders[rpName]
 	if !ok {
-		return fmt.Errorf("no resource provider %q found", rp)
+		return fmt.Errorf("no resource provider %q found", rpName)
 	}
-	return rp.AddSchema(s, locator)
+	return rp.AddOperation(opInfo)
 }
 
-func (rp *ResourceProvider) AddSchema(s swagger.Schema, locator workspace.SchemaLocator) error {
-	p := s.SwaggerRelPath
-	pathInfo, err := p.PathInfo()
-	if err != nil {
-		return err
-	}
-
-	path, ok := rp.Paths[locator.ApiPath]
+func (rp *ResourceProvider) AddOperation(opInfo *operation.Info) error {
+	path, ok := rp.Paths[opInfo.APIPath]
 	if !ok {
-		return fmt.Errorf("no API path %q found for resource provider %q", locator.ApiPath, rp)
+		return fmt.Errorf("no API path %q found for resource provider %q", opInfo.APIPath, rp.Name)
 	}
 
-	op, ok := path.Operations[string(locator.Operation)]
+	op, ok := path.Operations[string(opInfo.Operation)]
 	if !ok {
-		return fmt.Errorf("no operation %q found for API path %q, resource provider %q", locator.Operation, locator.ApiPath, rp)
+		return fmt.Errorf("no operation %q found for API path %q, resource provider %q", opInfo.Operation, opInfo.APIPath, rp.Name)
 	}
 
-	version, ok := op.Versions[locator.ApiVersion]
+	version, ok := op.Versions[opInfo.APIVersion]
 	if !ok {
-		return fmt.Errorf("no version %q found for operation %q, API path %q, resource provider %q", locator.ApiVersion, locator.Operation, locator.ApiPath, rp)
+		return fmt.Errorf("no version %q found for operation %q, API path %q, resource provider %q", opInfo.APIVersion, opInfo.Operation, opInfo.APIPath, rp.Name)
 	}
 
-	model, err := NewAPIModel(s)
-	if err != nil {
-		return err
-	}
-
-	rp.Paths[locator.ApiPath].Operations[string(locator.Operation)].Versions[locator.ApiVersion] = APIVersion{
+	v := APIVersion{
 		Version:   version.Version,
-		IsActive:  s.Active,
-		IsPreview: pathInfo.IsPreview,
-		Model:     model,
+		IsActive:  opInfo.IsActive,
+		IsPreview: opInfo.IsPreview,
 	}
+
+	if opInfo.Model != nil {
+		model, err := NewAPIModel(*opInfo.Model)
+		if err != nil {
+			return err
+		}
+		v.Model = model
+	}
+	rp.Paths[opInfo.APIPath].Operations[string(opInfo.Operation)].Versions[opInfo.APIVersion] = v
+
 	return nil
 }
 
@@ -163,15 +156,15 @@ func (rp ResourceProvider) Copy() ResourceProvider {
 func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string, outdir string) error {
 	log.Info("Generating with uncovered operation models...")
 	type input struct {
-		loc workspace.SchemaLocator
+		loc workspace.OperationLocator
 		idx *workspace.AzureRepoIndex
 	}
 	type output struct {
-		loc    workspace.SchemaLocator
-		schema *swagger.Schema
+		loc    workspace.OperationLocator
+		opInfo *operation.Info
 	}
 
-	var ignorePatterns []workspace.SchemaLocator
+	var ignorePatterns []workspace.OperationLocator
 	for _, p := range ignoreSchema {
 		loc, err := workspace.NewSchemaLocatorFromPattern(p)
 		if err != nil {
@@ -215,7 +208,7 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 				// There is no version covered for this operation, we will need to expand the model of this operation.
 			VersionLoop:
 				for version := range op.Versions {
-					loc := workspace.SchemaLocator{
+					loc := workspace.OperationLocator{
 						SpecLocator: workspace.SpecLocator{
 							ApiVersion: version,
 							ApiPath:    pathName,
@@ -237,8 +230,8 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 						func(_ context.Context, i interface{}) (interface{}, error) {
 							in := i.(input)
 							log.Debugf("Expanding uncovered schema for %q", in.loc)
-							schema, err := expandUncoveredSchema(in.loc, in.idx)
-							return output{loc: in.loc, schema: schema}, err
+							opInfo, err := getUncoveredOperation(in.loc, in.idx)
+							return output{loc, opInfo}, err
 						},
 					)
 					wp.AddTask(task)
@@ -247,7 +240,7 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 		}
 
 		var result error
-		uncoveredSchemas := coverage.FlatCoverage{}
+		uncoveredOps := coverage.FlatCoverage{}
 
 		// Iterate the task results and gather all the expanded uncoverd schemas
 		for res := range wp.Done() {
@@ -256,15 +249,12 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 				continue
 			}
 			o := res.Value.(output)
-			if o.schema == nil {
-				continue
-			}
-			uncoveredSchemas[o.loc] = *o.schema
+			uncoveredOps[o.loc] = o.opInfo
 		}
 
 		// Apply the uncovered schemas to the rp cov, which contained the covered schemas' coverage data.
-		for k, schema := range uncoveredSchemas {
-			if err := rp.AddSchema(schema, k); err != nil {
+		for _, v := range uncoveredOps {
+			if err := rp.AddOperation(v); err != nil {
 				return err
 			}
 		}
@@ -285,10 +275,10 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 	return nil
 }
 
-// expandUncoveredSchema expands uncovered schema to its end. In case the schema specified is a schemaless one, it returns nil.
-func expandUncoveredSchema(loc workspace.SchemaLocator, idx *workspace.AzureRepoIndex) (*swagger.Schema, error) {
+// getUncoveredOperation search the index for an uncovered operation. If that operation has a model, further expands it to its end.
+func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureRepoIndex) (*operation.Info, error) {
 	log.Infof("Processing (uncovered) %q", loc)
-	schemaInfo, err := idx.LocateSchema(loc)
+	opInfo, err := idx.LocateOperation(loc)
 	if err != nil {
 		if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
 			log.Warn(err)
@@ -297,51 +287,59 @@ func expandUncoveredSchema(loc workspace.SchemaLocator, idx *workspace.AzureRepo
 		return nil, err
 	}
 
-	// Skip schemaless operations
-	if schemaInfo.Name == "" {
-		return nil, nil
+	// Schemaless operations
+	if opInfo.Model == nil {
+		si := schemainput.SchemaInput{
+			OperationLocator: loc,
+			Properties:       []string{},
+		}
+		out, err := si.ToOperationInfo(idx, true, false)
+		if err != nil {
+			return nil, fmt.Errorf("converting schema input to opInfo for %q: %v", loc, err)
+		}
+		return out, nil
 	}
 
-	// Convert the schema into schema input.
+	// Operations with schemas
 	// In most case we can simpy initialize a schema input here, however, we should take care about the discriminator schemas (i.e., the schema itself is a discriminator)
-	schemaRef := swagger.SchemaNameToRef(filepath.Join(idx.SpecRootDir, string(schemaInfo.SpecRelPath)), schemaInfo.Name)
+	schemaRef := swagger.SchemaNameToRef(filepath.Join(idx.SpecRootDir, opInfo.Model.SpecRelPath), opInfo.Model.Name)
 	variantRefSet, err := swagger.GetVariantRefSet(schemaRef)
 	if err != nil {
 		return nil, fmt.Errorf("getting variant ref set: %v", err)
 	}
 
-	// The schema is not a discriminator, we can simply convert it to schema input
+	// The schema is not a discriminator, we can simply convert it to schema input and process on
 	if len(variantRefSet) == 0 {
 		si := schemainput.SchemaInput{
-			SchemaLocator: loc,
-			Properties:    []string{},
+			OperationLocator: loc,
+			Properties:       []string{},
 		}
-		schema, err := si.ToSchema(idx, true, false)
+		out, err := si.ToOperationInfo(idx, true, false)
 		if err != nil {
-			return nil, fmt.Errorf("converting schema input to schema for %q: %v", loc, err)
+			return nil, fmt.Errorf("converting schema input to opInfo for %q: %v", loc, err)
 		}
-		return schema, nil
+		return out, nil
 	}
 
 	// The schema is a discriminator, we will need to expand all its variants and merge them into one schema.
-	var schema *swagger.Schema
+	var out *operation.Info
 	for ref := range variantRefSet {
 		si := schemainput.SchemaInput{
-			SchemaLocator: loc,
-			Variant:       ref,
-			Properties:    []string{},
+			OperationLocator: loc,
+			Variant:          ref,
+			Properties:       []string{},
 		}
-		oschema, err := si.ToSchema(idx, true, false)
+		info, err := si.ToOperationInfo(idx, true, false)
 		if err != nil {
-			return nil, fmt.Errorf("converting schema input to schema for %q: %v", loc, err)
+			return nil, fmt.Errorf("converting schema input to opInfo for %q: %v", loc, err)
 		}
-		if schema == nil {
-			schema = oschema
+		if out == nil {
+			out = info
 		} else {
-			if err := schema.Merge(*oschema); err != nil {
-				return nil, fmt.Errorf("mergeing schema for %q: %v", loc, err)
+			if err := out.Model.Merge(*info.Model); err != nil {
+				return nil, fmt.Errorf("merging schema for %q: %v", loc, err)
 			}
 		}
 	}
-	return schema, nil
+	return out, nil
 }

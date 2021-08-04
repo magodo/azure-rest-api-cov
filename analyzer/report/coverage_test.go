@@ -26,7 +26,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 			"dummy": &report.APIPaths{
 				"/{}/{}": &report.APIPath{},
 				"/{}/{}/DEF_FOO": &report.APIPath{
-					Operations: map[string]report.APIVersions{
+					Operations: map[string]*report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
 						},
@@ -41,14 +41,14 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 					},
 				},
 				"/{}/{}/DEF_BAR": &report.APIPath{
-					Operations: map[string]report.APIVersions{
+					Operations: map[string]*report.APIVersions{
 						"POST": {
 							"2020-12-01": nil,
 						},
 					},
 				},
 				"/{}/{}/DEF_BASE": &report.APIPath{
-					Operations: map[string]report.APIVersions{
+					Operations: map[string]*report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
 							"2021-01-01": nil,
@@ -56,7 +56,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 					},
 				},
 				"/{}/{}/DEF_REGULAR": &report.APIPath{
-					Operations: map[string]report.APIVersions{
+					Operations: map[string]*report.APIVersions{
 						"GET": {
 							"2020-12-01": nil,
 							"2021-01-01": nil,
@@ -228,15 +228,15 @@ func TestCoverageStoreAddSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		schema, err := schemaInput.ToSchema(index, true, false)
+		opInfo, err := schemaInput.ToOperationInfo(index, true, false)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator), idx)
+		require.NoError(t, cov.AddOperation("prefix/", opInfo), idx)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
-		schema, err = schemaInput.ToSchema(index, true, false)
+		opInfo, err = schemaInput.ToOperationInfo(index, true, false)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddSchema("prefix/", *schema, schemaInput.SchemaLocator), idx)
+		require.NoError(t, cov.AddOperation("prefix/", opInfo), idx)
 
 		b, err = json.MarshalIndent(cov, "", "  ")
 		require.NoError(t, err, idx)
@@ -257,7 +257,7 @@ func TestCoverageStoreMarshal(t *testing.T) {
 				ResourceProviders: report.ResourceProviders{
 					"rp1": &report.APIPaths{
 						"path1": &report.APIPath{
-							Operations: map[string]report.APIVersions{
+							Operations: map[string]*report.APIVersions{
 								"PUT": {
 									"version1": &report.SchemaCoverage{
 										Active: true,
@@ -359,7 +359,7 @@ func TestCoverageStoreUnmarshal(t *testing.T) {
 				ResourceProviders: report.ResourceProviders{
 					"rp1": &report.APIPaths{
 						"path1": &report.APIPath{
-							Operations: map[string]report.APIVersions{
+							Operations: map[string]*report.APIVersions{
 								"PUT": {
 									"version1": &report.SchemaCoverage{
 										Active: true,

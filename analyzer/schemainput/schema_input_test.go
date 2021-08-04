@@ -129,7 +129,7 @@ func TestToSchema(t *testing.T) {
 		if c.shiftVersion != "" {
 			schemaInput.ApiVersion = c.shiftVersion
 		}
-		schema, err := schemaInput.ToSchema(index, c.shiftVersion != "", false)
+		opInfo, err := schemaInput.ToOperationInfo(index, c.shiftVersion != "", false)
 		if c.err == nil {
 			require.NoError(t, err, idx)
 		} else {
@@ -137,11 +137,11 @@ func TestToSchema(t *testing.T) {
 			continue
 		}
 
-		if schema.Properties == nil {
+		if opInfo.Model == nil {
 			continue
 		}
 
-		b, err = schema.Properties.MarshalJSON()
+		b, err = opInfo.Model.Properties.MarshalJSON()
 		require.NoError(t, err, idx)
 
 		require.JSONEq(t, c.expectProperties, string(b), idx)

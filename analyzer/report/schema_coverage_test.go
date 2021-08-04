@@ -2,6 +2,7 @@ package report_test
 
 import (
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"testing"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/report"
@@ -243,30 +244,33 @@ func TestSchemaCoverageStore_FindCoverage(t *testing.T) {
 
 func TestNewSchemaCoverageStore(t *testing.T) {
 	cases := []struct {
-		schema swagger.Schema
+		opInfo operation.Info
 		expect *report.SchemaCoverage
 	}{
 		{
-			schema: swagger.Schema{
-				SchemaMetaInfo: swagger.SchemaMetaInfo{
-					Name:           "foo",
-					SwaggerRelPath: "foo/resource-manager/Microsoft.Foo/preview/2021-02-01/foo.json",
-				},
-				Properties: swagger.Properties{
-					"prop1/covered": &swagger.Property{
-						PropertyState: swagger.PropertyStateCovered,
+			opInfo: operation.Info{
+				IsPreview: true,
+				Model: &swagger.Schema{
+					SchemaMetaInfo: swagger.SchemaMetaInfo{
+						Name:           "foo",
+						SwaggerRelPath: "foo/resource-manager/Microsoft.Foo/preview/2021-02-01/foo.json",
 					},
-					"prop1/not_covered": {
-						PropertyState: swagger.PropertyStateUncovered,
-					},
-					"prop2/covered": {
-						PropertyState: swagger.PropertyStateCovered,
-					},
-					"prop2/granted": {
-						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
-					},
-					"prop_granted": {
-						PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
+					Properties: swagger.Properties{
+						"prop1/covered": &swagger.Property{
+							PropertyState: swagger.PropertyStateCovered,
+						},
+						"prop1/not_covered": {
+							PropertyState: swagger.PropertyStateUncovered,
+						},
+						"prop2/covered": {
+							PropertyState: swagger.PropertyStateCovered,
+						},
+						"prop2/granted": {
+							PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
+						},
+						"prop_granted": {
+							PropertyState: swagger.NewPropertyState(swagger.PropStateGranted, "granted"),
+						},
 					},
 				},
 			},
@@ -327,7 +331,7 @@ func TestNewSchemaCoverageStore(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store, err := report.NewSchemaCoverage("", c.schema)
+		store, err := report.NewSchemaCoverage("", &c.opInfo)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, store, idx)
 	}

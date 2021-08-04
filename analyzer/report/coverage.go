@@ -2,9 +2,7 @@ package report
 
 import (
 	"fmt"
-
-	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
-
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 )
 
@@ -25,7 +23,7 @@ type APIPath struct {
 	Operations   Operations `json:"operations,omitempty"`
 }
 
-type Operations map[string]APIVersions
+type Operations map[string]*APIVersions
 
 type APIVersions map[string]*SchemaCoverage
 
@@ -57,11 +55,11 @@ func NewEmptyCoverage(index workspace.AzureRepoIndex, additionalMessage string) 
 
 						covVersions, ok := path.Operations[string(op)]
 						if !ok {
-							covVersions = APIVersions{}
+							covVersions = &APIVersions{}
 							path.Operations[string(op)] = covVersions
 						}
 
-						covVersions[string(version)] = nil
+						(*covVersions)[string(version)] = nil
 					}
 				}
 			}
@@ -71,34 +69,28 @@ func NewEmptyCoverage(index workspace.AzureRepoIndex, additionalMessage string) 
 	return coverage
 }
 
-func (cov *Coverage) AddSchema(repoURLPrefix string, s swagger.Schema, locator workspace.SchemaLocator) error {
-	schemaCov, err := NewSchemaCoverage(repoURLPrefix, s)
+func (cov *Coverage) AddOperation(repoURLPrefix string, opInfo *operation.Info) error {
+	schemaCov, err := NewSchemaCoverage(repoURLPrefix, opInfo)
 	if err != nil {
 		return err
 	}
 
-	p := s.SwaggerRelPath
-	pathInfo, err := p.PathInfo()
-	if err != nil {
-		return err
-	}
-
-	rp := ResourceProvider(pathInfo.ResourceProvider)
+	rp := ResourceProvider(opInfo.RP)
 	paths, ok := cov.ResourceProviders[rp]
 	if !ok {
 		return fmt.Errorf("no resource provider %q found", rp)
 	}
 
-	path, ok := (*paths)[locator.ApiPath]
+	path, ok := (*paths)[opInfo.APIPath]
 	if !ok {
-		return fmt.Errorf("no API path %q found for resource provider %q", locator.ApiPath, rp)
+		return fmt.Errorf("no API path %q found for resource provider %q", opInfo.APIPath, rp)
 	}
 
-	versions, ok := path.Operations[string(locator.Operation)]
+	versions, ok := path.Operations[string(opInfo.Operation)]
 	if !ok {
-		return fmt.Errorf("no operation %q found for API path %q, resource provider %q", locator.Operation, locator.ApiPath, rp)
+		return fmt.Errorf("no operation %q found for API path %q, resource provider %q", opInfo.Operation, opInfo.APIPath, rp)
 	}
 
-	versions[locator.ApiVersion] = schemaCov
+	(*versions)[opInfo.APIVersion] = schemaCov
 	return nil
 }

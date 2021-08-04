@@ -44,16 +44,16 @@ type SpecLocator struct {
 	ApiPath    string `json:"api_path"`
 }
 
-type SchemaLocator struct {
+type OperationLocator struct {
 	SpecLocator
 	Operation OperationKind `json:"operation"`
 }
 
-func (s SchemaLocator) String() string {
+func (s OperationLocator) String() string {
 	return fmt.Sprintf("%s %s %s", s.ApiPath, s.Operation, s.ApiVersion)
 }
 
-type SchemaLocators []SchemaLocator
+type SchemaLocators []OperationLocator
 
 func (locators SchemaLocators) Len() int {
 	return len(locators)
@@ -79,15 +79,15 @@ func (locators SchemaLocators) Swap(i, j int) {
 	locators[i], locators[j] = locators[j], locators[i]
 }
 
-// NewSchemaLocatorFromPattern create a SchemaLocator from the pattern in the format of: <API Path>:<Operation>:<API Version>
-func NewSchemaLocatorFromPattern(p string) (SchemaLocator, error) {
+// NewSchemaLocatorFromPattern create a OperationLocator from the pattern in the format of: <API Path>:<Operation>:<API Version>
+func NewSchemaLocatorFromPattern(p string) (OperationLocator, error) {
 	segments := strings.Split(p, ":")
 	if len(segments) != 3 {
-		return SchemaLocator{}, fmt.Errorf("malformed format of SchemaLocator pattern %q, expecting: <API Path>:<Operation>:<API Version>", p)
+		return OperationLocator{}, fmt.Errorf("malformed format of OperationLocator pattern %q, expecting: <API Path>:<Operation>:<API Version>", p)
 	}
 
 	path, op, ver := segments[0], segments[1], segments[2]
-	return SchemaLocator{
+	return OperationLocator{
 		SpecLocator: SpecLocator{
 			ApiVersion: ver,
 			ApiPath:    path,
@@ -96,7 +96,7 @@ func NewSchemaLocatorFromPattern(p string) (SchemaLocator, error) {
 	}, nil
 }
 
-func (loc SchemaLocator) Match(oloc SchemaLocator) bool {
+func (loc OperationLocator) Match(oloc OperationLocator) bool {
 	if loc.Operation != OperationKindGlob {
 		if loc.Operation != oloc.Operation {
 			return false
@@ -138,7 +138,17 @@ type Specs map[specpath.Path]APIPaths
 
 type APIPaths map[string]APIOperations
 
-type APIOperations map[OperationKind]*SchemaInfo
+type APIOperations map[OperationKind]*OperationInfo
+
+type OperationInfo struct {
+	SpecRelPath specpath.Path `json:"spec_rel_path"`
+	Model       *ModelInfo    `json:"model"`
+}
+
+type ModelInfo struct {
+	Name        string `json:"name"`
+	SpecRelPath string `json:"spec_rel_path"` // The relative path to the spec that define this schema, which might be different than the SpecPath (defines the API Path)
+}
 
 type APIPath struct {
 	raw string
@@ -181,11 +191,6 @@ func (p APIPath) Provider() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("API path %q has no `PROVIDERS` component", path)
-}
-
-type SchemaInfo struct {
-	Name        string        `json:"name"`
-	SpecRelPath specpath.Path `json:"spec_rel_path"` // The relative path to the spec that define this schema, which might be different that the SpecPath (defines the API Path)
 }
 
 func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, error) {
@@ -266,7 +271,7 @@ func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp Res
 		operations := APIOperations{}
 		apiPaths[apiPath.String()] = operations
 
-		infos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, string(specPathDefAPIPath), apiPath, pathItem)
+		infos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(specPathDefAPIPath), apiPath, pathItem)
 		if err != nil {
 			return err
 		}
@@ -278,7 +283,7 @@ func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp Res
 	return nil
 }
 
-func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPath, pathItem openapispec.PathItem) (map[OperationKind]*SchemaInfo, error) {
+func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPath, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	swg, err := swaggerloader.LoadSwagger(specAbsPathDefAPI)
 	if err != nil {
@@ -294,23 +299,23 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 		OperationKindHead:    pathItem.Head,
 		OperationKindPatch:   pathItem.Patch,
 	}
-	infos := map[OperationKind]*SchemaInfo{}
+	infos := map[OperationKind]*OperationInfo{}
 	for kind, op := range ops {
 		if op == nil {
 			continue
 		}
 
 		var (
-			info *SchemaInfo
+			info *ModelInfo
 			err  error
 		)
 		switch kind {
 		case OperationKindPost,
 			OperationKindPut,
 			OperationKindPatch:
-			info, err = getSchemaInfoFromParameter(swg, specRootPath, specRelPathDefAPI, *op)
+			info, err = getModelInfoFromParameter(swg, specRootPath, specRelPathDefAPI, *op)
 		case OperationKindGet:
-			info, err = getSchemaInfoFromResponse(swg, specRootPath, specRelPathDefAPI, *op)
+			info, err = getModelInfoFromResponse(swg, specRootPath, specRelPathDefAPI, *op)
 		case OperationKindDelete, OperationKindHead, OperationKindOptions:
 		default:
 			return nil, fmt.Errorf("invalid operation kind %q for api path %q", kind, apiPath)
@@ -319,20 +324,17 @@ func getSchemaInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath A
 			return nil, err
 		}
 
-		// For schema-less operations, only set the spec relative path.
-		if info == nil {
-			info = &SchemaInfo{
-				Name:        "",
-				SpecRelPath: specpath.Path(specRelPathDefAPI),
-			}
+		opInfo := &OperationInfo{
+			SpecRelPath: specpath.Path(specRelPathDefAPI),
+			Model:       info,
 		}
-		infos[kind] = info
+		infos[kind] = opInfo
 	}
 	return infos, nil
 }
 
-//  getSchemaInfoFromParameter get the information for in-body parameter if any. Otherwise, it returns nil.
-func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*SchemaInfo, error) {
+//  getModelInfoFromParameter get the information for in-body parameter if any. Otherwise, it returns nil.
+func getModelInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*ModelInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	for _, param := range operation.Parameters {
 		relPath := specRelPathDefAPI
@@ -376,16 +378,16 @@ func getSchemaInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelP
 			}
 			relPath = filepath.Clean(filepath.Join(filepath.Dir(relPath), refPath))
 		}
-		return &SchemaInfo{
+		return &ModelInfo{
 			Name:        name,
-			SpecRelPath: specpath.Path(relPath),
+			SpecRelPath: relPath,
 		}, nil
 	}
 	return nil, nil
 }
 
-//  getSchemaInfoFromResponse get the information for the response of code 200 if any. Otherwise, it returns nil.
-func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*SchemaInfo, error) {
+//  getModelInfoFromResponse get the information for the response of code 200 if any. Otherwise, it returns nil.
+func getModelInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*ModelInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	relPath := specRelPathDefAPI
 	resp, ok := operation.Responses.ResponsesProps.StatusCodeResponses[200]
@@ -427,9 +429,9 @@ func getSchemaInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPa
 		}
 		relPath = filepath.Clean(filepath.Join(filepath.Dir(relPath), refPath))
 	}
-	return &SchemaInfo{
+	return &ModelInfo{
 		Name:        name,
-		SpecRelPath: specpath.Path(relPath),
+		SpecRelPath: relPath,
 	}, nil
 }
 
@@ -534,11 +536,11 @@ func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (specpath.Path, err
 	return p, nil
 }
 
-// LocateSchema locates the schema info that defines the "in-body" parameter (for PUT/POST/PATCH operations)
+// LocateOperation locates the schema info that defines the "in-body" parameter (for PUT/POST/PATCH operations)
 // or 200 response (for GET operation) on the API path of the API version as defined in the locator.
 // For other operations, it returns a info with an empty name and a repl path to the swagger file defining the api path.
 // The spec path might be different that the one that defines the API path.
-func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (info *SchemaInfo, err error) {
+func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *OperationInfo, err error) {
 	swaggerRelPathDefApiPath, err := index.LocateSpec(locator.SpecLocator)
 	if err != nil {
 		return nil, err
@@ -550,12 +552,12 @@ func (index *AzureRepoIndex) LocateSchema(locator SchemaLocator) (info *SchemaIn
 	}
 
 	pathItem := swg.Paths.Paths[locator.ApiPath]
-	schemaInfos, err := getSchemaInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
+	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
 	if err != nil {
 		return nil, err
 	}
 
-	info, ok := schemaInfos[locator.Operation]
+	info, ok := opInfos[locator.Operation]
 	if !ok {
 		return nil, fmt.Errorf("no schema info found for schema locator %v: %w", locator, ErrFailedToLocateSchema)
 	}
