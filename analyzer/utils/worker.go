@@ -1,67 +1,86 @@
 package utils
 
 import (
-	"context"
-	"runtime"
+	"errors"
+	"fmt"
+	"sync"
+
+	"github.com/hashicorp/go-multierror"
 )
 
-type task struct {
-	ctx   context.Context
-	input interface{}
-	f     TaskFunc
-}
+type task func() (interface{}, error)
 
-type TaskFunc func(context.Context, interface{}) (interface{}, error)
-
-func NewTask(ctx context.Context, input interface{}, f TaskFunc) task {
-	return task{ctx, input, f}
-}
+type ResultHandler func(interface{}) error
 
 type Result struct {
 	Value interface{}
 	Error error
 }
 
+var ErrSkipTask = errors.New("skip the task")
+
 type WorkPool interface {
-	Run()
-	Done() chan Result
-	AddTask(task)
+	Run(ResultHandler)
+	Done() error
+	AddTask(task) bool
 }
 
 type workPool struct {
 	size      int
 	taskQueue chan task
-	resultCh  chan Result
-	done      chan interface{}
+
+	stopAddingTaskDone chan interface{}
+	addingTaskStopped  bool
+
+	resultCh chan Result
+	done     chan interface{}
+	stopOnce sync.Once
+	errorCh  chan error
+	stopCh   chan interface{}
 }
 
 var _ WorkPool = &workPool{}
 
-func NewWorkPool(tasksize int) *workPool {
+// NewWorkPool creates a new worker pool which has "size" numbers of workers.
+func NewWorkPool(size int) *workPool {
 	return &workPool{
-		size:      tasksize,
-		taskQueue: make(chan task, tasksize),
-		resultCh:  make(chan Result, tasksize),
+		size:      size,
+		taskQueue: make(chan task, 1),
+		resultCh:  make(chan Result, 1),
 		done:      make(chan interface{}),
+		errorCh:   make(chan error, 1),
+		stopCh:    make(chan interface{}),
 	}
 }
 
-func (wp *workPool) Run() {
-	ncpu := runtime.NumCPU()
-	closeChs := make([]chan interface{}, 0, ncpu)
-	for i := 0; i < ncpu; i++ {
+// Run launches a number of workers (determined by the work pool size) in their own goroutines to run the task.
+// Besides, it will launch a separate result handler which consumes the task results.
+//
+// If any task hits an error, or the result handler hits an error. The workers will stop handling tasks.
+// Especially, if there are undergoing tasks running when the error occurs, those tasks will be handled, and the error
+// will be appended together, if any.
+func (wp *workPool) Run(h ResultHandler) {
+	closeChs := make([]chan interface{}, 0, wp.size)
+	for i := 0; i < wp.size; i++ {
 		closeChs = append(closeChs, make(chan interface{}))
-		go func(i int) {
+		go func(ch chan interface{}) {
 			for t := range wp.taskQueue {
 				select {
-				case <-t.ctx.Done():
+				case <-wp.stopCh:
+					// Throw away the task here. The reason not to use "brea" here is because the AddTask()
+					// might sending a new task to the queue, while all the workers are stopped (if using break).
+					// That results into the AddTask() hang.
+					continue
 				default:
-					v, err := t.f(t.ctx, t.input)
+					v, err := t()
+					if err != nil {
+						err = fmt.Errorf("task error: %w", err)
+					}
 					wp.resultCh <- Result{v, err}
 				}
 			}
-			close(closeChs[i])
-		}(i)
+			close(ch)
+		}(closeChs[i])
 	}
 
 	go func() {
@@ -70,15 +89,50 @@ func (wp *workPool) Run() {
 		}
 		wp.done <- struct{}{}
 	}()
+
+	var once sync.Once
+	go func() {
+		var result error
+		for res := range wp.resultCh {
+			err := res.Error
+			if err == nil {
+				err = h(res.Value)
+				if err != nil {
+					err = fmt.Errorf("task handler error: %w", err)
+				}
+			}
+			if err != nil {
+				if errors.Is(err, ErrSkipTask) {
+					continue
+				}
+				once.Do(func() {
+					close(wp.stopCh)
+				})
+				result = multierror.Append(result, err)
+			}
+		}
+
+		wp.errorCh <- result
+	}()
 }
 
-func (wp *workPool) AddTask(t task) {
-	wp.taskQueue <- t
+// AddTask adds new task to the worker pool.
+// Users shouldn't call it after calling Done().
+// It returns false if the worker pool is stopped due to any error occured in the task or the result handler.
+func (wp *workPool) AddTask(t task) bool {
+	select {
+	case <-wp.stopCh:
+		return false
+	case wp.taskQueue <- t:
+		return true
+	}
 }
 
-func (wp *workPool) Done() chan Result {
+// Done stopps the worker pool and return the error indicating any error occured in the task or the result handler.
+// Users should always call only once for this method.
+func (wp *workPool) Done() error {
 	close(wp.taskQueue)
 	<-wp.done
 	close(wp.resultCh)
-	return wp.resultCh
+	return <-wp.errorCh
 }

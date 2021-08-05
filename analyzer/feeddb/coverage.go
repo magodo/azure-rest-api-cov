@@ -1,16 +1,15 @@
 package feeddb
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
@@ -156,10 +155,6 @@ func (rp ResourceProvider) Copy() ResourceProvider {
 // This can be some API path has covered some operations but not the others. This can also happen when some API paths are not covered at all.
 func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string, outdir string) error {
 	log.Info("Generating with uncovered operation models...")
-	type input struct {
-		loc workspace.OperationLocator
-		idx *workspace.AzureRepoIndex
-	}
 	type output struct {
 		loc    workspace.OperationLocator
 		opInfo *operation.Info
@@ -181,15 +176,18 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 		// This is for saving memory usage.
 		rp := rp.Copy()
 
-		// Setup the work pool
-		size := 0
-		for _, path := range rp.Paths {
-			for _, op := range path.Operations {
-				size += len(op.Versions)
+		// Set up the work pool
+		uncoveredOps := coverage.FlatCoverage{}
+		wp := utils.NewWorkPool(runtime.NumCPU())
+		wp.Run(func(i interface{}) error {
+			// Iterate the task results and gather all the expanded uncovered schemas
+			o := i.(output)
+			if o.opInfo == nil {
+				return nil
 			}
-		}
-		wp := utils.NewWorkPool(size)
-		wp.Run()
+			uncoveredOps[o.loc] = o.opInfo
+			return nil
+		})
 
 		for pathName, path := range rp.Paths {
 			for opName, op := range path.Operations {
@@ -229,36 +227,17 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 						}
 					}
 
-					// Construct the worker task and send it into the task queue.
-					task := utils.NewTask(
-						context.TODO(),
-						input{loc, idx},
-						func(_ context.Context, i interface{}) (interface{}, error) {
-							in := i.(input)
-							log.Debugf("Expanding uncovered schema for %q", in.loc)
-							opInfo, err := getUncoveredOperation(in.loc, in.idx)
-							return output{loc, opInfo}, err
-						},
-					)
-					wp.AddTask(task)
+					wp.AddTask(func() (interface{}, error) {
+						log.Debugf("Expanding uncovered schema for %q", loc)
+						opInfo, err := getUncoveredOperation(loc, idx)
+						return output{loc, opInfo}, err
+					})
 				}
 			}
 		}
 
-		var result error
-		uncoveredOps := coverage.FlatCoverage{}
-
-		// Iterate the task results and gather all the expanded uncoverd schemas
-		for res := range wp.Done() {
-			if res.Error != nil {
-				result = multierror.Append(result, res.Error)
-				continue
-			}
-			o := res.Value.(output)
-			if o.opInfo == nil {
-				continue
-			}
-			uncoveredOps[o.loc] = o.opInfo
+		if err := wp.Done(); err != nil {
+			return err
 		}
 
 		// Apply the uncovered schemas to the rp cov, which contained the covered schemas' coverage data.

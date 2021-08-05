@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"path/filepath"
+	"runtime"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
@@ -154,6 +156,12 @@ func (cov *Coverage) Predict(idx *workspace.AzureRepoIndex) error {
 		activeSchemaInputMap[schemaInput.OperationLocator] = true
 	}
 
+	// Set up the work pool
+	wp := utils.NewWorkPool(runtime.NumCPU())
+	wp.Run(func(i interface{}) error {
+		return cov.AddOperation(i.(*operation.Info))
+	})
+
 predictLoop:
 	for _, schemaInput := range activeSchemaInputs {
 		specPath, err := idx.LocateSpec(schemaInput.SpecLocator)
@@ -203,21 +211,21 @@ predictLoop:
 			}
 			log.Infoln(msg)
 
-			opInfo, err := schemaInput.ToOperationInfo(idx, false, false)
-			if err != nil {
-				if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
-					log.Warn(err)
-					continue
+			schemaInput := schemaInput
+			wp.AddTask(func() (interface{}, error) {
+				opInfo, err := schemaInput.ToOperationInfo(idx, false, false)
+				if err != nil {
+					if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
+						log.Warn(err)
+						return nil, utils.ErrSkipTask
+					}
 				}
-				return err
-			}
-
-			if err := cov.AddOperation(opInfo); err != nil {
-				return err
-			}
+				return opInfo, err
+			},
+			)
 		}
 	}
-	return nil
+	return wp.Done()
 }
 
 type FlatCoverage map[workspace.OperationLocator]*operation.Info
