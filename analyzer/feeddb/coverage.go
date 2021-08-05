@@ -191,11 +191,6 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 
 		for pathName, path := range rp.Paths {
 			for opName, op := range path.Operations {
-				// TODO: add supports for all operation kinds
-				if opName != "PUT" && opName != "DELETE" && opName != "POST" && opName != "PATCH" {
-					continue
-				}
-
 				// Iterate all the versions to see whether there is an active one, if so it means this operation is covered already, we don't need to expand the uncovered ones.
 				// Since in this case we only need to expand the newer API versions, which has been done in the "coverage" stage (with "-predict").
 				var hasActive bool
