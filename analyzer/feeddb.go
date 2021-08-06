@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -57,5 +58,10 @@ func FeedDB(in io.Reader, ctx FeedDBContext) error {
 		}
 	}
 
-	return covReport.GenerateWithUncoveredOperationModels(wsp.AzureRepoIndex, ctx.IgnoreSchema)
+	out, err := covReport.GenerateWithUncoveredOperationModels(wsp.AzureRepoIndex, ctx.IgnoreSchema)
+	if err != nil {
+		return err
+	}
+	fmt.Println(out)
+	return err
 }

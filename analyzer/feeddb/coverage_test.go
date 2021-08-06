@@ -2,14 +2,15 @@ package feeddb_test
 
 import (
 	"encoding/json"
-	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
-	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
-	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
+	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
+	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewEmptyCoverage(t *testing.T) {
@@ -368,309 +369,315 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 			schemaInput: filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
 			expect: `
 {
-  "name": "dummy",
-  "paths": {
-	"/{}/{}": {
-	  "name": "/{}/{}",
-	  "operations": {}
-	},
-	"/{}/{}/DEF_BAR": {
-	  "name": "/{}/{}/DEF_BAR",
-	  "operations": {
-		"POST": {
-		  "name": "POST",
-		  "versions": {
-			"2020-12-01": {
-			  "version": "2020-12-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_bar",
-				"properties": {
-				  "bar": {
-					"isCovered": false
-				  }
-				}
-			  }
-			}
-		  }
-		}
-	  }
-	},
-	"/{}/{}/DEF_BASE": {
-	  "name": "/{}/{}/DEF_BASE",
-	  "operations": {
-		"PUT": {
-		  "name": "PUT",
-		  "versions": {
-			"2020-12-01": {
-			  "version": "2020-12-01",
-			  "isActive": true,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_base",
-				"properties": {
-				  "{def_variant1}": {
-					"properties": {
-					  "type": {
-						"isCovered": true
-					  }
-					}
-				  },
-				  "{def_variant2}": {
-					"properties": {
-					  "type": {
-						"isCovered": false
-					  }
-					}
-				  }
-				}
-			  }
-			},
-			"2021-01-01": {
-			  "version": "2021-01-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_base",
-				"properties": {
-				  "{def_variant1}": {
-					"properties": {
-					  "new_prop": {
-						"isCovered": false
-					  },
-					  "type": {
-						"isCovered": true
-					  }
-					}
-				  },
-				  "{def_variant2}": {
-					"properties": {
-					  "new_prop": {
-						"isCovered": false
-					  },
-					  "type": {
-						"isCovered": false
-					  }
-					}
-				  }
-				}
-			  }
-			}
-		  }
-		}
-	  }
-	},
-	"/{}/{}/DEF_FOO": {
-	  "name": "/{}/{}/DEF_FOO",
-	  "operations": {
-		"DELETE": {
-		  "name": "DELETE",
-		  "versions": {
-			"2020-12-01": {
-			  "version": "2020-12-01",
-			  "isActive": false,
-			  "isPreview": false
-			},
-			"2021-01-01": {
-			  "version": "2021-01-01",
-			  "isActive": false,
-			  "isPreview": false
-			}
-		  }
-		},
-		"GET": {
-		  "name": "GET",
-		  "versions": {
-			"2020-12-01": {
-			  "version": "2020-12-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_foo",
-				"properties": {
-				  "foo": {
-					"isCovered": false
-				  }
-				}
-			  }
-			},
-			"2021-01-01": {
-			  "version": "2021-01-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_foo",
-				"properties": {
-				  "foo": {
-					"isCovered": false
-				  }
-				}
-			  }
-			}
-		  }
-		},
-		"PUT": {
-		  "name": "PUT",
-		  "versions": {
-			"2020-12-01": {
-			  "version": "2020-12-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_foo",
-				"properties": {
-				  "foo": {
-					"isCovered": false
-				  }
-				}
-			  }
-			}
-		  }
-		}
-	  }
-	},
-	"/{}/{}/DEF_REGULAR": {
-	  "name": "/{}/{}/DEF_REGULAR",
-	  "operations": {
-		"GET": {
-		  "name": "GET",
-		  "versions": {
-			"2020-12-01": {
-			  "version": "2020-12-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_regular",
-				"properties": {
-				  "prop_array_of_object": {
-					"properties": {
-					  "prop_nested1": {
-						"isCovered": false
-					  },
-					  "prop_nested2": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_array_of_primitive": {
-					"isCovered": false
-				  },
-				  "prop_object": {
-					"properties": {
-					  "prop_nested": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_primitive": {
-					"isCovered": false
-				  }
-				}
-			  }
-			},
-			"2021-01-01": {
-			  "version": "2021-01-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_regular",
-				"properties": {
-				  "prop_array_of_object": {
-					"properties": {
-					  "prop_nested1": {
-						"isCovered": false
-					  },
-					  "prop_nested2": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_object": {
-					"properties": {
-					  "prop_nested": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_primitive": {
-					"isCovered": false
-				  }
-				}
-			  }
-			}
-		  }
-		},
-		"PUT": {
-		  "name": "PUT",
-		  "versions": {
-			"2020-12-01": {
-			  "version": "2020-12-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_regular",
-				"properties": {
-				  "prop_array_of_object": {
-					"properties": {
-					  "prop_nested1": {
-						"isCovered": false
-					  },
-					  "prop_nested2": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_array_of_primitive": {
-					"isCovered": false
-				  },
-				  "prop_object": {
-					"properties": {
-					  "prop_nested": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_primitive": {
-					"isCovered": false
-				  }
-				}
-			  }
-			},
-			"2021-01-01": {
-			  "version": "2021-01-01",
-			  "isActive": false,
-			  "isPreview": false,
-			  "model": {
-				"name": "def_regular",
-				"properties": {
-				  "prop_array_of_object": {
-					"properties": {
-					  "prop_nested1": {
-						"isCovered": false
-					  },
-					  "prop_nested2": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_object": {
-					"properties": {
-					  "prop_nested": {
-						"isCovered": false
-					  }
-					}
-				  },
-				  "prop_primitive": {
-					"isCovered": false
-				  }
-				}
-			  }
-			}
-		  }
-		}
-	  }
-	}
+  "comment": "comment",
+  "ref": "",
+  "resourceProviders": {
+    "dummy": {
+      "name": "dummy",
+      "paths": {
+        "/{}/{}": {
+          "name": "/{}/{}",
+          "operations": {}
+        },
+        "/{}/{}/DEF_BAR": {
+          "name": "/{}/{}/DEF_BAR",
+          "operations": {
+            "POST": {
+              "name": "POST",
+              "versions": {
+                "2020-12-01": {
+                  "version": "2020-12-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_bar",
+                    "properties": {
+                      "bar": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/{}/{}/DEF_BASE": {
+          "name": "/{}/{}/DEF_BASE",
+          "operations": {
+            "PUT": {
+              "name": "PUT",
+              "versions": {
+                "2020-12-01": {
+                  "version": "2020-12-01",
+                  "isActive": true,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_base",
+                    "properties": {
+                      "{def_variant1}": {
+                        "properties": {
+                          "type": {
+                            "isCovered": true
+                          }
+                        }
+                      },
+                      "{def_variant2}": {
+                        "properties": {
+                          "type": {
+                            "isCovered": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "2021-01-01": {
+                  "version": "2021-01-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_base",
+                    "properties": {
+                      "{def_variant1}": {
+                        "properties": {
+                          "new_prop": {
+                            "isCovered": false
+                          },
+                          "type": {
+                            "isCovered": true
+                          }
+                        }
+                      },
+                      "{def_variant2}": {
+                        "properties": {
+                          "new_prop": {
+                            "isCovered": false
+                          },
+                          "type": {
+                            "isCovered": false
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/{}/{}/DEF_FOO": {
+          "name": "/{}/{}/DEF_FOO",
+          "operations": {
+            "DELETE": {
+              "name": "DELETE",
+              "versions": {
+                "2020-12-01": {
+                  "version": "2020-12-01",
+                  "isActive": false,
+                  "isPreview": false
+                },
+                "2021-01-01": {
+                  "version": "2021-01-01",
+                  "isActive": false,
+                  "isPreview": false
+                }
+              }
+            },
+            "GET": {
+              "name": "GET",
+              "versions": {
+                "2020-12-01": {
+                  "version": "2020-12-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_foo",
+                    "properties": {
+                      "foo": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                },
+                "2021-01-01": {
+                  "version": "2021-01-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_foo",
+                    "properties": {
+                      "foo": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "PUT": {
+              "name": "PUT",
+              "versions": {
+                "2020-12-01": {
+                  "version": "2020-12-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_foo",
+                    "properties": {
+                      "foo": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "/{}/{}/DEF_REGULAR": {
+          "name": "/{}/{}/DEF_REGULAR",
+          "operations": {
+            "GET": {
+              "name": "GET",
+              "versions": {
+                "2020-12-01": {
+                  "version": "2020-12-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_regular",
+                    "properties": {
+                      "prop_array_of_object": {
+                        "properties": {
+                          "prop_nested1": {
+                            "isCovered": false
+                          },
+                          "prop_nested2": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_array_of_primitive": {
+                        "isCovered": false
+                      },
+                      "prop_object": {
+                        "properties": {
+                          "prop_nested": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_primitive": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                },
+                "2021-01-01": {
+                  "version": "2021-01-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_regular",
+                    "properties": {
+                      "prop_array_of_object": {
+                        "properties": {
+                          "prop_nested1": {
+                            "isCovered": false
+                          },
+                          "prop_nested2": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_object": {
+                        "properties": {
+                          "prop_nested": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_primitive": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "PUT": {
+              "name": "PUT",
+              "versions": {
+                "2020-12-01": {
+                  "version": "2020-12-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_regular",
+                    "properties": {
+                      "prop_array_of_object": {
+                        "properties": {
+                          "prop_nested1": {
+                            "isCovered": false
+                          },
+                          "prop_nested2": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_array_of_primitive": {
+                        "isCovered": false
+                      },
+                      "prop_object": {
+                        "properties": {
+                          "prop_nested": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_primitive": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                },
+                "2021-01-01": {
+                  "version": "2021-01-01",
+                  "isActive": false,
+                  "isPreview": false,
+                  "model": {
+                    "name": "def_regular",
+                    "properties": {
+                      "prop_array_of_object": {
+                        "properties": {
+                          "prop_nested1": {
+                            "isCovered": false
+                          },
+                          "prop_nested2": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_object": {
+                        "properties": {
+                          "prop_nested": {
+                            "isCovered": false
+                          }
+                        }
+                      },
+                      "prop_primitive": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 `,
@@ -701,12 +708,8 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 		require.NoError(t, err, idx)
 		require.NoError(t, cov.AddOperation(opInfo), idx)
 
-		outdir := t.TempDir()
-		require.NoError(t, cov.GenerateWithUncoveredOperationModels(index, nil, outdir), idx)
-
-		outfile := filepath.Join(outdir, "dummy.json")
-		actual, err := os.ReadFile(outfile)
+		actual, err := cov.GenerateWithUncoveredOperationModels(index, nil)
 		require.NoError(t, err, idx)
-		require.JSONEq(t, c.expect, string(actual), idx)
+		require.JSONEq(t, c.expect, actual, idx)
 	}
 }

@@ -151,13 +151,13 @@ func (rp ResourceProvider) Copy() ResourceProvider {
 // GenerateWithUncoveredOperationModels walks through the coverage data and gather the schemas for those uncovered operations. For each RP, merge both covered and uncovered schemas and generate in json format.
 // This means for operations that none of the available versions is covered, then all of those versions of this operation will be converted into schema inputs.
 // This can be some API path has covered some operations but not the others. This can also happen when some API paths are not covered at all.
-func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string) error {
+func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string) (string, error) {
 	log.Info("Generating with uncovered operation models...")
 	var ignorePatterns []workspace.OperationLocator
 	for _, p := range ignoreSchema {
 		loc, err := workspace.NewSchemaLocatorFromPattern(p)
 		if err != nil {
-			return err
+			return "", err
 		}
 		ignorePatterns = append(ignorePatterns, loc)
 	}
@@ -166,16 +166,11 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 		log.Debugf("Generating for %q...", rpName)
 
 		// Set up the work pool
+		uncoveredOpInfos := []*operation.Info{}
 		wp := utils.NewWorkPool(runtime.NumCPU())
 		wp.Run(func(i interface{}) error {
-			// Iterate the task results and gather all the expanded uncovered schemas
-			opInfo := i.(*operation.Info)
-			if opInfo == nil {
-				return nil
-			}
-
-			// Apply the uncovered schemas to the rp cov, which contained the covered schemas' coverage data.
-			return rp.AddOperation(opInfo)
+			uncoveredOpInfos = append(uncoveredOpInfos, i.(*operation.Info))
+			return nil
 		})
 
 		for pathName, path := range rp.Paths {
@@ -213,24 +208,33 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 
 					wp.AddTask(func() (interface{}, error) {
 						log.Debugf("Expanding uncovered schema for %q", loc)
-						return getUncoveredOperation(loc, idx)
+						opInfo, err := getUncoveredOperation(loc, idx)
+						if err != nil {
+							return nil, err
+						}
+						if opInfo == nil {
+							return nil, utils.ErrSkipTask
+						}
+						return opInfo, nil
 					})
 				}
 			}
 		}
 
 		if err := wp.Done(); err != nil {
-			return err
+			return "", err
+		}
+
+		// Apply the uncovered schemas to the rp cov, which contained the covered schemas' coverage data.
+		for _, opInfo := range uncoveredOpInfos {
+			if err := rp.AddOperation(opInfo); err != nil {
+				return "", err
+			}
 		}
 	}
 
 	rpCov, err := json.MarshalIndent(cov, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(rpCov))
-	return nil
+	return string(rpCov), err
 }
 
 // getUncoveredOperation search the index for an uncovered operation. If that operation has a model, further expands it to its end.
