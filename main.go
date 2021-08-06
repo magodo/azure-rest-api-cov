@@ -300,6 +300,67 @@ func main() {
 				},
 			},
 			{
+				Name:  "feeddb",
+				Usage: "Generate coverage report to feed to DB, which is consumed by the new coverage UI",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "input",
+						Aliases: []string{"i"},
+						Usage:   `The path to the coverage input file, which is usually the output of cmd "coverage"`,
+					},
+					&cli.StringFlag{
+						Name:    "build-comment",
+						Aliases: []string{"c"},
+						Usage:   "Build comment that will include in the coverage report",
+					},
+					&cli.StringSliceFlag{
+						Name:  "ignore-schema",
+						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					initLog(ctx.String("log-level"))
+
+					if ctx.Bool("profile-cpu") {
+						defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+					}
+
+					workspaceDir := ctx.String("workspace-dir")
+					force := ctx.Bool("workspace-force-new")
+					regenIndex := ctx.Bool("index-renew")
+					specRepoRef := ctx.String("spec-ref")
+					inputPath := ctx.String("input")
+
+					buildComment := ctx.String("build-comment")
+					ignoreSchema := ctx.StringSlice("ignore-schema")
+
+					wspOpt := workspace.InitOption{
+						WorkspaceDir: workspaceDir,
+						Force:        force,
+						RegenIndex:   regenIndex,
+						SpecRepoRef:  specRepoRef,
+					}
+
+					var covIn io.Reader = os.Stdin
+					if inputPath != "" {
+						covFile, err := os.Open(inputPath)
+						if err != nil {
+							return err
+						}
+						defer covFile.Close()
+						covIn = covFile
+					}
+
+					fctx := analyzer.FeedDBContext{
+						WorkspaceOpt: wspOpt,
+						BuildComment: buildComment,
+						IgnoreSchema: ignoreSchema,
+					}
+
+					return analyzer.FeedDB(covIn, fctx)
+				},
+			},
+			{
 				Name:  "migrate-grant",
 				Usage: "Migrate grants",
 				Flags: []cli.Flag{
@@ -329,9 +390,10 @@ func main() {
 						Required: true,
 					},
 					&cli.StringFlag{
-						Name:    "output",
-						Aliases: []string{"o"},
-						Usage:   "The output directory for the migrated grant files",
+						Name:     "output",
+						Aliases:  []string{"o"},
+						Usage:    "The output directory for the migrated grant files",
+						Required: true,
 					},
 				},
 				Action: func(ctx *cli.Context) error {

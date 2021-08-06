@@ -5,11 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
+	"runtime"
 )
 
 type CoverageContext struct {
@@ -43,7 +46,7 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 
 	// Ignore some specified schemaInput
 	if ctx.IgnoreSchema != nil {
-		var ignorePatterns []workspace.SchemaLocator
+		var ignorePatterns []workspace.OperationLocator
 		for _, p := range ctx.IgnoreSchema {
 			loc, err := workspace.NewSchemaLocatorFromPattern(p)
 			if err != nil {
@@ -56,8 +59,8 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 	ignoreLoop:
 		for _, schemaInput := range schemaInputs {
 			for _, loc := range ignorePatterns {
-				if loc.Match(schemaInput.SchemaLocator) {
-					log.Infof("schema %q is ignored for property coverage calculation", schemaInput.SchemaLocator)
+				if loc.Match(schemaInput.OperationLocator) {
+					log.Infof("schema %q is ignored for property coverage calculation", schemaInput.OperationLocator)
 					continue ignoreLoop
 				}
 			}
@@ -68,27 +71,36 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 
 	// Consume the schema inputs to get the property coverage
 	cov := coverage.NewEmptyCoverage()
+
+	// Set up the work pool
+	wp := utils.NewWorkPool(runtime.NumCPU())
+	wp.Run(func(i interface{}) error {
+		return cov.AddOperation(i.(*operation.Info))
+	})
+
 	for _, schemaInput := range schemaInputs {
-
-		// Log output
-		msg := fmt.Sprintf("Processing: %s (%s - %s)",  schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
-		if schemaInput.Variant != "" {
-			msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
-		}
-		log.Infoln(msg)
-
-		schema, err := schemaInput.ToSchema(wsp.AzureRepoIndex, true, true)
-		if err != nil {
-			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
-				log.Warn(err)
-				continue
+		schemaInput := schemaInput
+		wp.AddTask(func() (interface{}, error) {
+			// Log output
+			msg := fmt.Sprintf("Processing: %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
+			if schemaInput.Variant != "" {
+				msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
 			}
-			return "", err
-		}
+			log.Infoln(msg)
 
-		if err := cov.AddSchema(schemaInput.SchemaLocator, *schema); err != nil {
-			return "", err
-		}
+			opInfo, err := schemaInput.ToOperationInfo(wsp.AzureRepoIndex, true, true)
+			if err != nil {
+				if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
+					log.Warn(err)
+					return opInfo, utils.ErrSkipTask
+				}
+			}
+			return opInfo, err
+		})
+	}
+
+	if err := wp.Done(); err != nil {
+		return "", err
 	}
 
 	// (Optionally) Predict the coverage of the Specs of newer API versions based on the schema inputs
@@ -106,7 +118,7 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 }
 
 func logCurrentProcessingSchemaInput(schemaInput schemainput.SchemaInput) {
-	msg := fmt.Sprintf("Processing: %s (%s - %s)",  schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
+	msg := fmt.Sprintf("Processing: %s (%s - %s)", schemaInput.ApiPath, schemaInput.Operation, schemaInput.ApiVersion)
 	if schemaInput.Variant != "" {
 		msg = fmt.Sprintf("%s [variant: %s]", msg, schemaInput.Variant)
 	}

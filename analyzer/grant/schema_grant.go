@@ -161,7 +161,7 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 
 		// Evaluate the property grant rules reflect to the expanded properties.
 		for schemaName, schemaGrant := range infileGrants {
-			schema, err := swagger.NewEmptySchema(specBaseDir, specRelPath, schemaName, true, false)
+			schema, err := swagger.NewEmptySchema(specBaseDir, specRelPath, schemaName, true)
 			if err != nil {
 				return err
 			}
@@ -187,7 +187,7 @@ func NewSchemaGrantsFromFiles(grantBaseDir string, specBaseDir string, filter *G
 
 			swgGrant[swagger.SchemaMetaInfo{
 				Name:           schemaName,
-				SwaggerRelPath: specpath.Path(specRelPath),
+				SwaggerRelPath: specRelPath,
 			}.Ref()] = schemaGrant
 		}
 		return nil
@@ -209,7 +209,8 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 		return nil, "", err
 	}
 
-	pathInfo, err := metaInfo.SwaggerRelPath.PathInfo()
+	// TODO: the swagger path to the schema definition is not always conform to the specpath.Path pattern
+	pathInfo, err := specpath.Path(metaInfo.SwaggerRelPath).PathInfo()
 	if err != nil {
 		return nil, "", err
 	}
@@ -248,7 +249,7 @@ func (schemaGrants SchemaGrants) GetGrantForSchema(schemaRef string) (grant *Sch
 		if err != nil {
 			return nil, "", err
 		}
-		thisPathInfo, err := thisMetaInfo.SwaggerRelPath.PathInfo()
+		thisPathInfo, err := specpath.Path(thisMetaInfo.SwaggerRelPath).PathInfo()
 		if err != nil {
 			return nil, "", err
 		}

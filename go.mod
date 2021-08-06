@@ -7,6 +7,7 @@ require (
 	github.com/go-openapi/jsonreference v0.19.5
 	github.com/go-openapi/loads v0.19.6
 	github.com/go-openapi/spec v0.20.0
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/pkg/profile v1.5.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.6.1

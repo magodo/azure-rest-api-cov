@@ -6,8 +6,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
-
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
 	openapispec "github.com/go-openapi/spec"
@@ -23,15 +21,12 @@ type SchemaMetaInfo struct {
 	Name string `json:"name"`
 
 	// The rel path to the Swagger defining this schema. Especially, for schema-less operation's meta info, this is the path to the Swagger defining the API path.
-	SwaggerRelPath specpath.Path `json:"swagger_rel_path"`
-
-	// Whether this schema is from the schemaInput? Otherwise, it means the schema is from prediction.
-	Active bool `json:"active"`
+	SwaggerRelPath string `json:"swagger_rel_path"`
 }
 
 // Ref returns a hypothetical schema reference. It is mainly used as a unique ID of the schema, to be used in log message or map key.
 func (i SchemaMetaInfo) Ref() string {
-	ref := SchemaNameToRef(string(i.SwaggerRelPath), i.Name)
+	ref := SchemaNameToRef(i.SwaggerRelPath, i.Name)
 	return ref.String()
 }
 
@@ -42,9 +37,8 @@ func ParseSchemaMetaInfoRef(input string) (*SchemaMetaInfo, error) {
 	}
 	return &SchemaMetaInfo{
 		Name:           parts[1],
-		SwaggerRelPath: specpath.Path(parts[0]),
+		SwaggerRelPath: parts[0],
 	}, nil
-
 }
 
 // Schema records the information for a schema. Especially, it is also used for storing meta information for schema-less operations.
@@ -56,14 +50,13 @@ type Schema struct {
 	swaggerURI string
 }
 
-func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forResponse, active bool) (*Schema, error) {
+func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forResponse bool) (*Schema, error) {
 	swaggerURI := swaggerBaseURL + "/" + swaggerRelPath
 
 	swgSchema := &Schema{
 		SchemaMetaInfo: SchemaMetaInfo{
 			Name:           schemaName,
-			SwaggerRelPath: specpath.Path(swaggerRelPath),
-			Active:         active,
+			SwaggerRelPath: swaggerRelPath,
 		},
 		swaggerURI: swaggerURI,
 	}
@@ -99,8 +92,8 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forRespon
 // ProcessCoverageForSchema will create a new empty Schema for the input schema, then process it to generate the property coverages based on the coveredProps.
 // If "forResponse" is specified, the read-only properties will  be ignored in the final coverage result.
 // If "strict" is specified, the coveredProps should guarantee to exist in the designated schema. Otherwise, an error will return.
-func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict, active bool) (*Schema, error) {
-	schema, err := NewEmptySchema(swaggerBaseDir, swaggerRelPath, schemaName, forResponse, active)
+func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict bool) (*Schema, error) {
+	schema, err := NewEmptySchema(swaggerBaseDir, swaggerRelPath, schemaName, forResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +138,7 @@ func (s *Schema) ExpandProperties() error {
 			break
 		}
 
-		log.Debugf("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
+		log.Tracef("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
 		for existRAddr := range propsToExpand {
 			existPropAddr := addr.MustParseProperty(existRAddr)
 			end, err := s.expandPropertyOneLevelDeep(existPropAddr)

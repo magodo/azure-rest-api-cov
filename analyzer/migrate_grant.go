@@ -3,6 +3,7 @@ package analyzer
 import (
 	"errors"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -76,7 +77,8 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 		if err != nil {
 			return nil, err
 		}
-		pathInfo, err := metaInfo.SwaggerRelPath.PathInfo()
+		// TODO: the swagger path to the schema definition is not always conform to the specpath.Path pattern
+		pathInfo, err := specpath.Path(metaInfo.SwaggerRelPath).PathInfo()
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +101,7 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 
 		dstMetaInfo := swagger.SchemaMetaInfo{
 			Name:           metaInfo.Name,
-			SwaggerRelPath: dstPath,
+			SwaggerRelPath: string(dstPath),
 		}
 
 		// Check whether the model is defined in the target API version spec.
@@ -115,7 +117,7 @@ func migrateGrant(specRootDir, grantRootDir, rp, spec, srcVersion, dstVersion st
 
 		var dstGrant grant.SchemaGrant
 
-		dstSchema, err := swagger.NewEmptySchema(specRootDir, string(dstPath), dstMetaInfo.Name, true, false)
+		dstSchema, err := swagger.NewEmptySchema(specRootDir, string(dstPath), dstMetaInfo.Name, true)
 		if err != nil {
 			return nil, err
 		}

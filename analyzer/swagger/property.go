@@ -225,7 +225,7 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 
 	// Following applies to discriminator property
 	prop.isDiscriminator = isDiscriminator
-	prop.directVariantRefSet, err = getVariantRefSet(normSchemaRef)
+	prop.directVariantRefSet, err = GetVariantRefSet(normSchemaRef)
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +238,8 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	return prop, nil
 }
 
-// getVariantRefSet gets the variant set for both "root" and "direct".
-func getVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, error) {
+// GetVariantRefSet gets the variant set for both "root" and "direct".
+func GetVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, error) {
 	is, err := isDiscriminator(normSchemaRef)
 	if err != nil {
 		return nil, err
