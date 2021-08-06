@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
@@ -153,13 +151,8 @@ func (rp ResourceProvider) Copy() ResourceProvider {
 // GenerateWithUncoveredOperationModels walks through the coverage data and gather the schemas for those uncovered operations. For each RP, merge both covered and uncovered schemas and generate in json format.
 // This means for operations that none of the available versions is covered, then all of those versions of this operation will be converted into schema inputs.
 // This can be some API path has covered some operations but not the others. This can also happen when some API paths are not covered at all.
-func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string, outdir string) error {
+func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string) error {
 	log.Info("Generating with uncovered operation models...")
-	type output struct {
-		loc    workspace.OperationLocator
-		opInfo *operation.Info
-	}
-
 	var ignorePatterns []workspace.OperationLocator
 	for _, p := range ignoreSchema {
 		loc, err := workspace.NewSchemaLocatorFromPattern(p)
@@ -172,21 +165,17 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 	for rpName, rp := range cov.ResourceProviders {
 		log.Debugf("Generating for %q...", rpName)
 
-		// Make a shallow copy of the RP cov so that any mutation only applies to this copy, rather than the original one inside the "cov".
-		// This is for saving memory usage.
-		rp := rp.Copy()
-
 		// Set up the work pool
-		uncoveredOps := coverage.FlatCoverage{}
 		wp := utils.NewWorkPool(runtime.NumCPU())
 		wp.Run(func(i interface{}) error {
 			// Iterate the task results and gather all the expanded uncovered schemas
-			o := i.(output)
-			if o.opInfo == nil {
+			opInfo := i.(*operation.Info)
+			if opInfo == nil {
 				return nil
 			}
-			uncoveredOps[o.loc] = o.opInfo
-			return nil
+
+			// Apply the uncovered schemas to the rp cov, which contained the covered schemas' coverage data.
+			return rp.AddOperation(opInfo)
 		})
 
 		for pathName, path := range rp.Paths {
@@ -224,8 +213,7 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 
 					wp.AddTask(func() (interface{}, error) {
 						log.Debugf("Expanding uncovered schema for %q", loc)
-						opInfo, err := getUncoveredOperation(loc, idx)
-						return output{loc, opInfo}, err
+						return getUncoveredOperation(loc, idx)
 					})
 				}
 			}
@@ -234,27 +222,14 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 		if err := wp.Done(); err != nil {
 			return err
 		}
-
-		// Apply the uncovered schemas to the rp cov, which contained the covered schemas' coverage data.
-		for _, v := range uncoveredOps {
-			if err := rp.AddOperation(v); err != nil {
-				return err
-			}
-		}
-
-		// Encode and write out the RP coverage into its own file
-		outputFile := filepath.Join(outdir, rpName+".json")
-		rpCov, err := json.Marshal(rp)
-		if err != nil {
-			return fmt.Errorf("json encoding for %q: %v", rpName, err)
-		}
-
-		log.Debugf("Writing coverage data for %q: %q", rpName, outputFile)
-		if err := os.WriteFile(outputFile, rpCov, 0644); err != nil {
-			return fmt.Errorf("writing to %q: %v", outputFile, err)
-		}
 	}
 
+	rpCov, err := json.MarshalIndent(cov, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(rpCov))
 	return nil
 }
 

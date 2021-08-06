@@ -317,11 +317,6 @@ func main() {
 						Name:  "ignore-schema",
 						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
 					},
-					&cli.StringFlag{
-						Name:    "output-dir",
-						Aliases: []string{"o"},
-						Usage:   "The output directory",
-					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -338,7 +333,6 @@ func main() {
 
 					buildComment := ctx.String("build-comment")
 					ignoreSchema := ctx.StringSlice("ignore-schema")
-					outdir := ctx.String("output-dir")
 
 					wspOpt := workspace.InitOption{
 						WorkspaceDir: workspaceDir,
@@ -361,7 +355,6 @@ func main() {
 						WorkspaceOpt: wspOpt,
 						BuildComment: buildComment,
 						IgnoreSchema: ignoreSchema,
-						Outdir:       outdir,
 					}
 
 					return analyzer.FeedDB(covIn, fctx)
