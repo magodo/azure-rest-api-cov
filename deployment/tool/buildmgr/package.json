@@ -1,0 +1,14 @@
+{
+  "name": "buildmgr",
+  "version": "1.0.0",
+  "description": "Manage azure-rest-api-cov builds in cosmosdb",
+  "main": "index.js",
+  "repository": "github.com/magodo/azure-rest-api-cov",
+  "author": "magodo",
+  "license": "MIT",
+  "dependencies": {
+    "@azure/cosmos": "^3.13.1",
+    "cli-progress": "^3.9.0",
+    "commander": "^8.1.0"
+  }
+}
