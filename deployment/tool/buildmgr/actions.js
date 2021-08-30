@@ -1,10 +1,7 @@
-const {
-    CosmosClient,
-    OperationType
-} = require("@azure/cosmos");
+const { CosmosClient, OperationType } = require("@azure/cosmos");
 
-const fs = require('fs');
-const cliProgress = require('cli-progress');
+const fs = require("fs");
+const cliProgress = require("cli-progress");
 
 function buildDao(ep, key, dbName) {
     const db = new CosmosClient({
@@ -16,7 +13,7 @@ function buildDao(ep, key, dbName) {
         build: db.container("build"),
         rp: db.container("rp"),
         path: db.container("path"),
-    }
+    };
 }
 
 // chunks divide an array into sub-arraies where each one's length <= n.
@@ -26,7 +23,7 @@ function* chunks(arr, n) {
     }
 }
 
-/** 
+/**
  * The native bulk() method seems didn't hanlde the retry-after correctly.
  * safeBulk will permanently retry the operations that got 429 status code.
  * @param container - The container client
@@ -39,7 +36,7 @@ async function safeBulk(container, items) {
         while (subitems.length > 0) {
             const resps = await container.items.bulk(subitems, {
                 continueOnError: false,
-            }, );
+            });
             let newSubItems = [];
             let maxRetryAfterMs = 100;
             resps.forEach((resp, index) => {
@@ -47,14 +44,17 @@ async function safeBulk(container, items) {
                     return;
                 }
                 if (resp.statusCode != 429) {
-                    throw Error(`bulk operation has failed item with response: ${resp}`);
+                    console.error(resp);
+                    throw Error(
+                        `bulk operation has failed item with response statuscode: ${resp.statusCode}`
+                    );
                 }
                 if (resp.retryAfterMilliseconds > maxRetryAfterMs) {
                     maxRetryAfterMs = resp.retryAfterMilliseconds;
                 }
                 newSubItems.push(subitems[index]);
             });
-            await new Promise(r => setTimeout(r, maxRetryAfterMs));
+            await new Promise((r) => setTimeout(r, maxRetryAfterMs));
             bar.increment(subitems.length - newSubItems.length);
             subitems = newSubItems;
         }
@@ -72,50 +72,64 @@ module.exports = {
 
         let uploadBuild = async () => {
             // Read from the container to get the latest build id, increment this by one and use it as the new build id.
-            let buildId = '0';
-            const {
-                resources
-            } = await dao.build.items.query(`SELECT c.id FROM c ORDER BY c._ts DESC OFFSET 0 LIMIT 1`).fetchAll();
-            if (resources.length === 1) {
-                buildId = (parseInt(resources[0].id) + 1).toString();
+            let buildId = "0";
+            const { resources } = await dao.build.items
+                .query(`SELECT c.id FROM c`)
+                .fetchAll();
+
+            if (resources.length > 0) {
+                resources.sort((a, b) => {
+                    let numA = parseInt(a.id);
+                    let numB = parseInt(b.id);
+                    if (numA > numB) return 1;
+                    if (numA == numB) return 0;
+                    if (numA < numB) return -1;
+                });
+                buildId = (parseInt(resources[resources.length - 1].id) + 1).toString();
             }
 
             let buildObj = {
-                "id": buildId,
-                "comment": inputObj.comment,
-                "ref": inputObj.ref,
+                id: buildId,
+                comment: inputObj.comment,
+                ref: inputObj.ref,
             };
 
-            await dao.build.items.create(buildObj)
+            await dao.build.items.create(buildObj);
             return buildId;
         };
 
         let uploadRp = async (buildId) => {
-            let rpObjs = Object.keys(inputObj.resourceProviders).map(name => {
+            let rpObjs = Object.keys(inputObj.resourceProviders).map((name) => {
                 return {
                     name,
-                    buildId
-                }
+                    buildId,
+                };
             });
 
-            await safeBulk(dao.rp, rpObjs.map(obj => {
-                return {
-                    operationType: "Create",
-                    resourceBody: obj,
-                };
-            }));
+            dao.rp.items.bulk;
+            await safeBulk(
+                dao.rp,
+                rpObjs.map((obj) => {
+                    return {
+                        operationType: "Create",
+                        resourceBody: obj,
+                    };
+                })
+            );
 
             // validate
-            const {
-                resources
-            } = await dao.rp.items.readAll({
-                partitionKey: buildId,
-            }).fetchAll();
+            const { resources } = await dao.rp.items
+                .readAll({
+                    partitionKey: buildId,
+                })
+                .fetchAll();
 
             if (resources.length !== rpObjs.length) {
-                throw Error(`Validation failed, expected amount is ${rpObjs.length}, but got ${resources.length}`);
+                throw Error(
+                    `Validation failed, expected amount is ${rpObjs.length}, but got ${resources.length}`
+                );
             }
-        }
+        };
 
         let uploadPath = async (buildId) => {
             let pathObjs = [];
@@ -130,26 +144,29 @@ module.exports = {
                 }
             }
 
-            await safeBulk(dao.path, pathObjs.map(
-                obj => {
+            await safeBulk(
+                dao.path,
+                pathObjs.map((obj) => {
                     return {
                         operationType: "Create",
                         resourceBody: obj,
                     };
-                }
-            ));
+                })
+            );
 
             // validate
-            const {
-                resources
-            } = await dao.path.items.readAll({
-                partitionKey: buildId,
-            }).fetchAll();
+            const { resources } = await dao.path.items
+                .readAll({
+                    partitionKey: buildId,
+                })
+                .fetchAll();
 
             if (resources.length !== pathObjs.length) {
-                throw Error(`Validation failed, expected amount is ${pathObjs.length}, but got ${resources.length}`);
+                throw Error(
+                    `Validation failed, expected amount is ${pathObjs.length}, but got ${resources.length}`
+                );
             }
-        }
+        };
 
         console.log("Uploading build info...");
         const buildId = await uploadBuild();
@@ -177,64 +194,66 @@ module.exports = {
         };
 
         let deleteRp = async (buildId) => {
-            const {
-                resources
-            } = await dao.rp.items.readAll({
-                partitionKey: buildId,
-            }).fetchAll();
+            const { resources } = await dao.rp.items
+                .readAll({
+                    partitionKey: buildId,
+                })
+                .fetchAll();
 
-            await safeBulk(dao.rp, resources.map(
-                item => {
+            await safeBulk(
+                dao.rp,
+                resources.map((item) => {
                     return {
                         partitionKey: buildId,
                         operationType: "Delete",
                         id: item.id,
                     };
-                }
-            ));
+                })
+            );
 
             // validation
             {
-                const {
-                    resources
-                } = await dao.rp.items.readAll({
-                    partitionKey: buildId,
-                }).fetchAll();
+                const { resources } = await dao.rp.items
+                    .readAll({
+                        partitionKey: buildId,
+                    })
+                    .fetchAll();
                 if (resources.length !== 0) {
                     throw Error(`there are still ${resources.lenght} rp items exist`);
                 }
             }
-        }
+        };
 
         let deletePath = async (buildId) => {
-            const {
-                resources
-            } = await dao.path.items.readAll({
-                partitionKey: buildId,
-            }).fetchAll();
+            const { resources } = await dao.path.items
+                .readAll({
+                    partitionKey: buildId,
+                })
+                .fetchAll();
 
-            await safeBulk(dao.path, resources.map(
-                item => {
+            await safeBulk(
+                dao.path,
+                resources.map((item) => {
                     return {
                         partitionKey: buildId,
                         operationType: "Delete",
                         id: item.id,
                     };
-                }
-            ));
+                })
+            );
 
             // validation
             {
-                const {
-                    resources
-                } = await dao.path.items.readAll({
-                    partitionKey: buildId,
-                }).fetchAll();
+                const { resources } = await dao.path.items
+                    .readAll({
+                        partitionKey: buildId,
+                    })
+                    .fetchAll();
                 if (resources.length !== 0) {
                     throw Error(`there are still ${resources.length} path items exist`);
                 }
             }
-        }
+        };
 
         console.log("Deleting build info...");
         await deleteBuild(buildId);
@@ -245,4 +264,4 @@ module.exports = {
         console.log("Deleting API Path info...");
         await deletePath(buildId);
     },
-}
+};
