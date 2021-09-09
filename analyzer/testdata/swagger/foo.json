@@ -406,6 +406,16 @@
           "$ref": "#/definitions/def_actor"
         }
       ]
+    },
+    "def_has_empty_object": {
+      "properties": {
+        "definition": {
+          "$ref": "#/definitions/def_empty_object"
+        }
+      }
+    },
+    "def_empty_object": {
+      "properties": {}
     }
   }
 }
