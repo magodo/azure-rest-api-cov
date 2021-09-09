@@ -455,7 +455,7 @@ func (prop Property) isLeafProperty() (bool, error) {
 
 	schema := p.schema
 
-	if len(schema.AllOf) != 0 || schema.Properties != nil {
+	if len(schema.AllOf) != 0 || (schema.Properties != nil && len(schema.Properties) != 0) {
 		return false, nil
 	}
 

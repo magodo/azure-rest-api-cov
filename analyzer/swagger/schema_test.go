@@ -3031,6 +3031,36 @@ func TestSchema_AddCovProperty(t *testing.T) {
 				swaggerURI: specFooPath,
 			},
 		},
+		// 4
+		{
+			name:           "Add property of object that has 0 properties will cover",
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_has_empty_object",
+			addrs: []addr.Property{
+				addr.MustParseProperty("definition"),
+			},
+			expect: Schema{
+				SchemaMetaInfo: SchemaMetaInfo{
+					SwaggerRelPath: "foo.json",
+					Name:           "def_has_empty_object",
+				},
+				Properties: map[string]*Property{
+					"definition": {
+						PropertyState: PropertyStateCovered,
+						schema:        swaggerFoo.Definitions["def_empty_object"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_has_empty_object": struct{}{},
+							specFooPath + "#/definitions/def_empty_object": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_empty_object")),
+						},
+						swaggerURI: specFooPath,
+					},
+				},
+				swaggerURI: specFooPath,
+			},
+		},
 	}
 
 	for idx, c := range cases {
