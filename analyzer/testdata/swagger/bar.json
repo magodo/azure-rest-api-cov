@@ -9,7 +9,17 @@
     "https"
   ],
   "paths": {
-    "/{host}/{bar}": {}
+    "/{host}/{bar}": {
+      "get": {
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/def_bar"
+            }
+          }
+        }
+      }
+    }
   },
   "definitions": {
     "def_bar": {

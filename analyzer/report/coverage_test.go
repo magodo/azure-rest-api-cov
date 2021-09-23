@@ -24,7 +24,13 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 		Commit: "xxx",
 		ResourceProviders: report.ResourceProviders{
 			"dummy": &report.APIPaths{
-				"/{}/{}": &report.APIPath{},
+				"/{}/{}": &report.APIPath{
+					Operations: map[string]*report.APIVersions{
+						"GET": {
+							"2020-12-01-preview": nil,
+						},
+					},
+				},
 				"/{}/{}/DEF_FOO": &report.APIPath{
 					Operations: map[string]*report.APIVersions{
 						"PUT": {
@@ -96,6 +102,11 @@ func TestCoverageStoreAddSchema(t *testing.T) {
   "resource_providers": {
     "dummy": {
       "/{}/{}": {
+        "operations": {
+          "GET": {
+            "2020-12-01-preview": null
+          }
+        }
       },
       "/{}/{}/DEF_BAR": {
         "operations": {
