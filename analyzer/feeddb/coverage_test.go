@@ -27,7 +27,18 @@ func TestNewEmptyCoverage(t *testing.T) {
 				Paths: feeddb.APIPaths{
 					"/{}/{}": feeddb.APIPath{
 						Name:       "/{}/{}",
-						Operations: feeddb.Operations{},
+						Operations: feeddb.Operations{
+							"GET": feeddb.Operation{
+								Name:     "GET",
+								Versions: feeddb.APIVersions{
+									"2020-12-01-preview": feeddb.APIVersion{
+										Version: "2020-12-01-preview",
+										IsActive: false,
+										IsPreview: true,
+									},
+								},
+							},
+						},
 					},
 					"/{}/{}/DEF_FOO": feeddb.APIPath{
 						Name: "/{}/{}/DEF_FOO",
@@ -154,7 +165,18 @@ func TestCoverageAddSchema(t *testing.T) {
       "paths": {
         "/{}/{}": {
           "name": "/{}/{}",
-          "operations": {}
+          "operations": {
+            "GET": {
+              "name": "GET",
+              "versions": {
+                "2020-12-01-preview": {
+                  "version": "2020-12-01-preview",
+                  "isActive": false,
+                  "isPreview": true
+                }
+              }
+            }
+		  }
         },
         "/{}/{}/DEF_BAR": {
           "name": "/{}/{}/DEF_BAR",
@@ -377,7 +399,26 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
       "paths": {
         "/{}/{}": {
           "name": "/{}/{}",
-          "operations": {}
+          "operations": {
+            "GET": {
+              "name": "GET",
+              "versions": {
+                "2020-12-01-preview": {
+                  "version": "2020-12-01-preview",
+                  "isActive": false,
+                  "isPreview": true,
+                  "model": {
+                    "name": "def_bar",
+                    "properties": {
+                      "bar": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+		  }
         },
         "/{}/{}/DEF_BAR": {
           "name": "/{}/{}/DEF_BAR",

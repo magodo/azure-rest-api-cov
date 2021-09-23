@@ -83,7 +83,15 @@ func TestNewAzureRepoIndex(t *testing.T) {
       },
       "2020-12-01-preview": {
         "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json": {
-          "/{}/{}": {}
+          "/{}/{}": {
+            "GET": {
+              "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json",
+              "model": {
+                "name": "def_bar",
+                "spec_rel_path": "dummy/resource-manager/Microsoft.Dummy/preview/2020-12-01-preview/bar.json"
+              }
+            }
+          }
         }
       },
       "2021-01-01": {
