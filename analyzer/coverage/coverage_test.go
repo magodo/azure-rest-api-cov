@@ -108,9 +108,17 @@ func TestCoverage_ToSchemaInputs(t *testing.T) {
 		schemaInputs []string
 	}{
 		{
-			schemaInputs: []string{filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
+			schemaInputs: []string{
+				filepath.Join(schemaBasePath, "def_base", "def_variant1.json"),
 				filepath.Join(schemaBasePath, "def_base", "def_variant2.json"),
-				filepath.Join(schemaBasePath, "def_foo", "def_foo_delete.json")},
+				filepath.Join(schemaBasePath, "def_foo", "def_foo_delete.json"),
+			},
+		},
+		{
+			schemaInputs: []string{
+				filepath.Join(schemaBasePath, "def_base", "def_variant1_new_ver.json"),
+				filepath.Join(schemaBasePath, "def_base", "def_variant2_new_ver.json"),
+			},
 		},
 	}
 

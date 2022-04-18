@@ -1,0 +1,9 @@
+{
+  "api_version": "2021-01-01",
+  "api_path": "/{}/{}/DEF_BASE",
+  "operation": "PUT",
+  "variant": "def_variant2",
+  "properties": [
+    "type"
+  ]
+}

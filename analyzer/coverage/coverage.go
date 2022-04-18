@@ -121,7 +121,10 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 					}
 
 					variantProperties := map[string][]string{}
-					for paddr := range opInfo.Model.Properties {
+					for paddr, pinfo := range opInfo.Model.Properties {
+						if !pinfo.IsCovered() {
+							continue
+						}
 						prop := addr.MustParseProperty(paddr)
 						if len(prop) > 1 {
 							variantProps := variantProperties[prop[0].DiscriminatorValue]

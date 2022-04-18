@@ -324,7 +324,6 @@ func TestCoverageStoreMarshal(t *testing.T) {
 	for i, c := range cases {
 		b, err := json.MarshalIndent(c.input, "", "  ")
 		require.NoError(t, err, i)
-		t.Log(string(b))
 		require.JSONEq(t, c.expect, string(b), i)
 	}
 }
