@@ -6,8 +6,8 @@ import (
 	"regexp"
 )
 
-const SchemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]sMicrosoft.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
-const SchemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]s(Microsoft.\w+)%[1]s(preview|stable)%[1]s(.+?)%[1]s(.+?\.json)$`
+const SchemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]s\w+\.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
+const SchemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]s(\w+\.\w+)%[1]s(preview|stable)%[1]s(.+?)%[1]s(.+?\.json)$`
 
 type Path string
 
