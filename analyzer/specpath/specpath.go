@@ -3,11 +3,9 @@ package specpath
 import (
 	"fmt"
 	"os"
-	"regexp"
+	"path/filepath"
+	"strings"
 )
-
-const SchemaFolderPatternStr = `^([^%[1]s]+(%[1]sresource-manager(%[1]s\w+\.\w+(%[1]s(preview|stable)(%[1]s([^%[1]s]+))?)?)?)?)?$`
-const SchemaPatternStr = `^([^%[1]s]+)%[1]sresource-manager%[1]s(\w+\.\w+)%[1]s(preview|stable)%[1]s(.+?)%[1]s(.+?\.json)$`
 
 type Path string
 
@@ -19,30 +17,26 @@ type PathInfo struct {
 	SpecName           string
 }
 
+// PathInfo returns the PathInfo of the Path, given the Path is a relative path to a swagger spec.
+// e.g.
+// - compute/resource-manager/Microsoft.Compute/stable/2020-01-01/compute.json
+// - compute/resource-manager/Microsoft.Compute/stable/2022-03-02/DiskRP/disk.json
 func (p Path) PathInfo() (*PathInfo, error) {
-	schemaPattern := regexp.MustCompile(fmt.Sprintf(SchemaPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
-	match := schemaPattern.FindStringSubmatch(string(p))
-	if len(match) == 0 {
-		return nil, fmt.Errorf("path %q is not a swagger spec path", p)
+	segs := strings.Split(string(p), string(os.PathSeparator))
+	if len(segs) < 6 {
+		return nil, fmt.Errorf("swagger spec path expects more nesting level, but %q has only level %d", p, len(segs))
+	}
+	filename := filepath.Base(string(p))
+	if filepath.Ext(filename) != ".json" {
+		return nil, fmt.Errorf("expect a json file, got %s", filename)
 	}
 	return &PathInfo{
-		ResourceProvider:   match[1],
-		ResourceProviderMS: match[2],
-		IsPreview:          match[3] == "preview",
-		Version:            match[4],
-		SpecName:           match[5],
+		ResourceProvider:   segs[0],
+		ResourceProviderMS: segs[2],
+		IsPreview:          segs[3] == "preview",
+		Version:            segs[4],
+		SpecName:           filename,
 	}, nil
-}
-
-// IsSpecFolder returns true if the path is any level of parent folder to the swagger spec.
-func (p Path) IsSpecFolder() bool {
-	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(SchemaFolderPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
-	return schemaFolderPattern.MatchString(string(p))
-}
-
-func (p Path) IsSpec() bool {
-	schemaPattern := regexp.MustCompile(fmt.Sprintf(SchemaPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
-	return schemaPattern.MatchString(string(p))
 }
 
 func (info PathInfo) ToPath() Path {
