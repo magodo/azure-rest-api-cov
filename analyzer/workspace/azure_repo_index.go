@@ -208,14 +208,19 @@ func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, erro
 			if info == nil {
 				return nil
 			}
+
+			relPath := strings.TrimPrefix(strings.TrimPrefix(p, specRootDir), string(os.PathSeparator))
+
 			if info.IsDir() {
+				if strings.EqualFold(filepath.Base(p), "data-plane") {
+					return filepath.SkipDir
+				}
 				if strings.EqualFold(filepath.Base(p), "examples") {
 					return filepath.SkipDir
 				}
 				return nil
 			}
 
-			relPath := strings.TrimPrefix(strings.TrimPrefix(p, specRootDir), string(os.PathSeparator))
 			path := specpath.Path(relPath)
 
 			// Skip files not match the schema file patterns
