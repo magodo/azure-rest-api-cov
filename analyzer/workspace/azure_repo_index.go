@@ -254,6 +254,10 @@ func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp Res
 		return err
 	}
 
+	if swg.Info == nil {
+		return nil
+	}
+
 	apiVersion := APIVersion(swg.Info.Version)
 
 	specs, ok := apiVersions[apiVersion]
