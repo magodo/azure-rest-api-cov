@@ -26,14 +26,14 @@ func TestNewEmptyCoverage(t *testing.T) {
 				Name: "dummy",
 				Paths: feeddb.APIPaths{
 					"/{}/{}": feeddb.APIPath{
-						Name:       "/{}/{}",
+						Name: "/{}/{}",
 						Operations: feeddb.Operations{
 							"GET": feeddb.Operation{
-								Name:     "GET",
+								Name: "GET",
 								Versions: feeddb.APIVersions{
 									"2020-12-01-preview": feeddb.APIVersion{
-										Version: "2020-12-01-preview",
-										IsActive: false,
+										Version:   "2020-12-01-preview",
+										IsActive:  false,
 										IsPreview: true,
 									},
 								},
@@ -206,6 +206,13 @@ func TestCoverageAddSchema(t *testing.T) {
                   "model": {
                     "name": "def_base",
                     "properties": {
+                      "{def_base}": {
+                        "properties": {
+                          "type": {
+                            "isCovered": false
+                          }
+                        }
+                      },
                       "{def_variant1}": {
                         "properties": {
                           "type": {
@@ -230,6 +237,13 @@ func TestCoverageAddSchema(t *testing.T) {
                   "model": {
                     "name": "def_base",
                     "properties": {
+                      "{def_base}": {
+                        "properties": {
+                          "type": {
+                            "isCovered": false
+                          }
+                        }
+                      },
                       "{def_variant1}": {
                         "properties": {
                           "new_prop": {
@@ -456,6 +470,13 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
                   "model": {
                     "name": "def_base",
                     "properties": {
+                      "{def_base}": {
+                        "properties": {
+                          "type": {
+                            "isCovered": false
+                          }
+                        }
+                      },
                       "{def_variant1}": {
                         "properties": {
                           "type": {
@@ -480,6 +501,13 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
                   "model": {
                     "name": "def_base",
                     "properties": {
+                      "{def_base}": {
+                        "properties": {
+                          "type": {
+                            "isCovered": false
+                          }
+                        }
+                      },
                       "{def_variant1}": {
                         "properties": {
                           "new_prop": {

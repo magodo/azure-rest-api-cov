@@ -42,6 +42,9 @@ func TestCoverage_AddSchema(t *testing.T) {
               "name": "def_base",
               "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
               "properties": {
+                "{def_base}/type": {
+                  "state": "Uncovered"
+                },
                 "{def_variant1}/type": {
                   "state": "Covered"
                 },
@@ -212,6 +215,9 @@ func TestCoverage_Predict(t *testing.T) {
               "name": "def_base",
               "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
               "properties": {
+                "{def_base}/type": {
+                  "state": "Uncovered"
+                },
                 "{def_variant1}/type": {
                   "state": "Covered"
                 },
@@ -229,6 +235,9 @@ func TestCoverage_Predict(t *testing.T) {
               "name": "def_base",
               "swagger_rel_path": "dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
               "properties": {
+                "{def_base}/type": {
+                  "state": "Uncovered"
+                },
                 "{def_variant1}/new_prop": {
                   "state": "Uncovered"
                 },

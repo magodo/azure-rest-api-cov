@@ -375,15 +375,6 @@
         }
       }
     },
-    "def_activity": {
-      "discriminator": "type",
-      "properties": {
-        "type": {},
-        "actor": {
-          "$ref": "#/definitions/def_actor"
-        }
-      }
-    },
     "def_activity_a": {
       "allOf": [
         {

@@ -451,6 +451,22 @@ func TestSchema(t *testing.T) {
 					Name:           "def_base",
 				},
 				Properties: map[string]*Property{
+					"{def_base}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_base"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_base": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
+						},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def"): {},
+						},
+					},
 					"{def_variant1}": {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerFoo.Definitions["def_variant1"],
@@ -460,9 +476,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1")),
 						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 					"{def_variant2}": {
 						PropertyState: PropertyStateUncovered,
@@ -473,9 +489,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
 						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -528,6 +544,22 @@ func TestSchema(t *testing.T) {
 					Name:           "def_base_template",
 				},
 				Properties: map[string]*Property{
+					"{def_base_template}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_base_template"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_base_template": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base_template")),
+						},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template"): {},
+						},
+					},
 					"{def_variant1}": {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerFoo.Definitions["def_variant1_template"],
@@ -537,9 +569,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template")),
 						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 					"{def_variant2}": {
 						PropertyState: PropertyStateUncovered,
@@ -550,9 +582,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template")),
 						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -569,6 +601,22 @@ func TestSchema(t *testing.T) {
 					Name:           "def_parent",
 				},
 				Properties: map[string]*Property{
+					"{def_parent}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_parent"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_parent": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_parent")),
+						},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child1"): {},
+							fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2"): {},
+						},
+					},
 					"{def_child1}": {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerFoo.Definitions["def_child1"],
@@ -578,9 +626,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child1")),
 						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 					"{def_child2}": {
 						PropertyState: PropertyStateUncovered,
@@ -591,9 +639,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2")),
 						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specFooPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 				},
 				swaggerURI: specFooPath,
@@ -610,6 +658,22 @@ func TestSchema(t *testing.T) {
 					Name:           "def_a",
 				},
 				Properties: map[string]*Property{
+					"{def_a}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerNestedDiscriminator.Definitions["def_a"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPath + "#/definitions/def_a": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
+						},
+						swaggerURI:      specNestedDiscriminatorPath,
+						isDiscriminator: true,
+						variantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b"): {},
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
+						},
+					},
 					"{def_b}": {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerNestedDiscriminator.Definitions["def_b"],
@@ -621,9 +685,22 @@ func TestSchema(t *testing.T) {
 						},
 						swaggerURI:      specNestedDiscriminatorPath,
 						isDiscriminator: true,
-						directVariantRefSet: map[string]struct{}{
+						variantRefSet: map[string]struct{}{
 							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): struct{}{},
 						},
+					},
+					"{def_c}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerNestedDiscriminator.Definitions["def_c"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
+						},
+						swaggerURI:      specNestedDiscriminatorPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -640,6 +717,21 @@ func TestSchema(t *testing.T) {
 					Name:           "def_b",
 				},
 				Properties: map[string]*Property{
+					"{def_b}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerNestedDiscriminator.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
+						},
+						swaggerURI:      specNestedDiscriminatorPath,
+						isDiscriminator: true,
+						variantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): struct{}{},
+						},
+					},
 					"{def_c}": {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerNestedDiscriminator.Definitions["def_c"],
@@ -649,9 +741,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
 						},
-						swaggerURI:          specNestedDiscriminatorPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specNestedDiscriminatorPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 				},
 				swaggerURI: specNestedDiscriminatorPath,
@@ -724,6 +816,7 @@ func TestSchema(t *testing.T) {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
 						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
 							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
 						},
 						ownerSchemaRef: &openapispec.Ref{
@@ -746,6 +839,8 @@ func TestSchema(t *testing.T) {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
 						resolvedRefs: map[string]interface{}{
+							specNestedDiscriminatorPath + "#/definitions/def_a": struct{}{},
+							specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
 							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
 						},
 						ownerSchemaRef: &openapispec.Ref{
@@ -875,6 +970,21 @@ func TestSchema(t *testing.T) {
 					Name:           "def_b",
 				},
 				Properties: map[string]*Property{
+					"{def_b}": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerSiblingVariant.Definitions["def_b"],
+						resolvedRefs: map[string]interface{}{
+							specSiblingVariantPath + "#/definitions/def_b": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b")),
+						},
+						swaggerURI:      specSiblingVariantPath,
+						isDiscriminator: true,
+						variantRefSet: map[string]struct{}{
+							fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b_child"): {},
+						},
+					},
 					"{def_b_child}": {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerSiblingVariant.Definitions["def_b_child"],
@@ -884,9 +994,9 @@ func TestSchema(t *testing.T) {
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specSiblingVariantPath, "def_b_child")),
 						},
-						swaggerURI:          specSiblingVariantPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
+						swaggerURI:      specSiblingVariantPath,
+						isDiscriminator: true,
+						variantRefSet:   map[string]struct{}{},
 					},
 				},
 				swaggerURI: specSiblingVariantPath,
@@ -907,6 +1017,8 @@ func TestSchema(t *testing.T) {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerSiblingVariant.Definitions["def_root"].Properties["type"],
 						resolvedRefs: map[string]interface{}{
+							specSiblingVariantPath + "#/definitions/def_root":    struct{}{},
+							specSiblingVariantPath + "#/definitions/def_b":       struct{}{},
 							specSiblingVariantPath + "#/definitions/def_b_child": struct{}{},
 						},
 						ownerSchemaRef: &openapispec.Ref{
@@ -1137,11 +1249,23 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_base",
 			expect: map[string]*Property{
+				"{def_base}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
+					},
+					swaggerURI: specFooPath,
+				},
 				"{def_variant1}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
 						specFooPath + "#/definitions/def_variant1": struct{}{},
+						specFooPath + "#/definitions/def_base":     struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
 						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
@@ -1153,6 +1277,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
 						specFooPath + "#/definitions/variant2_def": struct{}{},
+						specFooPath + "#/definitions/def_base":     struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
 						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
@@ -1167,10 +1292,23 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_to_def_base",
 			expect: map[string]*Property{
+				"prop{def_base}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base":        struct{}{},
+						specFooPath + "#/definitions/def_to_def_base": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
+					},
+					swaggerURI: specFooPath,
+				},
 				"prop{def_variant1}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base":        struct{}{},
 						specFooPath + "#/definitions/def_to_def_base": struct{}{},
 						specFooPath + "#/definitions/def_variant1":    struct{}{},
 					},
@@ -1183,6 +1321,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base":        struct{}{},
 						specFooPath + "#/definitions/def_to_def_base": struct{}{},
 						specFooPath + "#/definitions/variant2_def":    struct{}{},
 					},
@@ -1200,10 +1339,23 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			schemaName:     "def_to_def_base_template",
 			repeat:         10, // ensure the result is consistent
 			expect: map[string]*Property{
+				"prop{def_base_template}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_base_template"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base_template":        struct{}{},
+						specFooPath + "#/definitions/def_to_def_base_template": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base_template")),
+					},
+					swaggerURI: specFooPath,
+				},
 				"prop{def_variant1}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerFoo.Definitions["def_base_template"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base_template":        struct{}{},
 						specFooPath + "#/definitions/def_to_def_base_template": struct{}{},
 						specFooPath + "#/definitions/def_variant1_template":    struct{}{},
 					},
@@ -1216,6 +1368,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerFoo.Definitions["def_base_template"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base_template":        struct{}{},
 						specFooPath + "#/definitions/def_to_def_base_template": struct{}{},
 						specFooPath + "#/definitions/def_variant2_template":    struct{}{},
 					},
@@ -1232,10 +1385,22 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_parent",
 			expect: map[string]*Property{
+				"{def_parent}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_parent"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_parent": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_parent")),
+					},
+					swaggerURI: specFooPath,
+				},
 				"{def_child1}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerFoo.Definitions["def_parent"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_parent": struct{}{},
 						specFooPath + "#/definitions/def_child1": struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1247,6 +1412,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerFoo.Definitions["def_parent"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_parent": struct{}{},
 						specFooPath + "#/definitions/def_child2": struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1262,10 +1428,35 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "nested_discriminator.json",
 			schemaName:     "def_b",
 			expect: map[string]*Property{
+				"{def_b}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
+				"{def_b}/prop_b": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
 				"{def_c}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1277,6 +1468,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
 					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1303,11 +1495,50 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "nested_discriminator.json",
 			schemaName:     "def_wrap_a",
 			expect: map[string]*Property{
+				"a{def_a}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_a":      struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
+				"a{def_b}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_a":      struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
+				"a{def_b}/prop_b": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
 				"a{def_c}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
 						specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_a":      struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1320,6 +1551,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
 					resolvedRefs: map[string]interface{}{
 						specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1347,11 +1579,38 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "nested_discriminator.json",
 			schemaName:     "def_wrap_b",
 			expect: map[string]*Property{
+				"b{def_b}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_a":      struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
+				"b{def_b}/prop_b": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
 				"b{def_c}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
 						specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_a":      struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1364,6 +1623,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
 					resolvedRefs: map[string]interface{}{
 						specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1397,6 +1657,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					resolvedRefs: map[string]interface{}{
 						specNestedDiscriminatorPath + "#/definitions/def_wrap_c": struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
 						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
@@ -1420,6 +1681,8 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
 						specNestedDiscriminatorPath + "#/definitions/def_wrap_c": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_a":      struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1435,10 +1698,46 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "nested_discriminator.json",
 			schemaName:     "def_a",
 			expect: map[string]*Property{
+				"{def_a}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_a": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
+				"{def_b}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
+				"{def_b}/prop_b": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
+					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
+					},
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
+					},
+					swaggerURI: specNestedDiscriminatorPath,
+				},
 				"{def_c}/type": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
 					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_a": struct{}{},
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1450,6 +1749,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
 					resolvedRefs: map[string]interface{}{
+						specNestedDiscriminatorPath + "#/definitions/def_b": struct{}{},
 						specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
 					},
 					ownerSchemaRef: &openapispec.Ref{
@@ -1476,6 +1776,18 @@ func TestSchema_ExpandProperties(t *testing.T) {
 			swaggerRelPath: "foo.json",
 			schemaName:     "def_to_remote_discriminator",
 			expect: map[string]*Property{
+				"properties{base}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerRemoteDisc.Definitions["base"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "base")),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
+						specRemoteDiscPath + "#/definitions/base":                 struct{}{},
+					},
+					swaggerURI: specRemoteDiscPath,
+				},
 				"properties{1}/p1": {
 					PropertyState: PropertyStateUncovered,
 					schema:        swaggerRemoteDisc.Definitions["v1"].Properties["p1"],
@@ -1496,6 +1808,7 @@ func TestSchema_ExpandProperties(t *testing.T) {
 					},
 					resolvedRefs: map[string]interface{}{
 						specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
+						specRemoteDiscPath + "#/definitions/base":                 struct{}{},
 						specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
 					},
 					swaggerURI: specRemoteDiscPath,
@@ -1612,25 +1925,37 @@ func TestSchema_ExpandProperties(t *testing.T) {
 						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_activity"),
 					},
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_activity":   struct{}{},
 						specFooPath + "#/definitions/def_activity_a": struct{}{},
 					},
 					swaggerURI: specFooPath,
 				},
 				"{def_activity_a}/actor{def_actor_a}/activity": {
 					PropertyState: PropertyStateUncovered,
-					schema:        swaggerFoo.Definitions["def_activity"],
+					schema:        *openapispec.RefSchema("#/definitions/def_activity"),
 					ownerSchemaRef: &openapispec.Ref{
-						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_activity"),
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
 					},
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor":      struct{}{},
 						specFooPath + "#/definitions/def_actor_a":    struct{}{},
+						specFooPath + "#/definitions/def_activity":   struct{}{},
 						specFooPath + "#/definitions/def_activity_a": struct{}{},
 					},
-					swaggerURI:      specFooPath,
-					isDiscriminator: true,
-					directVariantRefSet: map[string]struct{}{
-						fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_activity_a"): {},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity_a}/actor{def_actor}/activity": {
+					PropertyState: PropertyStateUncovered,
+					schema:        *openapispec.RefSchema("#/definitions/def_activity"),
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
 					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_activity":   struct{}{},
+						specFooPath + "#/definitions/def_activity_a": struct{}{},
+						specFooPath + "#/definitions/def_actor":      struct{}{},
+					},
+					swaggerURI: specFooPath,
 				},
 				"{def_activity_a}/actor{def_actor_a}/type": {
 					PropertyState: PropertyStateUncovered,
@@ -1639,8 +1964,84 @@ func TestSchema_ExpandProperties(t *testing.T) {
 						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
 					},
 					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor":      struct{}{},
 						specFooPath + "#/definitions/def_actor_a":    struct{}{},
+						specFooPath + "#/definitions/def_activity":   struct{}{},
 						specFooPath + "#/definitions/def_activity_a": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity_a}/actor{def_actor}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_actor"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor":      struct{}{},
+						specFooPath + "#/definitions/def_activity":   struct{}{},
+						specFooPath + "#/definitions/def_activity_a": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_activity"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_activity"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_activity": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity}/actor{def_actor_a}/activity": {
+					PropertyState: PropertyStateUncovered,
+					schema:        *openapispec.RefSchema("#/definitions/def_activity"),
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor":    struct{}{},
+						specFooPath + "#/definitions/def_actor_a":  struct{}{},
+						specFooPath + "#/definitions/def_activity": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity}/actor{def_actor}/activity": {
+					PropertyState: PropertyStateUncovered,
+					schema:        *openapispec.RefSchema("#/definitions/def_activity"),
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_activity": struct{}{},
+						specFooPath + "#/definitions/def_actor":    struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity}/actor{def_actor_a}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_actor"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor":    struct{}{},
+						specFooPath + "#/definitions/def_actor_a":  struct{}{},
+						specFooPath + "#/definitions/def_activity": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_activity}/actor{def_actor}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_actor"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_actor"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_actor":    struct{}{},
+						specFooPath + "#/definitions/def_activity": struct{}{},
 					},
 					swaggerURI: specFooPath,
 				},
@@ -1655,1143 +2056,6 @@ func TestSchema_ExpandProperties(t *testing.T) {
 
 			require.NoError(t, schema.ExpandProperties(), c.name, idx)
 			require.Equal(t, c.expect, schema.Properties, idx)
-		}
-	}
-}
-
-func TestSchema_ExpandPropertyOneLevelDeep(t *testing.T) {
-	cases := []struct {
-		name           string
-		swaggerRelPath string
-		schemaName     string
-		forResponse    bool
-		expandAddrs    []addr.Property
-		repeat         int
-		expect         Schema
-	}{
-		// 0
-		{
-			name:           `Expand "def_foo"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_foo",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("foo"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_foo",
-				},
-				Properties: map[string]*Property{
-					"foo": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_foo": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 1
-		{
-			name:           `Expand "def_foo" multiple times should be fine (re-entry)`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_foo",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("foo"),
-				addr.MustParseProperty("foo"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_foo",
-				},
-				Properties: map[string]*Property{
-					"foo": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_foo": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 2
-		{
-			name:           `Expand "def_regular"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_regular",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("prop_array_of_object"),
-				addr.MustParseProperty("prop_object"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_regular",
-				},
-				Properties: map[string]*Property{
-					"prop_primitive": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_primitive"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_regular": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"prop_array_of_primitive": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_primitive"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_regular": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"prop_array_of_object/prop_nested1": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested1"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_regular": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"prop_array_of_object/prop_nested2": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_array_of_object"].Items.Schema.Properties["prop_nested2"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_regular": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"prop_object/prop_nested": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_regular"].Properties["prop_object"].Properties["prop_nested"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_regular": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_regular")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 3
-		{
-			name:           `Expand "def_prop_in_file_ref"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_prop_in_file_ref",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("prop"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_prop_in_file_ref",
-				},
-				Properties: map[string]*Property{
-					"prop/foo": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_prop_in_file_ref": struct{}{},
-							specFooPath + "#/definitions/def_foo":              struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 4
-		{
-			name:           `Expand "def_prop_self_ref"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_prop_self_ref",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("prop"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_prop_self_ref",
-				},
-				Properties: map[string]*Property{
-					"prop": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_prop_self_ref"].Properties["prop"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_prop_self_ref": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_prop_self_ref")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 5
-		{
-			name:           `Expand "def_prop_cross_file_ref"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_prop_cross_file_ref",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("prop"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_prop_cross_file_ref",
-				},
-				Properties: map[string]*Property{
-					"prop/bar": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerBar.Definitions["def_bar"].Properties["bar"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_prop_cross_file_ref": struct{}{},
-							specBarPath + "#/definitions/def_bar":                 struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specBarPath, "def_bar")),
-						},
-						swaggerURI: specBarPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 6
-		{
-			name:           `Expand "def_in_file_ref"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_in_file_ref",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("foo"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_in_file_ref",
-				},
-				Properties: map[string]*Property{
-					"foo": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_in_file_ref": struct{}{},
-							specFooPath + "#/definitions/def_foo":         struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_foo")),
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 7
-		{
-			name:           `Expand "def_cross_file_ref"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_cross_file_ref",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("bar"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_cross_file_ref",
-				},
-				Properties: map[string]*Property{
-					"bar": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerBar.Definitions["def_bar"].Properties["bar"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_cross_file_ref": struct{}{},
-							specBarPath + "#/definitions/def_bar":            struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specBarPath, "def_bar")),
-						},
-						swaggerURI: specBarPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 8
-		{
-			name:           `Expand "def_self_ref"`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_self_ref",
-			expandAddrs:    []addr.Property{},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_self_ref",
-				},
-				Properties: map[string]*Property{},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 9
-		{
-			name:           `Expand "def_base" (schema itself is a discriminator)`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_base",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("{def_variant1}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_base",
-				},
-				Properties: map[string]*Property{
-					"{def_variant1}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_variant1": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"{def_variant2}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["variant2_def"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/variant2_def": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
-						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 10
-		{
-			name:           `Expand "def_to_def_base" (property is a discriminator)`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_to_def_base",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("prop"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_to_def_base",
-				},
-				Properties: map[string]*Property{
-					"prop{def_variant1}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_variant1"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_def_base": struct{}{},
-							specFooPath + "#/definitions/def_variant1":    struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1")),
-						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-					"prop{def_variant2}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["variant2_def"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_def_base": struct{}{},
-							specFooPath + "#/definitions/variant2_def":    struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
-						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 11
-		{
-			name:           `Expand "def_to_def_base" variant property (property is a discriminator)`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_to_def_base",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("prop"),
-				addr.MustParseProperty("prop{def_variant1}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_to_def_base",
-				},
-				Properties: map[string]*Property{
-					"prop{def_variant1}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_def_base": struct{}{},
-							specFooPath + "#/definitions/def_variant1":    struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"prop{def_variant2}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["variant2_def"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_def_base": struct{}{},
-							specFooPath + "#/definitions/variant2_def":    struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "variant2_def")),
-						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 12
-		{
-			name:           `Expand "def_to_def_base_template" (property is a discriminator)`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_to_def_base_template",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("prop"),
-			},
-			repeat: 10, // ensure the result is consistent
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_to_def_base_template",
-				},
-				Properties: map[string]*Property{
-					"prop{def_variant1}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_variant1_template"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_def_base_template": struct{}{},
-							specFooPath + "#/definitions/def_variant1_template":    struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant1_template")),
-						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-					"prop{def_variant2}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_variant2_template"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_def_base_template": struct{}{},
-							specFooPath + "#/definitions/def_variant2_template":    struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_variant2_template")),
-						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 13
-		{
-			name:           `Expand "def_parent" (schema itself is a discriminator, but didn't specify the accepted variant via enum)`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_parent",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("{def_child1}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_parent",
-				},
-				Properties: map[string]*Property{
-					"{def_child1}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_parent"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_child1": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_parent")),
-						},
-						swaggerURI: specFooPath,
-					},
-					"{def_child2}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_child2"],
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_child2": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_child2")),
-						},
-						swaggerURI:          specFooPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 14
-		{
-			name:           `Expand "def_b" (schema is a in-direct discriminator)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_b",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("{def_c}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_b",
-				},
-				Properties: map[string]*Property{
-					"{def_c}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"{def_c}/prop_b": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"{def_c}/prop_c": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"].Properties["prop_c"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 15
-		{
-			name:           `Expand "def_wrap_a" (property is a multi-level discriminator)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_wrap_a",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("a"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_wrap_a",
-				},
-				Properties: map[string]*Property{
-					"a{def_b}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_b"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_b":      struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
-						},
-						swaggerURI:      specNestedDiscriminatorPath,
-						isDiscriminator: true,
-						directVariantRefSet: map[string]struct{}{
-							fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c"): {},
-						},
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 16
-		{
-			name:           `Expand "def_wrap_a" to its variant property (property is a multi-level discriminator)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_wrap_a",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("a"),
-				addr.MustParseProperty("a{def_b}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_wrap_a",
-				},
-				Properties: map[string]*Property{
-					"a{def_c}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
-						},
-						swaggerURI:          specNestedDiscriminatorPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 17
-		{
-			name:           `Expand "def_wrap_a" to its leaf variant property (property is a multi-level discriminator)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_wrap_a",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("a"),
-				addr.MustParseProperty("a{def_b}"),
-				addr.MustParseProperty("a{def_c}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_wrap_a",
-				},
-				Properties: map[string]*Property{
-					"a{def_c}/prop_b": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"a{def_c}/prop_c": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"].Properties["prop_c"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"a{def_c}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_a": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 18
-		{
-			name:           `Expand "def_wrap_b" (property is a indirect discriminator)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_wrap_b",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("b"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_wrap_b",
-				},
-				Properties: map[string]*Property{
-					"b{def_c}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
-						},
-						swaggerURI:          specNestedDiscriminatorPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 19
-		{
-			name:           `Expand "def_wrap_b" to its leaf variant property (property is a indirect discriminator)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_wrap_b",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("b"),
-				addr.MustParseProperty("b{def_c}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_wrap_b",
-				},
-				Properties: map[string]*Property{
-					"b{def_c}/prop_b": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"].Properties["prop_b"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"b{def_c}/prop_c": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"].Properties["prop_c"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"b{def_c}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_b": struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 20
-		{
-			name:           `Expand "def_wrap_c" all variant properties (property is a leaf variant)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_wrap_c",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("c"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_wrap_c",
-				},
-				Properties: map[string]*Property{
-					"c/prop_b": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_c": struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"c/prop_c": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"].Properties["prop_c"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_c": struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"c/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_wrap_c": struct{}{},
-							specNestedDiscriminatorPath + "#/definitions/def_c":      struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 21
-		{
-			name:           `Expand "def_a" (schema is itself a discriminator)`,
-			swaggerRelPath: "nested_discriminator.json",
-			schemaName:     "def_a",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("{def_b}"),
-				addr.MustParseProperty("{def_c}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "nested_discriminator.json",
-					Name:           "def_a",
-				},
-				Properties: map[string]*Property{
-					"{def_c}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_a"].Properties["type"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_a")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"{def_c}/prop_b": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_b"].Properties["prop_b"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_b")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-					"{def_c}/prop_c": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerNestedDiscriminator.Definitions["def_c"].Properties["prop_c"],
-						resolvedRefs: map[string]interface{}{
-							specNestedDiscriminatorPath + "#/definitions/def_c": struct{}{},
-						},
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specNestedDiscriminatorPath, "def_c")),
-						},
-						swaggerURI: specNestedDiscriminatorPath,
-					},
-				},
-				swaggerURI: specNestedDiscriminatorPath,
-			},
-		},
-		// 22
-		{
-			name:           `Expand to ref to remote discriminator schema`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_to_remote_discriminator",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("properties"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_to_remote_discriminator",
-				},
-				Properties: map[string]*Property{
-					"properties{1}": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerRemoteDisc.Definitions["v1"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "v1")),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
-							specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
-						},
-						swaggerURI:          specRemoteDiscPath,
-						isDiscriminator:     true,
-						directVariantRefSet: map[string]struct{}{},
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 23
-		{
-			name:           `Expand all of ref to remote discriminator schema`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_to_remote_discriminator",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("properties"),
-				addr.MustParseProperty("properties{1}"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_to_remote_discriminator",
-				},
-				Properties: map[string]*Property{
-					"properties{1}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerRemoteDisc.Definitions["base"].Properties["type"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "base")),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
-							specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
-						},
-						swaggerURI: specRemoteDiscPath,
-					},
-					"properties{1}/p1": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerRemoteDisc.Definitions["v1"].Properties["p1"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specRemoteDiscPath, "v1")),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_to_remote_discriminator": struct{}{},
-							specRemoteDiscPath + "#/definitions/v1":                   struct{}{},
-						},
-						swaggerURI: specRemoteDiscPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 24
-		{
-			name:           `Expand all properties that contains read-only property`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_contain_ro",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("p_obj_array"),
-				addr.MustParseProperty("p_obj_array_ro"),
-				addr.MustParseProperty("p_obj"),
-				addr.MustParseProperty("p_obj_ro"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_contain_ro",
-				},
-				Properties: map[string]*Property{
-					"p_primitive": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_contain_ro": struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-					"p_primitive_ro": {
-						PropertyState: PropertyStateIgnoredForReqROProp,
-						schema:        swaggerFoo.Definitions["def_contain_ro"].Properties["p_primitive_ro"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_contain_ro"),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_contain_ro": struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-					"p_obj_array/foo": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_contain_ro": struct{}{},
-							specFooPath + "#/definitions/def_foo":        struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-					"p_obj_array_ro/foo": {
-						PropertyState: PropertyStateIgnoredForReqROProp,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_contain_ro": struct{}{},
-							specFooPath + "#/definitions/def_foo":        struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-					"p_obj/foo": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_contain_ro": struct{}{},
-							specFooPath + "#/definitions/def_foo":        struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-					"p_obj_ro/foo": {
-						PropertyState: PropertyStateIgnoredForReqROProp,
-						schema:        swaggerFoo.Definitions["def_foo"].Properties["foo"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_foo"),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_contain_ro": struct{}{},
-							specFooPath + "#/definitions/def_foo":        struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-		// 25
-		{
-			name:           `Expand cyclic discriminator`,
-			swaggerRelPath: "foo.json",
-			schemaName:     "def_activity",
-			expandAddrs: []addr.Property{
-				addr.MustParseProperty("{def_activity_a}"),
-				addr.MustParseProperty("{def_activity_a}/actor"),
-				addr.MustParseProperty("{def_activity_a}/actor{def_actor_a}"),
-				addr.MustParseProperty("{def_activity_a}/actor{def_actor_a}/activity"),
-			},
-			expect: Schema{
-				SchemaMetaInfo: SchemaMetaInfo{
-					SwaggerRelPath: "foo.json",
-					Name:           "def_activity",
-				},
-				Properties: map[string]*Property{
-					"{def_activity_a}/actor{def_actor_a}/activity": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_activity"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_activity")),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_activity_a": struct{}{},
-							specFooPath + "#/definitions/def_actor_a":    struct{}{},
-						},
-						swaggerURI:      specFooPath,
-						isDiscriminator: true,
-						directVariantRefSet: map[string]struct{}{
-							specFooPath + "#/definitions/def_activity_a": {},
-						},
-					},
-					"{def_activity_a}/actor{def_actor_a}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_actor"].Properties["type"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_actor")),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_activity_a": struct{}{},
-							specFooPath + "#/definitions/def_actor_a":    struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-					"{def_activity_a}/type": {
-						PropertyState: PropertyStateUncovered,
-						schema:        swaggerFoo.Definitions["def_activity"].Properties["type"],
-						ownerSchemaRef: &openapispec.Ref{
-							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_activity")),
-						},
-						resolvedRefs: map[string]interface{}{
-							specFooPath + "#/definitions/def_activity_a": struct{}{},
-						},
-						swaggerURI: specFooPath,
-					},
-				},
-				swaggerURI: specFooPath,
-			},
-		},
-	}
-
-	for idx, c := range cases {
-		for i := 0; i <= c.repeat; i++ {
-			swgschema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
-			require.NoError(t, err, i)
-			for _, addr := range c.expandAddrs {
-				_, err := swgschema.expandPropertyOneLevelDeep(addr)
-				require.NoError(t, err, c.name, idx)
-			}
-			require.Equal(t, c.expect, *swgschema, idx)
 		}
 	}
 }
@@ -3005,10 +2269,22 @@ func TestSchema_AddCovProperty(t *testing.T) {
 					Name:           "def_base",
 				},
 				Properties: map[string]*Property{
+					"{def_base}/type": {
+						PropertyState: PropertyStateUncovered,
+						schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
+						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_base": struct{}{},
+						},
+						ownerSchemaRef: &openapispec.Ref{
+							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_base")),
+						},
+						swaggerURI: specFooPath,
+					},
 					"{def_variant1}/type": {
 						PropertyState: PropertyStateCovered,
 						schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
 						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_base":     struct{}{},
 							specFooPath + "#/definitions/def_variant1": struct{}{},
 						},
 						ownerSchemaRef: &openapispec.Ref{
@@ -3020,6 +2296,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 						PropertyState: PropertyStateUncovered,
 						schema:        swaggerFoo.Definitions["def_base"].Properties["type"],
 						resolvedRefs: map[string]interface{}{
+							specFooPath + "#/definitions/def_base":     struct{}{},
 							specFooPath + "#/definitions/variant2_def": struct{}{},
 						},
 						ownerSchemaRef: &openapispec.Ref{
@@ -3050,7 +2327,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 						schema:        swaggerFoo.Definitions["def_empty_object"],
 						resolvedRefs: map[string]interface{}{
 							specFooPath + "#/definitions/def_has_empty_object": struct{}{},
-							specFooPath + "#/definitions/def_empty_object": struct{}{},
+							specFooPath + "#/definitions/def_empty_object":     struct{}{},
 						},
 						ownerSchemaRef: &openapispec.Ref{
 							Ref: jsonreference.MustCreateRef(fmt.Sprintf("%s#/definitions/%s", specFooPath, "def_empty_object")),

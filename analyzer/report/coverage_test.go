@@ -123,9 +123,19 @@ func TestCoverageStoreAddSchema(t *testing.T) {
               "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
               "active": false,
               "node": {
-                "total_amount": 2,
+                "total_amount": 3,
                 "covered_amount": 1,
                 "children": {
+                  "{def_base}": {
+                    "total_amount": 1,
+                    "covered_amount": 0,
+                    "children": {
+                      "type": {
+                        "total_amount": 1,
+                        "covered_amount": 0
+                      }
+                    }
+                  },
                   "{def_variant1}": {
                     "total_amount": 1,
                     "covered_amount": 1,
@@ -154,9 +164,19 @@ func TestCoverageStoreAddSchema(t *testing.T) {
               "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2021-01-01/foo.json",
               "active": false,
               "node": {
-                "total_amount": 4,
+                "total_amount": 5,
                 "covered_amount": 1,
                 "children": {
+                  "{def_base}": {
+                    "total_amount": 1,
+                    "covered_amount": 0,
+                    "children": {
+                      "type": {
+                        "total_amount": 1,
+                        "covered_amount": 0
+                      }
+                    }
+                  },
                   "{def_variant1}": {
                     "total_amount": 2,
                     "covered_amount": 1,

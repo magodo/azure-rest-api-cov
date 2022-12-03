@@ -61,11 +61,13 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forRespon
 		swaggerURI: swaggerURI,
 	}
 
-	rootProperty, err := buildProperty(
+	normSchemaRef := SchemaNameToRef(swaggerURI, schemaName)
+	rootProperty, err := followRefOneStep(
 		PropertyStateUncovered,
 		map[string]interface{}{},
-		SchemaNameToRef(swaggerURI, schemaName),
+		normSchemaRef,
 		forResponse,
+		RefFollowReasonRef,
 	)
 	if err != nil {
 		return nil, err
@@ -77,7 +79,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forRespon
 
 	// Expand the root level properties of the schemas
 	rootAddr := addr.Property{}
-	_, err = swgSchema.expandPropertyOneLevelDeep(rootAddr)
+	_, err = swgSchema.expandPropertyOneLevelDeep(rootAddr, false)
 	if err != nil {
 		return nil, fmt.Errorf("expanding schemas %s (%s): %w", schemaName, swaggerURI, err)
 	}
@@ -123,14 +125,14 @@ func (s *Schema) ExpandProperties() error {
 	}
 
 	propsExpandedToEnd := map[string]bool{}
-	propsToExpand := map[string]bool{}
+	propsToExpand := map[string]bool{} // Key is the prop addr, value is whether the prop is a discriminator
 
 	log.Debugf("Expanding properties for schema: %s", s.Ref())
 	for {
 		propsToExpand = map[string]bool{}
-		for k := range s.Properties {
+		for k, v := range s.Properties {
 			if !propsExpandedToEnd[k] {
-				propsToExpand[k] = true
+				propsToExpand[k] = v.isDiscriminator
 			}
 		}
 
@@ -139,9 +141,9 @@ func (s *Schema) ExpandProperties() error {
 		}
 
 		log.Tracef("Total props: %d, Props to expand: %d", len(s.Properties), len(propsToExpand))
-		for existRAddr := range propsToExpand {
+		for existRAddr, isDiscriminator := range propsToExpand {
 			existPropAddr := addr.MustParseProperty(existRAddr)
-			end, err := s.expandPropertyOneLevelDeep(existPropAddr)
+			end, err := s.expandPropertyOneLevelDeep(existPropAddr, isDiscriminator)
 			if err != nil {
 				return fmt.Errorf("expanding top property for %s: %w", existPropAddr, err)
 			}
@@ -195,7 +197,7 @@ func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
 }
 
 // expandPropertyOneLevelDeep expand the specified swagger property one level deep, with any ref, allOf, sub-properties taken into consideration.
-func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, err error) {
+func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property, isVariant bool) (end bool, err error) {
 	raddr := propAddr.String()
 
 	defer func() {
@@ -211,7 +213,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 		return false, fmt.Errorf("property %s does not exist in Schema %s (%s)", propAddr, s.Name, s.swaggerURI)
 	}
 
-	isCyclic, err := prop.expandRefPropertyInPlace()
+	isCyclic, err := prop.expandRefPropertyInPlace(RefFollowReasonRef)
 	if err != nil {
 		return false, fmt.Errorf("dereferencing property %s in Schema %s (%s): %w", propAddr, s.Name, s.swaggerURI, err)
 	}
@@ -239,22 +241,27 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 	levelProperties.Merge(directTopSWGProperties)
 	levelProperties.Merge(allOfSWGProperties)
 
-	// In case current property is not a discriminator schema, we will simply return here and do not do the expanding to variants below.
-	if !prop.isDiscriminator {
+	// In case:
+	// - current property is not a discriminator schema
+	// - or it is already a expanded variant
+	// - or it is a leaf variant
+	// we will simply return here and do not do the expanding to variants below.
+	if !prop.isDiscriminator || isVariant || len(prop.variantRefSet) == 0 {
 		s.addProperties(levelProperties)
 		return len(levelProperties) == 0, nil
 	}
 
-	// In case current property is a leaf variant, we will simply return here and do not do the expanding to variants below.
-	if prop.isLeafDiscriminator() {
-		s.addProperties(levelProperties)
-		return len(levelProperties) == 0, nil
-	}
-
-	// A non-leaf discriminator or that has not been resolved yet. We'll further expand its variants.
-	delete(prop.resolvedRefs, prop.ownerSchemaRef.String())
+	// We are expanding a non-leaf discriminator for all of its variants, together with the expanding schema itself.
 	skipped := 0
-	for variantRef := range prop.directVariantRefSet {
+
+	refset := map[string]struct{}{
+		prop.ownerSchemaRef.String(): {},
+	}
+	for ref := range prop.variantRefSet {
+		refset[ref] = struct{}{}
+	}
+
+	for variantRef := range refset {
 		if _, resolved := prop.resolvedRefs[variantRef]; resolved {
 			skipped++
 			continue
@@ -273,24 +280,17 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property) (end bool, e
 			descValue = v
 		}
 
-		// Since we removed the discriminator base schema from the "resolvedRefs" when we create the Property, we should in turn Add the
-		// exact variant schema expanded to the "resolvedRefs".
-		resolvedRefs := map[string]interface{}{}
-		for k, v := range prop.resolvedRefs {
-			resolvedRefs[k] = v
-		}
 		normVariantRef := openapispec.MustCreateRef(variantRef)
-		resolvedRefs[variantRef] = struct{}{}
-
-		p, err := buildProperty(prop.PropertyState, resolvedRefs, normVariantRef, prop.forResponse)
+		p, err := followRefOneStep(prop.PropertyState, prop.resolvedRefs, normVariantRef, prop.forResponse, RefFollowReasonVarianting)
 		if err != nil {
 			return false, err
 		}
+
 		s.addProperty(propAddr.AsVariant(descValue), *p)
 	}
 
 	// In case all the variants are skipped, we will potentially mark this expansion as end as there is no new properties got expanded.
-	if skipped == len(prop.directVariantRefSet) {
+	if skipped == len(refset) {
 		return true, nil
 	}
 
@@ -334,7 +334,7 @@ func (s *Schema) expandAllOfProperties(propAddr addr.Property, prop *Property) (
 
 		// AllOf contains refs, then need to expand the reference properties first.
 		if tmpProp.schema.Ref.String() != "" {
-			isCyclic, err := tmpProp.expandRefPropertyInPlace()
+			isCyclic, err := tmpProp.expandRefPropertyInPlace(RefFollowReasonInherit)
 			if err != nil {
 				return nil, fmt.Errorf("dereferencing property %s in Schema %s (%s): %w", propAddr, s.Name, s.swaggerURI, err)
 			}

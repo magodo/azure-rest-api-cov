@@ -107,10 +107,6 @@ type Property struct {
 
 	// The resolved URI refs along the way to this schemas, each is an normalized reference.
 	// This is used to avoid cyclic reference.
-	// Especially for discriminator and variant schemas:
-	// - Pure discriminator: will never appear in this set since it is never "really" used
-	// - Non-leaf variant: will be added into this map only when it is expanded to its variants
-	// - Leaf variant: will be added into this map when its ref got resolved
 	resolvedRefs map[string]interface{}
 
 	// The URI of the schema file
@@ -126,7 +122,7 @@ type Property struct {
 	isDiscriminator bool
 
 	// Normalized reference to variant schemas of this property's schema of this property. It is nil if `isDiscriminator` is false.
-	directVariantRefSet map[string]struct{}
+	variantRefSet map[string]struct{}
 }
 
 type Properties map[string]*Property // the key is relative property addr string representation
@@ -143,20 +139,20 @@ func (prop Property) copy() *Property {
 		newResolvedRefs[k] = v
 	}
 
-	newDirectVariantRefSet := map[string]struct{}{}
-	for k, v := range prop.directVariantRefSet {
-		newDirectVariantRefSet[k] = v
+	newVariantRefSet := map[string]struct{}{}
+	for k, v := range prop.variantRefSet {
+		newVariantRefSet[k] = v
 	}
 
 	return &Property{
-		PropertyState:       prop.PropertyState,
-		schema:              prop.schema,
-		ownerSchemaRef:      prop.ownerSchemaRef,
-		resolvedRefs:        newResolvedRefs,
-		swaggerURI:          prop.swaggerURI,
-		forResponse:         prop.forResponse,
-		isDiscriminator:     prop.isDiscriminator,
-		directVariantRefSet: newDirectVariantRefSet,
+		PropertyState:   prop.PropertyState,
+		schema:          prop.schema,
+		ownerSchemaRef:  prop.ownerSchemaRef,
+		resolvedRefs:    newResolvedRefs,
+		swaggerURI:      prop.swaggerURI,
+		forResponse:     prop.forResponse,
+		isDiscriminator: prop.isDiscriminator,
+		variantRefSet:   newVariantRefSet,
 	}
 }
 
@@ -185,25 +181,36 @@ func (prop *Property) propagateSubPropOfSchema(schema openapispec.Schema) *Prope
 	return newProp
 }
 
-// buildProperty build a new property by providing all the needed information about this property.
-// It is useful when initiating the root property or building a property by following a reference to a new schema.
-// The "resolvedRefs" keeps track about resolved refs at this point. In case that the schema of this property is
-// a non-discriminator schema or leaf variant, current schema's ref will be added to resolvedRefs of the new property.
-func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, normSchemaRef openapispec.Ref, forResponse bool) (*Property, error) {
+type RefFollowReason int
+
+const (
+	// RefFollowReasonRef indicates the ref is a direct referencing for a property
+	RefFollowReasonRef RefFollowReason = iota
+	// RefFollowReasonInherit indicates the ref is inside allOf
+	RefFollowReasonInherit
+	// RefFollowReasonVarianting indicates the a variant ref
+	RefFollowReasonVarianting
+)
+
+// followRefOneStep build a new property by its ref, together with all the needed information provided.
+// It is used when initiating the root property or building a property by following a reference to a new schema.
+// The "resolvedRefs" keeps track about resolved refs at this point.
+func followRefOneStep(state PropertyState, resolvedRefs map[string]interface{}, normSchemaRef openapispec.Ref, forResponse bool, reason RefFollowReason) (*Property, error) {
 	schema, err := openapispec.ResolveRefWithBase(nil, &normSchemaRef, nil)
 	if err != nil {
 		return nil, err
 	}
 	swaggerURI := normSchemaRef.GetURL().Path
 
+	if !forResponse && schema.ReadOnly {
+		state = PropertyStateIgnoredForReqROProp
+	}
+
 	newResolvedRefs := map[string]interface{}{}
 	for k, v := range resolvedRefs {
 		newResolvedRefs[k] = v
 	}
 
-	if !forResponse && schema.ReadOnly {
-		state = PropertyStateIgnoredForReqROProp
-	}
 	prop := &Property{
 		PropertyState:  state,
 		schema:         *schema,
@@ -217,21 +224,36 @@ func buildProperty(state PropertyState, resolvedRefs map[string]interface{}, nor
 	if err != nil {
 		return nil, err
 	}
+
 	if !isDiscriminator {
-		// In case the current schema is not a discriminator, we will mark it as ref-ed.
-		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
+		switch reason {
+		case RefFollowReasonRef:
+			prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
+		case RefFollowReasonInherit:
+			prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
+		case RefFollowReasonVarianting:
+			prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
+		}
 		return prop, nil
 	}
 
 	// Following applies to discriminator property
 	prop.isDiscriminator = isDiscriminator
-	prop.directVariantRefSet, err = GetVariantRefSet(normSchemaRef)
+	prop.variantRefSet, err = GetVariantRefSet(normSchemaRef)
 	if err != nil {
 		return nil, err
 	}
 
-	// In case the current schema is a leaf variant, we will mark it as ref-ed.
-	if prop.isLeafDiscriminator() {
+	switch reason {
+	case RefFollowReasonRef:
+		// Variant ref: when the ref is a discriminator, it is not marked as resolved, as this discriminator will be later used for expanding variants as itself, or allOf by its variants.
+		// Except this variant is a leaf variant, where there is no variants to expand.
+		if len(prop.variantRefSet) == 0 {
+			prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
+		}
+	case RefFollowReasonInherit:
+		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
+	case RefFollowReasonVarianting:
 		prop.resolvedRefs[normSchemaRef.String()] = struct{}{}
 	}
 
@@ -265,17 +287,11 @@ func GetVariantRefSet(normSchemaRef openapispec.Ref) (map[string]struct{}, error
 			}
 
 			for ref := range oldChildRefSet {
-				hasChild := false
 				// Collect its children
 				for childSchemaRef, allOfs := range allAllOfs {
 					if _, ok := allOfs[ref]; ok {
-						hasChild = true
 						childRefSet[childSchemaRef] = struct{}{}
 					}
-				}
-				// Remove the ref to the schema under iteration if it is a non-leaf discriminator
-				if hasChild {
-					delete(childRefSet, ref)
 				}
 			}
 		}
@@ -392,8 +408,8 @@ func isDiscriminator(normSchemaRef openapispec.Ref) (is bool, err error) {
 	return false, nil
 }
 
-// expandRefPropertyInPlace expand a property itself IN-PLACE until either it is a concrete schemas (i.e. not a ref) or hit a cyclic ref.
-func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
+// expandRefPropertyInPlace recursively expand a property itself IN-PLACE until either it is a concrete schemas (i.e. not a ref) or hit a cyclic ref.
+func (prop *Property) expandRefPropertyInPlace(reason RefFollowReason) (isCyclic bool, err error) {
 	ref := prop.schema.Ref
 	if ref.String() == "" {
 		if prop.schema.Items == nil {
@@ -425,27 +441,20 @@ func (prop *Property) expandRefPropertyInPlace() (isCyclic bool, err error) {
 		return true, nil
 	}
 
-	refProp, err := buildProperty(prop.PropertyState, prop.resolvedRefs, *normalizedRef, prop.forResponse)
+	refProp, err := followRefOneStep(prop.PropertyState, prop.resolvedRefs, *normalizedRef, prop.forResponse, reason)
 	if err != nil {
 		return false, err
 	}
 
 	*prop = *refProp
 
-	return prop.expandRefPropertyInPlace()
-}
-
-func (prop Property) isLeafDiscriminator() bool {
-	if !prop.isDiscriminator {
-		return false
-	}
-	return len(prop.directVariantRefSet) == 0
+	return prop.expandRefPropertyInPlace(reason)
 }
 
 // isLeafProperty tells whether the prop is a leaf property, meaning it has no unresolved ref, sub-properties, or allOf(s).
 func (prop Property) isLeafProperty() (bool, error) {
 	p := prop.copy()
-	cyclic, err := p.expandRefPropertyInPlace()
+	cyclic, err := p.expandRefPropertyInPlace(RefFollowReasonRef)
 	if err != nil {
 		return false, err
 	}
