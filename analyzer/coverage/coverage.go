@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
-	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"path/filepath"
 	"runtime"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
@@ -216,7 +217,7 @@ predictLoop:
 
 			schemaInput := schemaInput
 			wp.AddTask(func() (interface{}, error) {
-				opInfo, err := schemaInput.ToOperationInfo(idx, false, false)
+				opInfo, err := schemaInput.ToOperationInfo(idx, false, false, nil)
 				if err != nil {
 					if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
 						log.Warn(err)

@@ -8,6 +8,7 @@ import (
 	"runtime"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
+	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
@@ -154,7 +155,7 @@ func (rp ResourceProvider) Copy() ResourceProvider {
 // GenerateWithUncoveredOperationModels walks through the coverage data and gather the schemas for those uncovered operations. For each RP, merge both covered and uncovered schemas and generate in json format.
 // This means for operations that none of the available versions is covered, then all of those versions of this operation will be converted into schema inputs.
 // This can be some API path has covered some operations but not the others. This can also happen when some API paths are not covered at all.
-func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string) (string, error) {
+func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRepoIndex, ignoreSchema []string, allowMismatchPropMatchers []propmatch.PropMatcher) (string, error) {
 	log.Info("Generating with uncovered operation models...")
 	var ignorePatterns []workspace.OperationLocator
 	for _, p := range ignoreSchema {
@@ -211,7 +212,7 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 
 					wp.AddTask(func() (interface{}, error) {
 						log.Debugf("Expanding uncovered schema for %q", loc)
-						opInfo, err := getUncoveredOperation(loc, idx)
+						opInfo, err := getUncoveredOperation(loc, idx, allowMismatchPropMatchers)
 						if err != nil {
 							return nil, err
 						}
@@ -242,7 +243,7 @@ func (cov *Coverage) GenerateWithUncoveredOperationModels(idx *workspace.AzureRe
 
 // getUncoveredOperation search the index for an uncovered operation. If that operation has a model, further expands it to its end.
 // Note that the returned operation info might be nil when the index failed to look up the locator, which indicates that locator is ambiguous in most cases.
-func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureRepoIndex) (*operation.Info, error) {
+func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureRepoIndex, allowMismatchPropMatchers []propmatch.PropMatcher) (*operation.Info, error) {
 	log.Infof("Processing (uncovered) %q", loc)
 	opInfo, err := idx.LocateOperation(loc)
 	if err != nil {
@@ -259,7 +260,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 			OperationLocator: loc,
 			Properties:       []string{},
 		}
-		out, err := si.ToOperationInfo(idx, true, false)
+		out, err := si.ToOperationInfo(idx, true, false, allowMismatchPropMatchers)
 		if err != nil {
 			return nil, fmt.Errorf("converting schema input to opInfo for %q: %v", loc, err)
 		}
@@ -280,7 +281,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 			OperationLocator: loc,
 			Properties:       []string{},
 		}
-		out, err := si.ToOperationInfo(idx, true, false)
+		out, err := si.ToOperationInfo(idx, true, false, allowMismatchPropMatchers)
 		if err != nil {
 			return nil, fmt.Errorf("converting schema input to opInfo for %q: %v", loc, err)
 		}
@@ -295,7 +296,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 			Variant:          ref,
 			Properties:       []string{},
 		}
-		info, err := si.ToOperationInfo(idx, true, false)
+		info, err := si.ToOperationInfo(idx, true, false, allowMismatchPropMatchers)
 		if err != nil {
 			return nil, fmt.Errorf("converting schema input to opInfo for %q: %v", loc, err)
 		}

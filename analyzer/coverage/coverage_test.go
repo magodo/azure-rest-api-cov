@@ -2,11 +2,12 @@ package coverage
 
 import (
 	"encoding/json"
-	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
@@ -88,7 +89,7 @@ func TestCoverage_AddSchema(t *testing.T) {
 			err = json.Unmarshal(b, &schemaInput)
 			require.NoError(t, err, idx)
 
-			opInfo, err := schemaInput.ToOperationInfo(index, true, true)
+			opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 			require.NoError(t, err, idx)
 			require.NoError(t, cov.AddOperation(opInfo), idx)
 		}
@@ -144,7 +145,7 @@ func TestCoverage_ToSchemaInputs(t *testing.T) {
 
 		cov := NewEmptyCoverage()
 		for _, schemaInput := range activeSchemaInputs {
-			opInfo, err := schemaInput.ToOperationInfo(index, true, false)
+			opInfo, err := schemaInput.ToOperationInfo(index, true, false, nil)
 			require.NoError(t, err, idx)
 			require.NoError(t, cov.AddOperation(opInfo), idx)
 		}
@@ -155,7 +156,7 @@ func TestCoverage_ToSchemaInputs(t *testing.T) {
 
 		newCov := NewEmptyCoverage()
 		for _, schemaInput := range genSchemaInputs {
-			opInfo, err := schemaInput.ToOperationInfo(index, true, false)
+			opInfo, err := schemaInput.ToOperationInfo(index, true, false, nil)
 			require.NoError(t, err, idx)
 			require.NoError(t, newCov.AddOperation(opInfo), idx)
 		}
@@ -281,7 +282,7 @@ func TestCoverage_Predict(t *testing.T) {
 		}
 
 		for _, schemaInput := range activeSchemaInputs {
-			opInfo, err := schemaInput.ToOperationInfo(index, true, true)
+			opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 			require.NoError(t, err, idx)
 			require.NoError(t, cov.AddOperation(opInfo), idx)
 		}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
+	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,6 +23,10 @@ type FeedDBContext struct {
 	// A list of schema locator pattern in the format of: <API Path>:<Operation>:<API Version>, to skip the from reporting.
 	// This is useful to ignore some "infinite" model like data factory pipeline.
 	IgnoreSchema []string
+
+	// A list of property locator pattern, to allow a mismatch from its API spec definition.
+	// This is mainly used for workaround the artificially added attributes like in: https://github.com/hashicorp/pandora/commit/13e177637e196c42d0b0bdc82df1fa703d2c0da7
+	AllowMismatchPropMatchers []propmatch.PropMatcher
 }
 
 func FeedDB(in io.Reader, ctx FeedDBContext) error {
@@ -58,7 +63,7 @@ func FeedDB(in io.Reader, ctx FeedDBContext) error {
 		}
 	}
 
-	out, err := covReport.GenerateWithUncoveredOperationModels(wsp.AzureRepoIndex, ctx.IgnoreSchema)
+	out, err := covReport.GenerateWithUncoveredOperationModels(wsp.AzureRepoIndex, ctx.IgnoreSchema, ctx.AllowMismatchPropMatchers)
 	if err != nil {
 		return err
 	}

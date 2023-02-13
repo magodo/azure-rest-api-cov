@@ -403,7 +403,7 @@ func (s *Schema) Merge(os Schema) error {
 
 	for pAddr, prop := range os.Properties {
 		if prop.IsCovered() {
-			if err := s.AddCovProperty(addr.MustParseProperty(pAddr), true); err != nil {
+			if err := s.AddCovProperty(addr.MustParseProperty(pAddr), true, nil); err != nil {
 				return err
 			}
 		}

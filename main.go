@@ -239,6 +239,10 @@ func main() {
 						Name:  "ignore-schema",
 						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
 					},
+					&cli.StringSliceFlag{
+						Name:  "allow-mismatch-prop",
+						Usage: `Allow the specified property to mismatch its API spec definition during calculating the property coverage. The pattern is in the format of: <Swagger URI>:<Model Name>:<Prop Path>`,
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -255,6 +259,7 @@ func main() {
 
 					buildComment := ctx.String("build-comment")
 					ignoreSchema := ctx.StringSlice("ignore-schema")
+					allowMismatchProps := ctx.StringSlice("allow-mismatch-prop")
 
 					wspOpt := workspace.InitOption{
 						WorkspaceDir: workspaceDir,
@@ -273,10 +278,16 @@ func main() {
 						covIn = covFile
 					}
 
+					allowedMismatchPropMatchers := []propmatch.PropMatcher{}
+					for _, prop := range allowMismatchProps {
+						allowedMismatchPropMatchers = append(allowedMismatchPropMatchers, propmatch.MustParsePropMatcher(prop))
+					}
+
 					fctx := analyzer.FeedDBContext{
-						WorkspaceOpt: wspOpt,
-						BuildComment: buildComment,
-						IgnoreSchema: ignoreSchema,
+						WorkspaceOpt:              wspOpt,
+						BuildComment:              buildComment,
+						IgnoreSchema:              ignoreSchema,
+						AllowMismatchPropMatchers: allowedMismatchPropMatchers,
 					}
 
 					return analyzer.FeedDB(covIn, fctx)
