@@ -373,13 +373,13 @@ func TestCoverageAddSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		opInfo, err := schemaInput.ToOperationInfo(index, true, true)
+		opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 		require.NoError(t, err, idx)
 		cov.AddOperation(opInfo)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
-		opInfo, err = schemaInput.ToOperationInfo(index, true, false)
+		opInfo, err = schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
 		cov.AddOperation(opInfo)
 
@@ -767,17 +767,17 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		opInfo, err := schemaInput.ToOperationInfo(index, true, true)
+		opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 		require.NoError(t, err, idx)
 		require.NoError(t, cov.AddOperation(opInfo), idx)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
-		opInfo, err = schemaInput.ToOperationInfo(index, true, false)
+		opInfo, err = schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
 		require.NoError(t, cov.AddOperation(opInfo), idx)
 
-		actual, err := cov.GenerateWithUncoveredOperationModels(index, nil)
+		actual, err := cov.GenerateWithUncoveredOperationModels(index, nil, nil)
 		require.NoError(t, err, idx)
 		require.JSONEq(t, c.expect, actual, idx)
 	}

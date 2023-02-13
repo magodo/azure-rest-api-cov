@@ -340,7 +340,7 @@ func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPa
 	return infos, nil
 }
 
-//  getModelInfoFromParameter get the information for in-body parameter if any. Otherwise, it returns nil.
+// getModelInfoFromParameter get the information for in-body parameter if any. Otherwise, it returns nil.
 func getModelInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*ModelInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	for _, param := range operation.Parameters {
@@ -393,7 +393,7 @@ func getModelInfoFromParameter(swg *openapispec.Swagger, specRootPath, specRelPa
 	return nil, nil
 }
 
-//  getModelInfoFromResponse get the information for the response of code 200 if any. Otherwise, it returns nil.
+// getModelInfoFromResponse get the information for the response of code 200 if any. Otherwise, it returns nil.
 func getModelInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPathDefAPI string, operation openapispec.Operation) (*ModelInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	relPath := specRelPathDefAPI
@@ -454,7 +454,7 @@ func ImportAzureRepoIndex(path string) (*AzureRepoIndex, error) {
 	return &index, nil
 }
 
-func (index AzureRepoIndex) Export(path string) error {
+func (index *AzureRepoIndex) Export(path string) error {
 	b, err := json.MarshalIndent(index, "", "  ")
 	if err != nil {
 		return err

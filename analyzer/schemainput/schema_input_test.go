@@ -132,7 +132,7 @@ func TestToSchema(t *testing.T) {
 		if c.shiftVersion != "" {
 			schemaInput.ApiVersion = c.shiftVersion
 		}
-		opInfo, err := schemaInput.ToOperationInfo(index, c.shiftVersion != "", false)
+		opInfo, err := schemaInput.ToOperationInfo(index, c.shiftVersion != "", false, nil)
 		if c.err == nil {
 			require.NoError(t, err, idx)
 		} else {

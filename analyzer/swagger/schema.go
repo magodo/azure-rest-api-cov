@@ -6,6 +6,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 
 	openapispec "github.com/go-openapi/spec"
@@ -94,7 +95,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forRespon
 // ProcessCoverageForSchema will create a new empty Schema for the input schema, then process it to generate the property coverages based on the coveredProps.
 // If "forResponse" is specified, the read-only properties will  be ignored in the final coverage result.
 // If "strict" is specified, the coveredProps should guarantee to exist in the designated schema. Otherwise, an error will return.
-func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict bool) (*Schema, error) {
+func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName string, schemaVariantValue string, coveredProps []string, forResponse bool, strict bool, allowMismatchPropMatchers []propmatch.PropMatcher) (*Schema, error) {
 	schema, err := NewEmptySchema(swaggerBaseDir, swaggerRelPath, schemaName, forResponse)
 	if err != nil {
 		return nil, err
@@ -109,7 +110,7 @@ func ProcessCoverageForSchema(swaggerBaseDir, swaggerRelPath string, schemaName 
 		if schemaVariantValue != "" {
 			prop = addr.MustParseProperty("").AsVariant(schemaVariantValue).Append(prop)
 		}
-		if err := schema.AddCovProperty(prop, strict); err != nil {
+		if err := schema.AddCovProperty(prop, strict, allowMismatchPropMatchers); err != nil {
 			return nil, err
 		}
 	}
@@ -160,7 +161,7 @@ func (s *Schema) ExpandProperties() error {
 // In case the property doesn't exist in the Swagger definition, it will error out if in the strict mode. Otherwise, it will just ignore this property.
 // Furthermore, if the property is a parent of some existing properties, it will always be skipped. Since we only count coverage for leaf properties.
 // NOTE: You shall ensure to call after expanding properties. Also, this has to be called before the schema goes under granting process.
-func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
+func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool, allowMismatchPropMatchers []propmatch.PropMatcher) error {
 	if s.HasGrantedAny() {
 		return fmt.Errorf("AddCovProperty() has to be called on schema (%q) before granting", s.Ref())
 	}
@@ -191,6 +192,16 @@ func (s *Schema) AddCovProperty(propAddr addr.Property, strict bool) error {
 	}
 
 	if strict {
+		for _, m := range allowMismatchPropMatchers {
+			o := propmatch.PropMatcher{
+				SwaggerURI: s.swaggerURI,
+				ModelName:  s.Name,
+				PropAddr:   propAddr,
+			}
+			if m.Match(o) {
+				return nil
+			}
+		}
 		return fmt.Errorf("property %s doesn't belong to schemas %s (%s)", propAddr, s.Name, s.swaggerURI)
 	}
 	return nil
@@ -392,7 +403,7 @@ func (s *Schema) Merge(os Schema) error {
 
 	for pAddr, prop := range os.Properties {
 		if prop.IsCovered() {
-			if err := s.AddCovProperty(addr.MustParseProperty(pAddr), true); err != nil {
+			if err := s.AddCovProperty(addr.MustParseProperty(pAddr), true, nil); err != nil {
 				return err
 			}
 		}

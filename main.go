@@ -14,6 +14,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	"github.com/pkg/profile"
 	"github.com/urfave/cli/v2"
@@ -90,6 +91,10 @@ func main() {
 						Name:  "ignore-schema",
 						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
 					},
+					&cli.StringSliceFlag{
+						Name:  "allow-mismatch-prop",
+						Usage: `Allow the specified property to mismatch its API spec definition during calculating the property coverage. The pattern is in the format of: <Swagger URI>:<Model Name>:<Prop Path>`,
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -108,6 +113,7 @@ func main() {
 
 					predict := ctx.Bool("predict")
 					ignoreSchema := ctx.StringSlice("ignore-schema")
+					allowMismatchProps := ctx.StringSlice("allow-mismatch-prop")
 
 					var auth transport.AuthMethod
 					if githubToken != "" && githubUsername != "" {
@@ -135,10 +141,16 @@ func main() {
 						schemaIn = schemaInputFile
 					}
 
+					allowedMismatchPropMatchers := []propmatch.PropMatcher{}
+					for _, prop := range allowMismatchProps {
+						allowedMismatchPropMatchers = append(allowedMismatchPropMatchers, propmatch.MustParsePropMatcher(prop))
+					}
+
 					cctx := analyzer.CoverageContext{
-						WorkspaceOpt: wspOpt,
-						Predict:      predict,
-						IgnoreSchema: ignoreSchema,
+						WorkspaceOpt:              wspOpt,
+						Predict:                   predict,
+						IgnoreSchema:              ignoreSchema,
+						AllowMismatchPropMatchers: allowedMismatchPropMatchers,
 					}
 
 					output, err := analyzer.Coverage(schemaIn, cctx)
@@ -227,6 +239,10 @@ func main() {
 						Name:  "ignore-schema",
 						Usage: `Ignore the schemas that matches the specified pattern from calculating the property coverage. The pattern is in the format of: <API Path>:<Operation>:<API Version>`,
 					},
+					&cli.StringSliceFlag{
+						Name:  "allow-mismatch-prop",
+						Usage: `Allow the specified property to mismatch its API spec definition during calculating the property coverage. The pattern is in the format of: <Swagger URI>:<Model Name>:<Prop Path>`,
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -243,6 +259,7 @@ func main() {
 
 					buildComment := ctx.String("build-comment")
 					ignoreSchema := ctx.StringSlice("ignore-schema")
+					allowMismatchProps := ctx.StringSlice("allow-mismatch-prop")
 
 					wspOpt := workspace.InitOption{
 						WorkspaceDir: workspaceDir,
@@ -261,10 +278,16 @@ func main() {
 						covIn = covFile
 					}
 
+					allowedMismatchPropMatchers := []propmatch.PropMatcher{}
+					for _, prop := range allowMismatchProps {
+						allowedMismatchPropMatchers = append(allowedMismatchPropMatchers, propmatch.MustParsePropMatcher(prop))
+					}
+
 					fctx := analyzer.FeedDBContext{
-						WorkspaceOpt: wspOpt,
-						BuildComment: buildComment,
-						IgnoreSchema: ignoreSchema,
+						WorkspaceOpt:              wspOpt,
+						BuildComment:              buildComment,
+						IgnoreSchema:              ignoreSchema,
+						AllowMismatchPropMatchers: allowedMismatchPropMatchers,
 					}
 
 					return analyzer.FeedDB(covIn, fctx)

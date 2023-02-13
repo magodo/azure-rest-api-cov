@@ -2,6 +2,7 @@ package report
 
 import (
 	"fmt"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 )
@@ -27,7 +28,7 @@ type Operations map[string]*APIVersions
 
 type APIVersions map[string]*SchemaCoverage
 
-func NewEmptyCoverage(index workspace.AzureRepoIndex, additionalMessage string) Coverage {
+func NewEmptyCoverage(index *workspace.AzureRepoIndex, additionalMessage string) Coverage {
 	coverage := Coverage{
 		Commit:            index.Commit,
 		AdditionalMessage: additionalMessage,

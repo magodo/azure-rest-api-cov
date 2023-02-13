@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"runtime"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
+	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
-	"io"
-	"io/ioutil"
-	"runtime"
 )
 
 type CoverageContext struct {
@@ -24,6 +26,10 @@ type CoverageContext struct {
 	// A list of schema locator pattern in the format of: <API Path>:<Operation>:<API Version>, to skip the coverage calculation.
 	// This is useful to ignore some "infinite" model like data factory pipeline.
 	IgnoreSchema []string
+
+	// A list of property locator pattern, to allow a mismatch from its API spec definition.
+	// This is mainly used for workaround the artificially added attributes like in: https://github.com/hashicorp/pandora/commit/13e177637e196c42d0b0bdc82df1fa703d2c0da7
+	AllowMismatchPropMatchers []propmatch.PropMatcher
 }
 
 func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
@@ -88,7 +94,7 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 			}
 			log.Infoln(msg)
 
-			opInfo, err := schemaInput.ToOperationInfo(wsp.AzureRepoIndex, true, true)
+			opInfo, err := schemaInput.ToOperationInfo(wsp.AzureRepoIndex, true, true, ctx.AllowMismatchPropMatchers)
 			if err != nil {
 				if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 					log.Warn(err)

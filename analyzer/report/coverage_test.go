@@ -79,7 +79,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 
 	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
 	require.NoError(t, err, "generate index")
-	cov := report.NewEmptyCoverage(*idx, "")
+	cov := report.NewEmptyCoverage(idx, "")
 	require.Equal(t, expect, cov)
 }
 
@@ -252,20 +252,20 @@ func TestCoverageStoreAddSchema(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
-		cov := report.NewEmptyCoverage(*index, "")
+		cov := report.NewEmptyCoverage(index, "")
 		var schemaInput schemainput.SchemaInput
 
 		// Add active schemaInput
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		opInfo, err := schemaInput.ToOperationInfo(index, true, false)
+		opInfo, err := schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
 		require.NoError(t, cov.AddOperation("prefix/", opInfo), idx)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
-		opInfo, err = schemaInput.ToOperationInfo(index, true, false)
+		opInfo, err = schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
 		require.NoError(t, cov.AddOperation("prefix/", opInfo), idx)
 

@@ -68,6 +68,11 @@ func TestParsePropertySegment(t *testing.T) {
 			input:  `a\\\{}\/{v\\{\}/}`,
 			expect: addr.PropertySegment{Name: `a\{}/`, DiscriminatorValue: `v\{}/`},
 		},
+		// 11
+		{
+			input:  `*`,
+			expect: addr.PropertySegment{Name: `*`},
+		},
 	}
 
 	for idx, c := range cases {

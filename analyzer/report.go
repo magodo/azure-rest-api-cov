@@ -41,7 +41,7 @@ func Report(in io.Reader, ctx ReportContext) (string, error) {
 	flatCov := cov.Flatten()
 	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
 
-	covReport := report.NewEmptyCoverage(*(wsp.AzureRepoIndex), ctx.AdditionalMessage)
+	covReport := report.NewEmptyCoverage(wsp.AzureRepoIndex, ctx.AdditionalMessage)
 	for _, opInfo := range flatCov {
 		if err := covReport.AddOperation(azureRepoURLPrefix, opInfo); err != nil {
 			return "", err

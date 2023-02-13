@@ -2,7 +2,9 @@ package schemainput
 
 import (
 	"fmt"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
+	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 )
@@ -13,7 +15,7 @@ type SchemaInput struct {
 	Properties []string `json:"properties"`
 }
 
-func (schemaInput SchemaInput) ToOperationInfo(index *workspace.AzureRepoIndex, strict, active bool) (*operation.Info, error) {
+func (schemaInput SchemaInput) ToOperationInfo(index *workspace.AzureRepoIndex, strict, active bool, allowMismatchPropMatchers []propmatch.PropMatcher) (*operation.Info, error) {
 	opLoc := schemaInput.OperationLocator
 	info, err := index.LocateOperation(opLoc)
 	if err != nil {
@@ -37,7 +39,7 @@ func (schemaInput SchemaInput) ToOperationInfo(index *workspace.AzureRepoIndex, 
 
 	if info.Model != nil {
 		name, relPath := info.Model.Name, info.Model.SpecRelPath
-		schema, err := swagger.ProcessCoverageForSchema(index.SpecRootDir, relPath, name, schemaInput.Variant, schemaInput.Properties, schemaInput.Operation == workspace.OperationKindGet, strict)
+		schema, err := swagger.ProcessCoverageForSchema(index.SpecRootDir, relPath, name, schemaInput.Variant, schemaInput.Properties, schemaInput.Operation == workspace.OperationKindGet, strict, allowMismatchPropMatchers)
 		if err != nil {
 			return nil, err
 		}

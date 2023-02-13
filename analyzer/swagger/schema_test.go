@@ -2346,7 +2346,7 @@ func TestSchema_AddCovProperty(t *testing.T) {
 		require.NoError(t, schema.ExpandProperties(), idx)
 		if err == nil {
 			for iidx, addr := range c.addrs {
-				err := schema.AddCovProperty(addr, true)
+				err := schema.AddCovProperty(addr, true, nil)
 				require.NoError(t, err, fmt.Sprintf("%s: %d.%d", c.name, idx, iidx))
 				require.Equal(t, c.expect, *schema, fmt.Sprintf("%d.%d", idx, iidx))
 			}
@@ -2436,7 +2436,7 @@ func TestSchema_Marshal(t *testing.T) {
 			process: func(schema *Schema) {
 				swgPropAddr := addr.MustParseProperty("p2/p2_1")
 				require.NoError(t, schema.ExpandProperties())
-				require.NoError(t, schema.AddCovProperty(swgPropAddr, true))
+				require.NoError(t, schema.AddCovProperty(swgPropAddr, true, nil))
 			},
 			expect: fmt.Sprintf(`{
     "swagger_rel_path": "foo.json",
