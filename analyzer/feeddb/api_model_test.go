@@ -1,11 +1,12 @@
 package feeddb_test
 
 import (
+	"testing"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestProperty_Add(t *testing.T) {
@@ -63,7 +64,7 @@ func TestProperty_Add(t *testing.T) {
 	for idx, c := range cases {
 		var property feeddb.Property
 		for _, prop := range c.propertiesToAdd {
-			property.Add(prop.addr, prop.state)
+			property.Add(prop.addr, prop.state, feeddb.TFMap{})
 		}
 		require.Equal(t, c.expect, property, idx)
 	}
@@ -96,7 +97,7 @@ func TestNewAPIModel(t *testing.T) {
 				},
 			},
 			expect: &feeddb.APIModel{
-				Name:      "foo",
+				Name: "foo",
 				Properties: feeddb.Properties{
 					addr.MustParsePropertySegment("prop1"): {
 						Properties: feeddb.Properties{
@@ -121,7 +122,7 @@ func TestNewAPIModel(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store, err := feeddb.NewAPIModel(c.schema)
+		store, err := feeddb.NewAPIModel(c.schema, nil, feeddb.AztfqDiagCtx{})
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, store, idx)
 	}

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/magodo/aztfq/aztfq"
 	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
@@ -363,15 +364,18 @@ func TestCoverageAddSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
+		aztfqLookupTable, err := aztfq.BuildLookupTable()
+		require.NoError(t, err, idx)
+
 		opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 		require.NoError(t, err, idx)
-		cov.AddOperation(opInfo)
+		cov.AddOperation(opInfo, aztfqLookupTable)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
 		opInfo, err = schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
-		cov.AddOperation(opInfo)
+		cov.AddOperation(opInfo, aztfqLookupTable)
 
 		b, err = json.MarshalIndent(cov, "", "  ")
 		require.NoError(t, err, idx)
@@ -752,15 +756,18 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
+		aztfqLookupTable, err := aztfq.BuildLookupTable()
+		require.NoError(t, err, idx)
+
 		opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddOperation(opInfo), idx)
+		require.NoError(t, cov.AddOperation(opInfo, aztfqLookupTable), idx)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
 		opInfo, err = schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddOperation(opInfo), idx)
+		require.NoError(t, cov.AddOperation(opInfo, aztfqLookupTable), idx)
 
 		actual, err := cov.GenerateWithUncoveredOperationModels(index, nil, nil)
 		require.NoError(t, err, idx)
