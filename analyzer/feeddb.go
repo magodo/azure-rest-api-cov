@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/magodo/aztfq/aztfq"
 	"github.com/magodo/azure-rest-api-cov/analyzer/coverage"
 	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
 	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
@@ -28,6 +27,9 @@ type FeedDBContext struct {
 	// A list of property locator pattern, to allow a mismatch from its API spec definition.
 	// This is mainly used for workaround the artificially added attributes like in: https://github.com/hashicorp/pandora/commit/13e177637e196c42d0b0bdc82df1fa703d2c0da7
 	AllowMismatchPropMatchers []propmatch.PropMatcher
+
+	// Azure-rest-api-bridge output file
+	BridgeFile []byte
 }
 
 func FeedDB(in io.Reader, ctx FeedDBContext) error {
@@ -54,17 +56,12 @@ func FeedDB(in io.Reader, ctx FeedDBContext) error {
 		return err
 	}
 
-	tfTable, err := aztfq.BuildLookupTable()
-	if err != nil {
-		return err
-	}
-
 	// Adding the schema coverage to report
 	flatCov := cov.Flatten()
-	covReport := feeddb.NewEmptyCoverage(wsp.AzureRepoIndex, ctx.BuildComment)
+	covReport := feeddb.NewEmptyCoverage(wsp.AzureRepoIndex, ctx.BuildComment, ctx.BridgeFile)
 	for k, v := range flatCov {
 		log.Infof("Processing: %s", k)
-		if err := covReport.AddOperation(v, tfTable); err != nil {
+		if err := covReport.AddOperation(v); err != nil {
 			return err
 		}
 	}
@@ -75,49 +72,6 @@ func FeedDB(in io.Reader, ctx FeedDBContext) error {
 	}
 	fmt.Println(out)
 
-	log.Infof("Total aztfq mapped Cnt: %d", feeddb.GetAztfqCnt())
-	t := diffAztfqAndMapped()
-	j, _ := json.Marshal(t)
-	log.Infof("aztfq un matched props: %v", string(j))
+	log.Infof("Total aztfq mapped Cnt: %d", feeddb.AztfqCnt)
 	return err
-}
-
-func diffAztfqAndMapped() aztfq.LookupTable {
-	mappedTable := feeddb.GetMappedAztfqMap()
-	originalMap, _ := aztfq.BuildLookupTable()
-
-	for rtName, rt := range mappedTable {
-		for versionStr, version := range rt {
-			for PropIdx, _ := range version {
-				delete(originalMap[rtName][versionStr], PropIdx)
-			}
-		}
-	}
-
-	// to clean the original map to make it clear
-	for rtName, rt := range originalMap {
-		vsEmpty := false
-		vs := ""
-		for vsIndex, version := range rt {
-			if len(version) == 0 {
-				vsEmpty = true
-				vs = vsIndex
-			}
-			for propIndex, _ := range version {
-				originalMap[rtName][vsIndex][propIndex] = make([]aztfq.TFResult, 0)
-			}
-		}
-		delete(rt, "")
-		if vsEmpty {
-			delete(originalMap[rtName], vs)
-		}
-	}
-
-	for rtName, rt := range originalMap {
-		if len(rt) == 0 {
-			delete(originalMap, rtName)
-		}
-	}
-
-	return originalMap
 }

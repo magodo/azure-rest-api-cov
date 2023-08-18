@@ -7,8 +7,6 @@ import (
 	"github.com/magodo/aztfq/aztfq"
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type APIModel struct {
@@ -22,7 +20,7 @@ type Property struct {
 	// Only exists for leaf properties
 	IsCovered  *bool      `json:"isCovered,omitempty"`
 	Properties Properties `json:"properties,omitempty"`
-	TFMapping  TFMap      `json:"tfMapping,omitempty"`
+	TFMapping  *TFMap     `json:"tfMapping,omitempty"`
 }
 
 type TFMap struct {
@@ -30,18 +28,9 @@ type TFMap struct {
 	TFAddr     []string `json:"tfAddr,omitempty"`
 }
 
-var aztfqCnt int = 0
-var mappedAztfqTable aztfq.LookupTable = make(map[string]map[string]map[string][]aztfq.TFResult, 0)
+var AztfqCnt int = 0
 
-func GetAztfqCnt() int {
-	return aztfqCnt
-}
-
-func GetMappedAztfqMap() aztfq.LookupTable {
-	return mappedAztfqTable
-}
-
-func NewAPIModel(s swagger.Schema, tfPropTable map[string][]aztfq.TFResult, diag AztfqDiagCtx) (*APIModel, error) {
+func NewAPIModel(s swagger.Schema) (*APIModel, error) {
 	// In case this is a schemaless operation
 	if s.Name == "" && len(s.Properties) == 0 {
 		return nil, nil
@@ -53,31 +42,21 @@ func NewAPIModel(s swagger.Schema, tfPropTable map[string][]aztfq.TFResult, diag
 
 	var property Property
 	for propRAddr, prop := range s.Properties {
-		// todo: maybe we can generate a map using `addr.Property` instead of `string` and the strings editing function.
-		tfIndex := strings.ReplaceAll(propRAddr, "/", ".")
-		tfIndex = strings.ReplaceAll(tfIndex, `properties{`, `properties.{`)
-		tfIndex = strings.ReplaceAll(tfIndex, `{}`, "*")
-		tfMapping := TFMap{
-			TFResource: make([]string, 0),
-			TFAddr:     make([]string, 0),
-		}
-		log.Infof("[aztfq map]resource type: %s, index: %s", diag.rtName, tfIndex)
-		if tfAddr, ok := tfPropTable[tfIndex]; ok {
-			aztfqCnt++
-			for _, tf := range tfAddr {
-				tfMapping.TFAddr = append(tfMapping.TFAddr, tf.PropertyAddr)
-				tfMapping.TFResource = append(tfMapping.TFResource, tf.ResourceType)
-			}
-			mappedAztfqTable[diag.rtName][diag.apiVersion][tfIndex] = tfAddr
-		}
-		property.Add(addr.MustParseProperty(propRAddr), prop.PropertyState, tfMapping)
-		addr.MustParseProperty(propRAddr)
+		property.Add(addr.MustParseProperty(propRAddr), prop.PropertyState)
 	}
 	model.Properties = property.Properties
 	return &model, nil
 }
 
-func (prop *Property) Add(propAddr addr.Property, state swagger.PropertyState, tfMapping TFMap) {
+func (model *APIModel) MapTFAddr(tfPropTable map[string][]aztfq.TFResult) {
+	for propAddr, prop := range model.Properties {
+		if prop != nil {
+			prop.AddTFMap("", propAddr, tfPropTable)
+		}
+	}
+}
+
+func (prop *Property) Add(propAddr addr.Property, state swagger.PropertyState) {
 	if state.IsIgnored() {
 		return
 	}
@@ -87,7 +66,6 @@ func (prop *Property) Add(propAddr addr.Property, state swagger.PropertyState, t
 	}
 	if len(propAddr) == 0 {
 		prop.IsCovered = boolPtr(state.IsCovered())
-		prop.TFMapping = tfMapping
 		return
 	}
 
@@ -98,7 +76,37 @@ func (prop *Property) Add(propAddr addr.Property, state swagger.PropertyState, t
 	if _, ok := prop.Properties[propAddr[0]]; !ok {
 		prop.Properties[propAddr[0]] = &Property{}
 	}
-	prop.Properties[propAddr[0]].Add(propAddr[1:], state, tfMapping)
+	prop.Properties[propAddr[0]].Add(propAddr[1:], state)
+
+	return
+}
+
+func (prop *Property) AddTFMap(prefix string, propAddr addr.PropertySegment, tfPropTable map[string][]aztfq.TFResult) {
+	tfIndex := propAddr.StringInAztfqFormat()
+	if prefix != "" {
+		tfIndex = strings.Join([]string{prefix, tfIndex}, ".")
+	}
+
+	tfIndex = strings.ReplaceAll(tfIndex, `{}`, "*")
+	tfMapping := TFMap{
+		TFResource: make([]string, 0),
+		TFAddr:     make([]string, 0),
+	}
+
+	if tfAddr, ok := tfPropTable[tfIndex]; ok {
+		AztfqCnt++
+		for _, tf := range tfAddr {
+			tfMapping.TFAddr = append(tfMapping.TFAddr, tf.PropertyAddr)
+			tfMapping.TFResource = append(tfMapping.TFResource, tf.ResourceType)
+		}
+		prop.TFMapping = &tfMapping
+	}
+
+	if prop.Properties != nil && len(prop.Properties) > 0 {
+		for propAddr, prop := range prop.Properties {
+			prop.AddTFMap(tfIndex, propAddr, tfPropTable)
+		}
+	}
 
 	return
 }

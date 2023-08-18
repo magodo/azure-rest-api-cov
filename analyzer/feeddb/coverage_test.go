@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/magodo/aztfq/aztfq"
 	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
@@ -134,7 +134,7 @@ func TestNewEmptyCoverage(t *testing.T) {
 
 	idx, err := workspace.NewAzureRepoIndex(specRootDir)
 	require.NoError(t, err, "generate index")
-	cov := feeddb.NewEmptyCoverage(idx, "comment")
+	cov := feeddb.NewEmptyCoverage(idx, "comment", []byte{})
 	require.Equal(t, expect, cov)
 }
 
@@ -357,25 +357,22 @@ func TestCoverageAddSchema(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
-		cov := feeddb.NewEmptyCoverage(index, "comment")
+		cov := feeddb.NewEmptyCoverage(index, "comment", []byte{})
 		var schemaInput schemainput.SchemaInput
 
 		// Add active schemaInput
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		aztfqLookupTable, err := aztfq.BuildLookupTable()
-		require.NoError(t, err, idx)
-
 		opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 		require.NoError(t, err, idx)
-		cov.AddOperation(opInfo, aztfqLookupTable)
+		cov.AddOperation(opInfo)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
 		opInfo, err = schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
-		cov.AddOperation(opInfo, aztfqLookupTable)
+		cov.AddOperation(opInfo)
 
 		b, err = json.MarshalIndent(cov, "", "  ")
 		require.NoError(t, err, idx)
@@ -749,28 +746,83 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 		b, err := ioutil.ReadFile(c.schemaInput)
 		require.NoError(t, err, idx)
 
-		cov := feeddb.NewEmptyCoverage(index, "comment")
+		cov := feeddb.NewEmptyCoverage(index, "comment", []byte{})
 		var schemaInput schemainput.SchemaInput
 
 		// Add active schemaInput
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		aztfqLookupTable, err := aztfq.BuildLookupTable()
-		require.NoError(t, err, idx)
-
 		opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddOperation(opInfo, aztfqLookupTable), idx)
+		require.NoError(t, cov.AddOperation(opInfo), idx)
 
 		// Add in-active schemaInput
 		schemaInput.ApiVersion = "2021-01-01"
 		opInfo, err = schemaInput.ToOperationInfo(index, true, false, nil)
 		require.NoError(t, err, idx)
-		require.NoError(t, cov.AddOperation(opInfo, aztfqLookupTable), idx)
+		require.NoError(t, cov.AddOperation(opInfo), idx)
 
 		actual, err := cov.GenerateWithUncoveredOperationModels(index, nil, nil)
 		require.NoError(t, err, idx)
 		require.JSONEq(t, c.expect, actual, idx)
+	}
+}
+
+func TestCoverageParseRTByPath(t *testing.T) {
+	cases := []struct {
+		expect       string
+		path         string
+		ignoreSegCnt bool
+	}{
+		{
+			path:         "/providers/Foo.Bar",
+			expect:       "FOO.BAR",
+			ignoreSegCnt: false,
+		},
+		{
+			path:         "/providers/Foo.Bar/foos/{fooName}",
+			expect:       "FOO.BAR/FOOS",
+			ignoreSegCnt: false,
+		},
+		{
+			path:         "/providers/Foo.Bar/foos/{fooName}/bars/{barName}",
+			expect:       "FOO.BAR/FOOS/BARS",
+			ignoreSegCnt: false,
+		},
+		{
+			path:         "/providers/ABABAB/ababas/{ababaName}/providers/Foo.Bar/foos/{fooName}",
+			expect:       "FOO.BAR/FOOS",
+			ignoreSegCnt: false,
+		},
+		{
+			// short rt
+			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}",
+			expect:       "Microsoft.Compute/virtualMachines",
+			ignoreSegCnt: false,
+		},
+		{
+			// long rt
+			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}/instanceView/{viewName}",
+			expect:       "Microsoft.Compute/virtualMachines/instanceView",
+			ignoreSegCnt: false,
+		},
+		{
+			// long rt with ignoreSegCnt
+			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/vmPool/{poolName}/virtualMachines/{vmName}/shutdown",
+			expect:       "Microsoft.Compute/vmPool/virtualMachines",
+			ignoreSegCnt: true,
+		},
+		{
+			// multi providers in one path
+			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}/instanceView/{viewName}/providers/Microsoft.Network/networkInterfaces/{networkInterfaceName}",
+			expect:       "MICROSOFT.NETWORK/NETWORKINTERFACES",
+			ignoreSegCnt: false,
+		},
+	}
+
+	for _, c := range cases {
+		actual := feeddb.ParseRTbyPath(strings.ToUpper(c.path), c.ignoreSegCnt)
+		require.Equal(t, strings.ToUpper(c.expect), actual)
 	}
 }

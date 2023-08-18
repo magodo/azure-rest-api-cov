@@ -171,6 +171,17 @@ func (prop PropertySegment) String() string {
 	return v
 }
 
+func (prop PropertySegment) StringInAztfqFormat() string {
+	v := EscapePropertyName(prop.Name)
+	if prop.DiscriminatorValue != "" {
+		if len(v) > 0 {
+			v += "."
+		}
+		v += EncloseVariant(EscapeDiscriminatorValue(prop.DiscriminatorValue))
+	}
+	return v
+}
+
 func EncloseVariant(v string) string {
 	return string(leftDiscriminatorDelim) + v + string(rightDiscriminatorDelim)
 }

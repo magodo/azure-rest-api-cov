@@ -243,6 +243,10 @@ func main() {
 						Name:  "allow-mismatch-prop",
 						Usage: `Allow the specified property to mismatch its API spec definition during calculating the property coverage. The pattern is in the format of: <Swagger URI>:<Model Name>:<Prop Path>`,
 					},
+					&cli.StringFlag{
+						Name:  "bridge-input",
+						Usage: "the output file of azure-rest-api-bridge, used to map API spec definition to Terraform provider azurerm schema.",
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					initLog(ctx.String("log-level"))
@@ -256,6 +260,7 @@ func main() {
 					regenIndex := ctx.Bool("index-renew")
 					specRepoRef := ctx.String("spec-ref")
 					inputPath := ctx.String("input")
+					bridgePath := ctx.String("bridge-input")
 
 					buildComment := ctx.String("build-comment")
 					ignoreSchema := ctx.StringSlice("ignore-schema")
@@ -283,11 +288,26 @@ func main() {
 						allowedMismatchPropMatchers = append(allowedMismatchPropMatchers, propmatch.MustParsePropMatcher(prop))
 					}
 
+					var bridge []byte
+					if bridgePath != "" {
+						bridgeAbsPath, err := filepath.Abs(bridgePath)
+						if err != nil {
+							return err
+						}
+						bridgeFile, err := os.Open(bridgeAbsPath)
+						if err != nil {
+							return err
+						}
+						defer bridgeFile.Close()
+						bridge, err = io.ReadAll(bridgeFile)
+					}
+
 					fctx := analyzer.FeedDBContext{
 						WorkspaceOpt:              wspOpt,
 						BuildComment:              buildComment,
 						IgnoreSchema:              ignoreSchema,
 						AllowMismatchPropMatchers: allowedMismatchPropMatchers,
+						BridgeFile:                bridge,
 					}
 
 					return analyzer.FeedDB(covIn, fctx)

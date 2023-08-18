@@ -23,6 +23,7 @@ type Coverage struct {
 	Ref               string            `json:"ref"`
 	Comment           string            `json:"comment"`
 	ResourceProviders ResourceProviders `json:"resourceProviders"`
+	TFLookupTable     aztfq.LookupTable `json:"-"`
 }
 
 type ResourceProviders map[string]ResourceProvider
@@ -55,7 +56,7 @@ type APIVersion struct {
 	Model     *APIModel `json:"model,omitempty"`
 }
 
-func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage {
+func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string, bridge []byte) Coverage {
 	coverage := Coverage{
 		Ref:               index.Commit(),
 		Comment:           comment,
@@ -101,19 +102,28 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 		}
 	}
 
+	if len(bridge) > 0 {
+		tfTable, err := aztfq.BuildLookupTable(bridge)
+		if err != nil {
+			log.Warnf("Failed to build aztfq lookup table: %v", err)
+		} else {
+			coverage.TFLookupTable = tfTable
+		}
+	}
+
 	return coverage
 }
 
-func (cov *Coverage) AddOperation(opInfo *operation.Info, tfTable aztfq.LookupTable) error {
+func (cov *Coverage) AddOperation(opInfo *operation.Info) error {
 	rpName := opInfo.RP
 	rp, ok := cov.ResourceProviders[rpName]
 	if !ok {
 		return fmt.Errorf("no resource provider %q found", rpName)
 	}
-	return rp.AddOperation(opInfo, tfTable)
+	return rp.AddOperation(opInfo, cov.TFLookupTable)
 }
 
-func (rp *ResourceProvider) AddOperation(opInfo *operation.Info, tfTable aztfq.LookupTable) error {
+func (rp *ResourceProvider) AddOperation(opInfo *operation.Info, tfLookupTable aztfq.LookupTable) error {
 	path, ok := rp.Paths[opInfo.APIPath]
 	if !ok {
 		return fmt.Errorf("no API path %q found for resource provider %q", opInfo.APIPath, rp.Name)
@@ -135,23 +145,23 @@ func (rp *ResourceProvider) AddOperation(opInfo *operation.Info, tfTable aztfq.L
 		IsPreview: opInfo.IsPreview,
 	}
 
-	var tfPropTable map[string][]aztfq.TFResult
-	var diag AztfqDiagCtx
-	if opInfo.Operation == workspace.OperationKindPut {
-		tfPropTable, ok, diag = lookupAztfqByPath(tfTable, opInfo.APIPath, opInfo.APIVersion)
-		if !ok {
-			tfPropTable = make(map[string][]aztfq.TFResult)
-		}
-	} else {
-		tfPropTable = make(map[string][]aztfq.TFResult)
-	}
 	if opInfo.Model != nil {
-		model, err := NewAPIModel(*opInfo.Model, tfPropTable, diag)
+		model, err := NewAPIModel(*opInfo.Model)
 		if err != nil {
 			return err
 		}
 		v.Model = model
 	}
+
+	tfPropTable := map[string][]aztfq.TFResult{}
+	if len(tfLookupTable) > 0 {
+		tfPropTable = lookupAztfqByPath(tfLookupTable, opInfo.APIPath, opInfo.APIVersion, workspace.OperationKindPut)
+	}
+
+	if len(tfLookupTable) > 0 && v.Model != nil {
+		v.Model.MapTFAddr(tfPropTable)
+	}
+
 	rp.Paths[opInfo.APIPath].Operations[string(opInfo.Operation)].Versions[opInfo.APIVersion] = v
 
 	return nil
@@ -323,14 +333,10 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 	return out, nil
 }
 
-// lookupAztfqByPath looks up the aztfq lookup table by operation path
-// aztfq uses the full name of resource provider such as MICROSOFT.ENTERPRISEKNOWLEDGEGRAPH as index, which is different from the `rpName` in coverage tool
-func lookupAztfqByPath(table aztfq.LookupTable, path string, version string) (result map[string][]aztfq.TFResult, ok bool, diag AztfqDiagCtx) {
-	diag = AztfqDiagCtx{}
-	ok = false
+func ParseRTbyPath(path string, ignoreSegCnt bool) string {
 	idx := strings.LastIndex(path, "/PROVIDERS/")
 	if idx == -1 {
-		return
+		return ""
 	}
 	path = path[idx+1:]
 	segs := strings.Split(path, "/")
@@ -338,7 +344,11 @@ func lookupAztfqByPath(table aztfq.LookupTable, path string, version string) (re
 	rtSegs := segs[2:]
 
 	if len(rtSegs)%2 != 0 {
-		return
+		if ignoreSegCnt {
+			rtSegs = rtSegs[0 : len(rtSegs)-1]
+		} else {
+			return ""
+		}
 	}
 
 	rts := []string{segs[1]}
@@ -346,9 +356,14 @@ func lookupAztfqByPath(table aztfq.LookupTable, path string, version string) (re
 		rts = append(rts, rtSegs[i])
 	}
 
-	rtFullName := strings.ToUpper(strings.Join(rts, "/"))
+	return strings.ToUpper(strings.Join(rts, "/"))
+}
 
-	rtTable, ok := table[rtFullName]
+// lookupAztfqByPath looks up the aztfq lookup table by operation path
+// aztfq uses the full name of resource provider such as MICROSOFT.ENTERPRISEKNOWLEDGEGRAPH as index, which is different from the `rpName` in coverage tool
+func lookupAztfqByPath(table aztfq.LookupTable, path string, version string, method workspace.OperationKind) (result map[string][]aztfq.TFResult) {
+	result = make(map[string][]aztfq.TFResult)
+	rtTable, ok := table[ParseRTbyPath(path, method == workspace.OperationKindPut)]
 	if !ok {
 		return
 	}
@@ -358,15 +373,5 @@ func lookupAztfqByPath(table aztfq.LookupTable, path string, version string) (re
 		return
 	}
 
-	//TODO: remove before commit, only for testing
-	mappedAztfqTable[rtFullName] = make(map[string]map[string][]aztfq.TFResult, 0)
-	mappedAztfqTable[rtFullName][version] = make(map[string][]aztfq.TFResult, 0)
-	diag.rtName = rtFullName
-	diag.apiVersion = version
-	return versionTable, true, diag
-}
-
-type AztfqDiagCtx struct {
-	rtName     string
-	apiVersion string
+	return versionTable
 }

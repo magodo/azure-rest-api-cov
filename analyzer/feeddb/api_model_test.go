@@ -64,7 +64,7 @@ func TestProperty_Add(t *testing.T) {
 	for idx, c := range cases {
 		var property feeddb.Property
 		for _, prop := range c.propertiesToAdd {
-			property.Add(prop.addr, prop.state, feeddb.TFMap{})
+			property.Add(prop.addr, prop.state)
 		}
 		require.Equal(t, c.expect, property, idx)
 	}
@@ -122,7 +122,7 @@ func TestNewAPIModel(t *testing.T) {
 	}
 
 	for idx, c := range cases {
-		store, err := feeddb.NewAPIModel(c.schema, nil, feeddb.AztfqDiagCtx{})
+		store, err := feeddb.NewAPIModel(c.schema)
 		require.NoError(t, err, idx)
 		require.Equal(t, c.expect, store, idx)
 	}
