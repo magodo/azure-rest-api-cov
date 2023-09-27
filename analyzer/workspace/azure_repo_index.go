@@ -559,9 +559,9 @@ func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *Op
 	}
 
 	pathItem := swg.Paths.Paths[locator.ApiPath]
-	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
+	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), pathItem)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting operation info for api path %s: %v", locator.ApiPath, err)
 	}
 
 	info, ok := opInfos[locator.Operation]
