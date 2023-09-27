@@ -45,13 +45,12 @@ func LoadSwagger(swaggerURI string) (*openapispec.Swagger, error) {
 
 	spec := doc.Spec()
 
-	paths := map[string]openapispec.PathItem{}
-	for k, v := range spec.Paths.Paths {
-		paths[k] = v
-	}
-
 	// Normalize the API path
 	if spec.Paths != nil {
+		paths := map[string]openapispec.PathItem{}
+		for k, v := range spec.Paths.Paths {
+			paths[k] = v
+		}
 		for p, item := range paths {
 			delete(spec.Paths.Paths, p)
 			normAPIPath := utils.NormalizeAPIPath(p)
@@ -75,10 +74,22 @@ func LoadSwagger(swaggerURI string) (*openapispec.Swagger, error) {
 				}
 			}
 			if pathParams != nil {
-				specialAPIPath, err := utils.SpecializeAPIPath(p, spec, swaggerURI, pathParams)
-				if err != nil {
-					return nil, fmt.Errorf("specializing api path %s in %s", p, swaggerURI)
+				pm := map[string]string{}
+				for _, param := range pathParams {
+					// The param is a ref, we simply deref it for once.
+					if param.Ref.String() != "" {
+						refParam, err := openapispec.ResolveParameterWithBase(spec, param.Ref, &openapispec.ExpandOptions{RelativeBase: swaggerURI})
+						if err != nil {
+							return nil, fmt.Errorf("resolve param ref %q: %v", param.Ref.String(), err)
+						}
+						param = *refParam
+					}
+					if param.In == "path" && param.Required && param.Type == "string" && len(param.Enum) == 1 {
+						pm[param.Name] = param.Enum[0].(string)
+					}
 				}
+
+				specialAPIPath := utils.SpecializeAPIPath(p, pm)
 				if specialAPIPath != normAPIPath {
 					spec.Paths.Paths[specialAPIPath] = item
 				}
