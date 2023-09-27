@@ -45,11 +45,44 @@ func LoadSwagger(swaggerURI string) (*openapispec.Swagger, error) {
 
 	spec := doc.Spec()
 
+	paths := map[string]openapispec.PathItem{}
+	for k, v := range spec.Paths.Paths {
+		paths[k] = v
+	}
+
 	// Normalize the API path
 	if spec.Paths != nil {
-		for p, item := range spec.Paths.Paths {
+		for p, item := range paths {
 			delete(spec.Paths.Paths, p)
-			spec.Paths.Paths[utils.NormalizeAPIPath(p)] = item
+			normAPIPath := utils.NormalizeAPIPath(p)
+			spec.Paths.Paths[normAPIPath] = item
+
+			pathParams := item.PathItemProps.Parameters
+			if pathParams == nil {
+				// This is not technically correct since different operations might have different definition for the API path,
+				// but is fine for Azure api for now.
+				// This is an unfortunate easy hack to adopt Pandora SDK's API path mangling.
+				if item.Get != nil && item.Get.Parameters != nil {
+					pathParams = item.Get.Parameters
+				} else if item.Put != nil && item.Put.Parameters != nil {
+					pathParams = item.Put.Parameters
+				} else if item.Patch != nil && item.Patch.Parameters != nil {
+					pathParams = item.Patch.Parameters
+				} else if item.Delete != nil && item.Delete.Parameters != nil {
+					pathParams = item.Delete.Parameters
+				} else if item.Post != nil && item.Post.Parameters != nil {
+					pathParams = item.Post.Parameters
+				}
+			}
+			if pathParams != nil {
+				specialAPIPath, err := utils.SpecializeAPIPath(p, spec, swaggerURI, pathParams)
+				if err != nil {
+					return nil, fmt.Errorf("specializing api path %s in %s", p, swaggerURI)
+				}
+				if specialAPIPath != normAPIPath {
+					spec.Paths.Paths[specialAPIPath] = item
+				}
+			}
 		}
 	}
 

@@ -278,9 +278,9 @@ func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp Res
 		operations := APIOperations{}
 		apiPaths[apiPath.String()] = operations
 
-		infos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(specPathDefAPIPath), apiPath, pathItem)
+		infos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(specPathDefAPIPath), pathItem)
 		if err != nil {
-			return err
+			return fmt.Errorf("getting opinfo from api path %s: %v", apiPath, err)
 		}
 		for kind, info := range infos {
 			operations[kind] = info
@@ -290,7 +290,7 @@ func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp Res
 	return nil
 }
 
-func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPath, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
+func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	swg, err := swaggerloader.LoadSwagger(specAbsPathDefAPI)
 	if err != nil {
@@ -325,7 +325,7 @@ func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPa
 			info, err = getModelInfoFromResponse(swg, specRootPath, specRelPathDefAPI, *op)
 		case OperationKindDelete, OperationKindHead, OperationKindOptions:
 		default:
-			return nil, fmt.Errorf("invalid operation kind %q for api path %q", kind, apiPath)
+			return nil, fmt.Errorf("invalid operation kind %q", kind)
 		}
 		if err != nil {
 			return nil, err
