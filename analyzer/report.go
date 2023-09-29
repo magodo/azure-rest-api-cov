@@ -39,7 +39,7 @@ func Report(in io.Reader, ctx ReportContext) (string, error) {
 
 	// Adding the schema coverage to report
 	flatCov := cov.Flatten()
-	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Commit)
+	azureRepoURLPrefix := fmt.Sprintf("https://github.com/Azure/azure-rest-api-specs/blob/%s/specification/", wsp.AzureRepoIndex.Index.Commit)
 
 	covReport := report.NewEmptyCoverage(wsp.AzureRepoIndex, ctx.AdditionalMessage)
 	for _, opInfo := range flatCov {

@@ -1,0 +1,36 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "2020-12-10-preview"
+  },
+  "paths": {
+    "/subscriptions/{subid}/providers/Microsoft.Foo/foos/{foo}": {
+      "parameters": [
+          {
+              "name": "subid",
+              "in": "path"
+          },
+          {
+              "name": "foo",
+              "in": "path"
+          }
+      ],
+      "get": {
+        "responses": {
+          "200": {
+            "schema": {
+              "$ref": "#/definitions/def_foo"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "def_foo": {
+      "properties": {
+        "foo": {}
+      }
+    }
+  }
+}

@@ -168,7 +168,7 @@ func (cov *Coverage) Predict(idx *workspace.AzureRepoIndex) error {
 
 predictLoop:
 	for _, schemaInput := range activeSchemaInputs {
-		specPath, err := idx.LocateSpec(schemaInput.SpecLocator)
+		opInfo, err := idx.LocateOperation(schemaInput.OperationLocator)
 		if err != nil {
 			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 				log.Warn(err)
@@ -177,6 +177,7 @@ predictLoop:
 			return err
 		}
 
+		specPath := opInfo.SpecRelPath
 		pathInfo, err := specPath.PathInfo()
 		if err != nil {
 			return err
@@ -189,8 +190,8 @@ predictLoop:
 
 		rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
 
-		var newApiVersions []workspace.APIVersion
-		for apiVersion := range idx.ResourceProviders[workspace.ResourceProvider(rp)] {
+		var newApiVersions []string
+		for apiVersion := range idx.Index.ResourceProviders[rp] {
 			if string(apiVersion) > currentVersion {
 				// Modify the API version to shift to the newer ones
 				schemaInput.OperationLocator.SpecLocator.ApiVersion = string(apiVersion)

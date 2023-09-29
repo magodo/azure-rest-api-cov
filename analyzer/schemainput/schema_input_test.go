@@ -118,7 +118,7 @@ func TestToSchema(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {

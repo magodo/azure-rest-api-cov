@@ -136,7 +136,7 @@ func TestNewEmptyCoverage(t *testing.T) {
 		},
 	}
 
-	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
+	idx, err := workspace.NewAzureRepoIndex(specRootDir)
 	require.NoError(t, err, "generate index")
 	cov := feeddb.NewEmptyCoverage(idx, "comment")
 	require.Equal(t, expect, cov)
@@ -359,7 +359,7 @@ func TestCoverageAddSchema(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {
@@ -753,7 +753,7 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {

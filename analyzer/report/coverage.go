@@ -2,6 +2,9 @@ package report
 
 import (
 	"fmt"
+	"strings"
+
+	"slices"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
@@ -30,36 +33,45 @@ type APIVersions map[string]*SchemaCoverage
 
 func NewEmptyCoverage(index *workspace.AzureRepoIndex, additionalMessage string) Coverage {
 	coverage := Coverage{
-		Commit:            index.Commit,
+		Commit:            index.Index.Commit,
 		AdditionalMessage: additionalMessage,
 		ResourceProviders: ResourceProviders{},
 	}
 
-	for rp, versions := range index.ResourceProviders {
+	for rp, versions := range index.Index.ResourceProviders {
 		paths := &APIPaths{}
 		coverage.ResourceProviders[ResourceProvider(rp)] = paths
-		for version, specs := range versions {
-			for _, apiPaths := range specs {
-				for apiPath, ops := range apiPaths {
-
-					path, ok := (*paths)[apiPath]
-					if !ok {
-						path = &APIPath{}
-						(*paths)[apiPath] = path
+		for version, methods := range versions {
+			for opKind, rts := range methods {
+				for _, opInfo := range rts {
+					if len(opInfo.OperationRefs) == 0 {
+						continue
 					}
 
-					if len(ops) != 0 && path.Operations == nil {
-						path.Operations = Operations{}
+					//  Enumerate all the original api path patterns defined in the spec
+					pm := map[string]bool{}
+					for _, ref := range opInfo.OperationRefs {
+						p := strings.ToUpper(ref.GetPointer().DecodedTokens()[1])
+						pm[p] = true
 					}
+					var pl []string
+					for p := range pm {
+						pl = append(pl, p)
+					}
+					slices.Sort(pl)
 
-					for op := range ops {
-
-						covVersions, ok := path.Operations[string(op)]
+					for _, p := range pl {
+						path, ok := (*paths)[p]
 						if !ok {
-							covVersions = &APIVersions{}
-							path.Operations[string(op)] = covVersions
+							path = &APIPath{Operations: Operations{}}
+							(*paths)[p] = path
 						}
 
+						covVersions, ok := path.Operations[string(opKind)]
+						if !ok {
+							covVersions = &APIVersions{}
+							path.Operations[string(opKind)] = covVersions
+						}
 						(*covVersions)[string(version)] = nil
 					}
 				}

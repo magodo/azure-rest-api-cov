@@ -75,7 +75,7 @@ func TestCoverage_AddSchema(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 	for idx, c := range cases {
 		cov := NewEmptyCoverage()
@@ -126,7 +126,7 @@ func TestCoverage_ToSchemaInputs(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 	for idx, c := range cases {
 		var activeSchemaInputs []schemainput.SchemaInput
@@ -263,7 +263,7 @@ func TestCoverage_Predict(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 	for idx, c := range cases {
 		cov := NewEmptyCoverage()

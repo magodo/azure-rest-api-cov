@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"slices"
+	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
@@ -55,31 +57,47 @@ type APIVersion struct {
 
 func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage {
 	coverage := Coverage{
-		Ref:               index.Commit,
+		Ref:               index.Index.Commit,
 		Comment:           comment,
 		ResourceProviders: ResourceProviders{},
 	}
 
-	for rp, versions := range index.ResourceProviders {
+	for rp, versions := range index.Index.ResourceProviders {
 		rpName := string(rp)
 		paths := APIPaths{}
 		coverage.ResourceProviders[rpName] = ResourceProvider{
 			Name:  string(rp),
 			Paths: paths,
 		}
-		for version, specs := range versions {
+		for version, methods := range versions {
 			versionName := string(version)
-			for _, apiPaths := range specs {
-				for pathName, ops := range apiPaths {
-					if _, ok := paths[pathName]; !ok {
-						paths[pathName] = APIPath{
-							Name:       pathName,
-							Operations: Operations{},
-						}
+			for opKind, rts := range methods {
+				for _, opInfo := range rts {
+					if len(opInfo.OperationRefs) == 0 {
+						continue
 					}
 
-					for op, opinfo := range ops {
-						opName := string(op)
+					//  Enumerate all the original api path patterns defined in the spec
+					pm := map[string]bool{}
+					for _, ref := range opInfo.OperationRefs {
+						p := strings.ToUpper(ref.GetPointer().DecodedTokens()[1])
+						pm[p] = true
+					}
+					var pl []string
+					for p := range pm {
+						pl = append(pl, p)
+					}
+					slices.Sort(pl)
+
+					for _, pathName := range pl {
+						if _, ok := paths[pathName]; !ok {
+							paths[pathName] = APIPath{
+								Name:       pathName,
+								Operations: Operations{},
+							}
+						}
+
+						opName := string(opKind)
 						if _, ok := paths[pathName].Operations[opName]; !ok {
 							paths[pathName].Operations[opName] = Operation{
 								Name:     opName,
@@ -87,11 +105,10 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 							}
 						}
 
-						pathInfo, _ := opinfo.SpecRelPath.PathInfo()
 						paths[pathName].Operations[opName].Versions[versionName] = APIVersion{
 							Version:   versionName,
 							IsActive:  false,
-							IsPreview: pathInfo.IsPreview,
+							IsPreview: strings.HasSuffix(versionName, "-preview"),
 						}
 					}
 				}

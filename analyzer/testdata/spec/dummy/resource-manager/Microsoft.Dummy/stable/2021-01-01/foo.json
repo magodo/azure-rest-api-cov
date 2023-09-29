@@ -1,32 +1,47 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Foo",
     "version": "2021-01-01"
   },
-  "host": "management.azure.com",
-  "schemes": [
-    "https"
-  ],
   "paths": {
-    "/{host}/{foo}/def_foo": {
+    "/subscriptions/{subid}/providers/Microsoft.Foo/foos/{foo}": {
+      "parameters": [
+          {
+              "name": "subid",
+              "in": "path"
+          },
+          {
+              "name": "foo",
+              "in": "path"
+          }
+      ],
       "get": {
         "responses": {
           "200": {
             "schema": {
-              "$ref": "#/definitions/def_foo"
+              "$ref": "#/definitions/foo"
             }
           }
         }
       },
       "delete": {}
     },
-    "/{host}/{foo}/def_regular": {
+    "/subscriptions/{subid}/providers/Microsoft.Foo/bars/{bar}": {
+      "parameters": [
+          {
+              "name": "subid",
+              "in": "path"
+          },
+          {
+              "name": "bar",
+              "in": "path"
+          }
+      ],
       "get": {
         "responses": {
           "200": {
             "schema": {
-              "$ref": "#/definitions/def_regular"
+              "$ref": "#/definitions/bar"
             }
           }
         }
@@ -34,23 +49,10 @@
       "put": {
         "parameters": [
           {
-            "name": "foo",
+            "name": "bar",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/def_regular"
-            }
-          }
-        ]
-      }
-    },
-    "/{host}/{foo}/def_base": {
-      "put": {
-        "parameters": [
-          {
-            "name": "foo",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/def_base"
+              "$ref": "#/definitions/bar"
             }
           }
         ]
@@ -58,78 +60,15 @@
     }
   },
   "definitions": {
-    "def_foo": {
+    "foo": {
       "properties": {
         "foo": {}
       }
     },
-    "def_regular": {
+    "bar": {
       "properties": {
-        "prop_primitive": {
-          "type": "string"
-        },
-        "prop_array_of_object": {
-          "type": "array",
-          "items": {
-            "properties": {
-              "prop_nested1": {},
-              "prop_nested2": {}
-            }
-          }
-        },
-        "prop_object": {
-          "type": "object",
-          "properties": {
-            "prop_nested": {
-              "type": "string"
-            }
-          }
-        }
+        "bar": {}
       }
-    },
-
-    "def_base": {
-      "discriminator": "type",
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "def_variant1",
-            "def_variant2"
-          ]
-        }
-      }
-    },
-    "def_variant1": {
-      "x-ms-discriminator-value": "def_variant1",
-      "properties": {
-        "new_prop": {}
-      },
-      "allOf": [
-        {
-          "$ref": "#/definitions/def_base"
-        }
-      ]
-    },
-    "variant2_def": {
-      "x-ms-discriminator-value": "def_variant2",
-      "properties": {
-        "new_prop": {}
-      },
-      "allOf": [
-        {
-          "$ref": "#/definitions/def_base"
-        }
-      ]
-    },
-
-    "def_grant_update": {
-      "properties": {
-        "p1": {},
-        "p2": {}
-      }
-    },
-
-    "def_grant_still": {}
+    }
   }
 }

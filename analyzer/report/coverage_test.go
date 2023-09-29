@@ -77,7 +77,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 		},
 	}
 
-	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
+	idx, err := workspace.NewAzureRepoIndex(specRootDir)
 	require.NoError(t, err, "generate index")
 	cov := report.NewEmptyCoverage(idx, "")
 	require.Equal(t, expect, cov)
@@ -245,7 +245,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {

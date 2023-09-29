@@ -92,7 +92,6 @@ func Init(opt InitOption) (*Workspace, error) {
 			return nil, err
 		}
 	}
-	headRef, _ := repo.Repo.Head()
 	log.Println("Azure Repo ready")
 
 	indexPath := filepath.Join(dir, azureRepoIndexFilename)
@@ -103,7 +102,7 @@ func Init(opt InitOption) (*Workspace, error) {
 		os.Remove(indexPath)
 	}
 
-	index, err := ImportAzureRepoIndex(indexPath)
+	index, err := ImportAzureRepoIndex(repo.SpecRootDir, indexPath)
 	if err == nil {
 		result.AzureRepoIndex = index
 		return &result, nil
@@ -115,7 +114,7 @@ func Init(opt InitOption) (*Workspace, error) {
 
 	// Index not exported yet, need to generate the index and export it then.
 	log.Println("Generating Azure Repo Index...")
-	index, err = NewAzureRepoIndex(repo.SpecRootDir, headRef.Hash().String())
+	index, err = NewAzureRepoIndex(repo.SpecRootDir)
 	if err != nil {
 		return nil, err
 	}
