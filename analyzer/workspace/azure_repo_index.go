@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -219,7 +220,7 @@ func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *Op
 	}
 	ref, err := index.Index.Lookup(string(locator.Operation), uRL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%v: %w", err, ErrFailedToLocateSwagger)
 	}
 
 	swaggerRelPathDefApiPath := ref.GetURL().Path
@@ -228,7 +229,8 @@ func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *Op
 		return nil, err
 	}
 
-	pathItem := swg.Paths.Paths[locator.ApiPath]
+	p := ref.GetPointer().DecodedTokens()[1]
+	pathItem := swg.Paths.Paths[utils.NormalizeAPIPath(p)]
 	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
 	if err != nil {
 		return nil, err
