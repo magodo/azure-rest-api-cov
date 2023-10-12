@@ -21,8 +21,7 @@ import (
 )
 
 var (
-	ErrFailedToLocateSwagger = errors.New("can't locate swagger spec")
-	ErrFailedToLocateSchema  = errors.New("can't locate schema")
+	ErrFailedToLookupOperation = errors.New("can't locate operation")
 )
 
 type OperationKind string
@@ -123,13 +122,14 @@ type AzureRepoIndex struct {
 }
 
 type OperationInfo struct {
-	SpecRelPath specpath.Path `json:"spec_rel_path"`
-	Model       *ModelInfo    `json:"model"`
+	SpecRelPath    specpath.Path
+	APIPathPattern string // The original api path pattern defined in the swagger
+	Model          *ModelInfo
 }
 
 type ModelInfo struct {
-	Name        string `json:"name"`
-	SpecRelPath string `json:"spec_rel_path"` // The relative path to the spec that define this schema, which might be different than the SpecPath (defines the API Path)
+	Name        string
+	SpecRelPath string // The relative path to the spec that define this schema, which might be different than the SpecPath (defines the API Path)
 }
 
 type APIPath struct {
@@ -215,42 +215,37 @@ func (index *AzureRepoIndex) Export(path string) error {
 // For other operations, it returns a info with an empty name and a repl path to the swagger file defining the api path.
 // The spec path might be different that the one that defines the API path.
 func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *OperationInfo, err error) {
-	apiPath := locator.ApiPath
-	if strings.HasPrefix(apiPath, "/{}") {
-		apiPath = strings.Replace(apiPath, "/{}", "/SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.FOO/FOOS/FOO1", 1)
-	}
 	uRL := url.URL{
-		Path:     apiPath,
+		Path:     utils.SpecializeAPIPath(locator.ApiPath),
 		RawQuery: "api-version=" + locator.ApiVersion,
 	}
 
 	ref, err := index.Index.Lookup(string(locator.Operation), uRL)
 	if err != nil {
-		return nil, fmt.Errorf("%v: %w", err, ErrFailedToLocateSwagger)
+		return nil, fmt.Errorf("%v: %w", err, ErrFailedToLookupOperation)
 	}
-
 	swaggerRelPathDefApiPath := ref.GetURL().Path
 	swg, err := swaggerloader.LoadSwagger(filepath.Join(index.SpecRootDir, swaggerRelPathDefApiPath))
 	if err != nil {
 		return nil, err
 	}
 
-	p := ref.GetPointer().DecodedTokens()[1]
+	p := utils.NormalizeAPIPath(ref.GetPointer().DecodedTokens()[1])
 	pathItem := swg.Paths.Paths[utils.NormalizeAPIPath(p)]
-	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), pathItem)
+	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), p, pathItem)
 	if err != nil {
 		return nil, fmt.Errorf("get operation information from api path %q: %v", locator.ApiPath, err)
 	}
 
 	info, ok := opInfos[locator.Operation]
 	if !ok {
-		return nil, fmt.Errorf("no schema info found for schema locator %v: %w", locator, ErrFailedToLocateSchema)
+		return nil, fmt.Errorf("no schema info found for schema locator %v", locator)
 	}
 
 	return info, nil
 }
 
-func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
+func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, pathPattern string, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	swg, err := swaggerloader.LoadSwagger(specAbsPathDefAPI)
 	if err != nil {
@@ -292,8 +287,9 @@ func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, pathItem open
 		}
 
 		opInfo := &OperationInfo{
-			SpecRelPath: specpath.Path(specRelPathDefAPI),
-			Model:       info,
+			SpecRelPath:    specpath.Path(specRelPathDefAPI),
+			APIPathPattern: pathPattern,
+			Model:          info,
 		}
 		infos[kind] = opInfo
 	}

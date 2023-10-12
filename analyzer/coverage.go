@@ -96,7 +96,7 @@ func Coverage(in io.Reader, ctx CoverageContext) (string, error) {
 
 			opInfo, err := schemaInput.ToOperationInfo(wsp.AzureRepoIndex, true, true, ctx.AllowMismatchPropMatchers)
 			if err != nil {
-				if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
+				if errors.Is(err, workspace.ErrFailedToLookupOperation) {
 					log.Warn(err)
 					return opInfo, utils.ErrSkipTask
 				}

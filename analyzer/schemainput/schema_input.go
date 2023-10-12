@@ -2,6 +2,7 @@ package schemainput
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
@@ -29,9 +30,9 @@ func (schemaInput SchemaInput) ToOperationInfo(index *workspace.AzureRepoIndex, 
 
 	out := &operation.Info{
 		RP:             pathInfo.ResourceProvider,
-		APIPath:        opLoc.ApiPath,
+		APIPath:        info.APIPathPattern,
 		APIVersion:     opLoc.ApiVersion,
-		IsPreview:      pathInfo.IsPreview,
+		IsPreview:      strings.HasSuffix(opLoc.ApiVersion, "-preview"),
 		IsActive:       active,
 		Operation:      opLoc.Operation,
 		SwaggerRelPath: info.SpecRelPath,

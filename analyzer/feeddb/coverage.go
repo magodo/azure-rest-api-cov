@@ -264,7 +264,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 	log.Infof("Processing (uncovered) %q", loc)
 	opInfo, err := idx.LocateOperation(loc)
 	if err != nil {
-		if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
+		if errors.Is(err, workspace.ErrFailedToLookupOperation) {
 			log.Warn(err)
 			return nil, nil
 		}

@@ -100,7 +100,7 @@ func TestToSchema(t *testing.T) {
 		{
 			schemaInput:  filepath.Join(schemaBasePath, "def_bar", "def_bar.json"),
 			shiftVersion: "2021-01-01",
-			err:          workspace.ErrFailedToLocateSwagger,
+			err:          workspace.ErrFailedToLookupOperation,
 		},
 		{
 			schemaInput: filepath.Join(schemaBasePath, "def_foo", "def_foo.json"),
@@ -114,7 +114,7 @@ func TestToSchema(t *testing.T) {
 		{
 			schemaInput:  filepath.Join(schemaBasePath, "def_foo", "def_foo.json"),
 			shiftVersion: "2021-01-01",
-			err:          workspace.ErrFailedToLocateSchema,
+			//err:          workspace.ErrFailedToLocateSchema,
 		},
 	}
 

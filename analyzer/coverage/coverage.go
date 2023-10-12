@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"runtime"
+	"strings"
 
+	"github.com/magodo/armid"
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
-	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
 )
@@ -168,33 +168,28 @@ func (cov *Coverage) Predict(idx *workspace.AzureRepoIndex) error {
 
 predictLoop:
 	for _, schemaInput := range activeSchemaInputs {
-		opInfo, err := idx.LocateOperation(schemaInput.OperationLocator)
-		if err != nil {
-			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
-				log.Warn(err)
-				continue
-			}
-			return err
+		// Get the current version
+		currentVersion := schemaInput.ApiVersion
+
+		// Get the RP
+		apiPath := utils.SpecializeAPIPath(schemaInput.ApiPath)
+		segs := strings.Split(strings.TrimLeft(apiPath, "/"), "/")
+		if len(segs)%2 == 1 {
+			// This is an action api path
+			apiPath = "/" + strings.Join(segs[:len(segs)-1], "/")
 		}
-
-		specPath := opInfo.SpecRelPath
-		pathInfo, err := specPath.PathInfo()
+		id, err := armid.ParseResourceId(apiPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("parsing api path %s as a resource id: %v", apiPath, err)
 		}
+		rp := strings.ToUpper(id.Provider())
 
-		swg, err := swaggerloader.LoadSwagger(filepath.Join(idx.SpecRootDir, string(specPath)))
-		if err != nil {
-			return err
-		}
-
-		rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
-
+		// Get all api versions that are newer than the current one
 		var newApiVersions []string
 		for apiVersion := range idx.Index.ResourceProviders[rp] {
-			if string(apiVersion) > currentVersion {
+			if apiVersion > currentVersion {
 				// Modify the API version to shift to the newer ones
-				schemaInput.OperationLocator.SpecLocator.ApiVersion = string(apiVersion)
+				schemaInput.OperationLocator.SpecLocator.ApiVersion = apiVersion
 
 				// If at least one newer version has already been explicitly specified via schemaInput files, then skip prediction based on current
 				// schemaInput. We should use the latest existing schemaInput to do the prediction on newer versions.
@@ -220,7 +215,7 @@ predictLoop:
 			wp.AddTask(func() (interface{}, error) {
 				opInfo, err := schemaInput.ToOperationInfo(idx, false, false, nil)
 				if err != nil {
-					if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
+					if errors.Is(err, workspace.ErrFailedToLookupOperation) {
 						log.Warn(err)
 						return nil, utils.ErrSkipTask
 					}
