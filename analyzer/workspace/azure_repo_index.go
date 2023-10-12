@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
@@ -214,10 +215,15 @@ func (index *AzureRepoIndex) Export(path string) error {
 // For other operations, it returns a info with an empty name and a repl path to the swagger file defining the api path.
 // The spec path might be different that the one that defines the API path.
 func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *OperationInfo, err error) {
+	apiPath := locator.ApiPath
+	if strings.HasPrefix(apiPath, "/{}") {
+		apiPath = strings.Replace(apiPath, "/{}", "/SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.FOO/FOOS/FOO1", 1)
+	}
 	uRL := url.URL{
-		Path:     locator.ApiPath,
+		Path:     apiPath,
 		RawQuery: "api-version=" + locator.ApiVersion,
 	}
+
 	ref, err := index.Index.Lookup(string(locator.Operation), uRL)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", err, ErrFailedToLocateSwagger)
@@ -231,9 +237,9 @@ func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *Op
 
 	p := ref.GetPointer().DecodedTokens()[1]
 	pathItem := swg.Paths.Paths[utils.NormalizeAPIPath(p)]
-	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
+	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), pathItem)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get operation information from api path %q: %v", locator.ApiPath, err)
 	}
 
 	info, ok := opInfos[locator.Operation]
@@ -244,7 +250,7 @@ func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *Op
 	return info, nil
 }
 
-func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPath, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
+func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	swg, err := swaggerloader.LoadSwagger(specAbsPathDefAPI)
 	if err != nil {
@@ -279,7 +285,7 @@ func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPa
 			info, err = getModelInfoFromResponse(swg, specRootPath, specRelPathDefAPI, *op)
 		case OperationKindDelete, OperationKindHead, OperationKindOptions:
 		default:
-			return nil, fmt.Errorf("invalid operation kind %q for api path %q", kind, apiPath)
+			return nil, fmt.Errorf("invalid operation kind %q", kind)
 		}
 		if err != nil {
 			return nil, err
