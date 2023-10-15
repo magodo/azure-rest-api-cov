@@ -29,7 +29,7 @@ func (schemaInput SchemaInput) ToOperationInfo(index *workspace.AzureRepoIndex, 
 
 	out := &operation.Info{
 		RP:             pathInfo.ResourceProvider,
-		APIPath:        opLoc.ApiPath,
+		APIPath:        info.APIPath,
 		APIVersion:     opLoc.ApiVersion,
 		IsPreview:      pathInfo.IsPreview,
 		IsActive:       active,

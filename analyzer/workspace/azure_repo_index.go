@@ -5,15 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"os"
+	"net/url"
 	"path/filepath"
-	"sort"
 	"strings"
-	"sync"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/go-openapi/jsonreference"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
+	"github.com/magodo/azure-rest-api-index/azidx"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 
@@ -23,7 +23,6 @@ import (
 
 var (
 	ErrFailedToLocateSwagger = errors.New("can't locate swagger spec")
-	ErrFailedToLocateSchema  = errors.New("can't locate schema")
 )
 
 type OperationKind string
@@ -119,11 +118,9 @@ func (loc OperationLocator) Match(oloc OperationLocator) bool {
 }
 
 type AzureRepoIndex struct {
-	SpecRootDir       string                        `json:"spec_root_dir"`
-	Commit            string                        `json:"commit"`
-	ResourceProviders ResourceProviders             `json:"resource_providers"`
-	specLookupView    map[SpecLocator]specpath.Path // value is the spec rel path
-	viewMutex         sync.Mutex
+	SpecRootDir       string
+	ResourceProviders ResourceProviders
+	index             *azidx.Index
 }
 
 type ResourceProviders map[ResourceProvider]APIVersions
@@ -138,16 +135,18 @@ type Specs map[specpath.Path]APIPaths
 
 type APIPaths map[string]APIOperations
 
-type APIOperations map[OperationKind]*OperationInfo
+type APIOperations map[OperationKind]bool
 
 type OperationInfo struct {
-	SpecRelPath specpath.Path `json:"spec_rel_path"`
-	Model       *ModelInfo    `json:"model"`
+	SpecRelPath specpath.Path
+	APIVersion  string
+	APIPath     string
+	Model       *ModelInfo
 }
 
 type ModelInfo struct {
-	Name        string `json:"name"`
-	SpecRelPath string `json:"spec_rel_path"` // The relative path to the spec that define this schema, which might be different than the SpecPath (defines the API Path)
+	Name        string
+	SpecRelPath string // The relative path to the spec that define this schema, which might be different than the SpecPath (defines the API Path)
 }
 
 type APIPath struct {
@@ -162,135 +161,80 @@ func (p APIPath) String() string {
 	return p.raw
 }
 
-// Provider returns the first provider component value that is defined in its API path
-func (p APIPath) Provider() (string, error) {
-	path := p.raw
-
-	path = strings.TrimPrefix(path, "/")
-	path = strings.TrimSuffix(path, "/")
-
-	components := strings.Split(path, "/")
-
-	if len(components)%2 != 0 {
-		components = components[:len(components)-1]
-	}
-
-	for current := 0; current < len(components); current += 2 {
-		key := components[current]
-		value := components[current+1]
-
-		// Check key/value for empty strings.
-		if key == "" || value == "" {
-			return "", fmt.Errorf("Key/Value cannot be empty strings. Key: '%s', Value: '%s'", key, value)
-		}
-
-		// Catch the subscriptionID before it can be overwritten by another "subscriptions"
-		// value in the ID which is the case for the Service Bus subscription resource
-		if key == "PROVIDERS" {
-			return value, nil
-		}
-	}
-	return "", fmt.Errorf("API path %q has no `PROVIDERS` component", path)
-}
-
-func NewAzureRepoIndex(specRootDir string, commit string) (*AzureRepoIndex, error) {
-	index := &AzureRepoIndex{
-		SpecRootDir:       specRootDir,
-		Commit:            commit,
-		ResourceProviders: ResourceProviders{},
-	}
-	if err := filepath.Walk(specRootDir,
-		func(p string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if info == nil {
-				return nil
-			}
-
-			relPath := strings.TrimPrefix(strings.TrimPrefix(p, specRootDir), string(os.PathSeparator))
-
-			if info.IsDir() {
-				if strings.EqualFold(filepath.Base(p), "data-plane") {
-					return filepath.SkipDir
-				}
-				if strings.EqualFold(filepath.Base(p), "examples") {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-
-			path := specpath.Path(relPath)
-
-			// Skip files not match the schema file patterns
-			pathInfo, err := path.PathInfo()
-			if err != nil {
-				return nil
-			}
-
-			rp := ResourceProvider(pathInfo.ResourceProvider)
-
-			if err := index.recordSpec(specpath.Path(relPath), rp); err != nil {
-				return err
-			}
-			return nil
-		}); err != nil {
+func NewAzureRepoIndex(specRootDir string) (*AzureRepoIndex, error) {
+	idx, err := azidx.BuildIndex(specRootDir, "")
+	if err != nil {
 		return nil, err
 	}
+
+	index := &AzureRepoIndex{
+		index:             idx,
+		SpecRootDir:       specRootDir,
+		ResourceProviders: buildResourceProvidersFromIndex(idx),
+	}
+
 	return index, nil
 }
 
-func (index *AzureRepoIndex) recordSpec(specPathDefAPIPath specpath.Path, rp ResourceProvider) error {
-	apiVersions, ok := index.ResourceProviders[rp]
-	if !ok {
-		apiVersions = APIVersions{}
-		index.ResourceProviders[rp] = apiVersions
-	}
-
-	specAbsPath := filepath.Join(index.SpecRootDir, string(specPathDefAPIPath))
-	swg, err := swaggerloader.LoadSwagger(specAbsPath)
-	if err != nil {
-		return err
-	}
-
-	if swg.Info == nil {
-		return nil
-	}
-
-	apiVersion := APIVersion(swg.Info.Version)
-
-	specs, ok := apiVersions[apiVersion]
-	if !ok {
-		apiVersions[apiVersion] = Specs{}
-		specs = apiVersions[apiVersion]
-	}
-
-	if swg.Paths == nil {
-		return nil
-	}
-
-	apiPaths := APIPaths{}
-	specs[specPathDefAPIPath] = apiPaths
-
-	for path, pathItem := range swg.Paths.Paths {
-		apiPath := NewAPIPath(path)
-		operations := APIOperations{}
-		apiPaths[apiPath.String()] = operations
-
-		infos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(specPathDefAPIPath), apiPath, pathItem)
-		if err != nil {
-			return err
-		}
-		for kind, info := range infos {
-			operations[kind] = info
-		}
-	}
-
-	return nil
+func (idx AzureRepoIndex) Commit() string {
+	return idx.index.Commit
 }
 
-func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPath, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
+func buildResourceProvidersFromIndex(idx *azidx.Index) ResourceProviders {
+	recordToRPs := func(rps ResourceProviders, version string, method azidx.OperationKind, ref jsonreference.Ref) {
+		filepath := specpath.Path(ref.GetURL().Path)
+		pinfo, _ := filepath.PathInfo()
+		rp := pinfo.ResourceProvider
+		path := utils.NormalizeAPIPath(ref.GetPointer().DecodedTokens()[1])
+
+		apiVersions, ok := rps[ResourceProvider(rp)]
+		if !ok {
+			apiVersions = APIVersions{}
+			rps[ResourceProvider(rp)] = apiVersions
+		}
+
+		apiSpecs, ok := apiVersions[APIVersion(version)]
+		if !ok {
+			apiSpecs = Specs{}
+			apiVersions[APIVersion(version)] = apiSpecs
+		}
+
+		apiPaths, ok := apiSpecs[filepath]
+		if !ok {
+			apiPaths = APIPaths{}
+			apiSpecs[filepath] = apiPaths
+		}
+
+		apiOperations, ok := apiPaths[path]
+		if !ok {
+			apiOperations = APIOperations{}
+			apiPaths[path] = apiOperations
+		}
+
+		apiOperations[OperationKind(method)] = true
+	}
+
+	rps := ResourceProviders{}
+	for _, versions := range idx.ResourceProviders {
+		for version, methods := range versions {
+			for method, rts := range methods {
+				for _, opinfo := range rts {
+					for _, refs := range opinfo.Actions {
+						for _, ref := range refs {
+							recordToRPs(rps, version, method, ref)
+						}
+					}
+					for _, ref := range opinfo.OperationRefs {
+						recordToRPs(rps, version, method, ref)
+					}
+				}
+			}
+		}
+	}
+	return rps
+}
+
+func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath string, pathItem openapispec.PathItem) (map[OperationKind]*OperationInfo, error) {
 	specAbsPathDefAPI := filepath.Join(specRootPath, specRelPathDefAPI)
 	swg, err := swaggerloader.LoadSwagger(specAbsPathDefAPI)
 	if err != nil {
@@ -333,6 +277,7 @@ func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath APIPa
 
 		opInfo := &OperationInfo{
 			SpecRelPath: specpath.Path(specRelPathDefAPI),
+			APIPath:     apiPath,
 			Model:       info,
 		}
 		infos[kind] = opInfo
@@ -442,105 +387,31 @@ func getModelInfoFromResponse(swg *openapispec.Swagger, specRootPath, specRelPat
 	}, nil
 }
 
-func ImportAzureRepoIndex(path string) (*AzureRepoIndex, error) {
+func ImportAzureRepoIndex(specRootDir, path string) (*AzureRepoIndex, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var index AzureRepoIndex
-	if err := json.Unmarshal(b, &index); err != nil {
+	var idx azidx.Index
+	if err := json.Unmarshal(b, &idx); err != nil {
 		return nil, err
 	}
+
+	index := AzureRepoIndex{
+		SpecRootDir:       specRootDir,
+		index:             &idx,
+		ResourceProviders: buildResourceProvidersFromIndex(&idx),
+	}
+
 	return &index, nil
 }
 
 func (index *AzureRepoIndex) Export(path string) error {
-	b, err := json.MarshalIndent(index, "", "  ")
+	b, err := json.MarshalIndent(index.index, "", "  ")
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(path, b, 0644)
-}
-
-func (index *AzureRepoIndex) buildSpecLookupView() {
-	index.specLookupView = map[SpecLocator]specpath.Path{}
-	ambiguousLocators := map[SpecLocator][]specpath.Path{}
-	for _, versions := range index.ResourceProviders {
-		for version, specs := range versions {
-			for specPath, apiPaths := range specs {
-				for apiPath := range apiPaths {
-					locator := SpecLocator{
-						ApiVersion: string(version),
-						ApiPath:    apiPath,
-					}
-					// The locator should end up with one and only one match. If there are ambiguous ones,
-					// we will just ignore them for now.
-					if existPath, ok := index.specLookupView[locator]; ok {
-						if len(ambiguousLocators[locator]) == 0 {
-							ambiguousLocators[locator] = []specpath.Path{existPath}
-						}
-						ambiguousLocators[locator] = append(ambiguousLocators[locator], specPath)
-						continue
-					}
-					index.specLookupView[locator] = specPath
-				}
-			}
-		}
-	}
-	// For those ambiguous locators, try to automatically find the origin swagger file by comparing the resource provider
-	// and the one defined in the path, together with the version.
-	for loc, ambigPaths := range ambiguousLocators {
-		locProvider, err := NewAPIPath(loc.ApiPath).Provider()
-		locVersion := loc.ApiVersion
-		if err != nil {
-			log.Warnln(err)
-			continue
-		}
-
-		var ambigPathStrings []string
-		var maybeOriginPath []specpath.Path
-		for _, ambigPath := range ambigPaths {
-			ambigPathStrings = append(ambigPathStrings, string(ambigPath))
-
-			ambigPathInfo, _ := ambigPath.PathInfo() // guaranteed during index build phase
-			if strings.EqualFold(ambigPathInfo.ResourceProviderMS, locProvider) &&
-				strings.EqualFold(ambigPathInfo.Version, locVersion) {
-				maybeOriginPath = append(maybeOriginPath, ambigPath)
-			}
-		}
-
-		if len(maybeOriginPath) == 1 {
-			index.specLookupView[loc] = maybeOriginPath[0]
-			continue
-		}
-
-		sort.Strings(ambigPathStrings)
-		log.Warnf(` removing ambiguous spec locator: (%q, %q), appears in:
-%s`, loc.ApiPath, loc.ApiVersion, strings.Join(ambigPathStrings, "\n"))
-		delete(index.specLookupView, loc)
-	}
-	return
-}
-
-func (index *AzureRepoIndex) SpecLookupView() map[SpecLocator]specpath.Path {
-	index.viewMutex.Lock()
-	defer index.viewMutex.Unlock()
-	if index.specLookupView != nil {
-		return index.specLookupView
-	}
-	index.buildSpecLookupView()
-	return index.specLookupView
-}
-
-// LocateSpec locates the Swagger Spec that defines the API path of the API version as defined in the locator.
-// On success, it returns the relative path to the swagger spec.
-func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (specpath.Path, error) {
-	p, ok := index.SpecLookupView()[locator]
-	if !ok {
-		return "", fmt.Errorf("Can't locate swagger spec by (%q, %q). This might either because this tuple ends up with multiple swagger specs, or the API version you're predicting dones't contain this api path: %w",
-			locator.ApiVersion, locator.ApiPath, ErrFailedToLocateSwagger)
-	}
-	return p, nil
 }
 
 // LocateOperation locates the schema info that defines the "in-body" parameter (for PUT/POST/PATCH operations)
@@ -548,95 +419,38 @@ func (index *AzureRepoIndex) LocateSpec(locator SpecLocator) (specpath.Path, err
 // For other operations, it returns a info with an empty name and a repl path to the swagger file defining the api path.
 // The spec path might be different that the one that defines the API path.
 func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *OperationInfo, err error) {
-	swaggerRelPathDefApiPath, err := index.LocateSpec(locator.SpecLocator)
+	uRL := url.URL{
+		Path:     utils.SpecializeAPIPath(locator.ApiPath),
+		RawQuery: "api-version=" + locator.ApiVersion,
+	}
+
+	ref, err := index.index.Lookup(string(locator.Operation), uRL)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %w", err, ErrFailedToLocateSwagger)
+	}
+
+	// TODO Consider use ref to get op infos directly
+	// FATA[2023-10-13T17:58:08+08:00] 2 errors occurred:
+	//         * task error: no schema info found for schema locator /SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.DATALAKESTORE/ACCOUNTS/{} PUT 2015-10-01-preview
+	//         * task error: no schema info found for schema locator /SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.DATALAKESTORE/ACCOUNTS/{}/FIREWALLRULES/{} DELETE 2015-10-01-preview
+
+	swaggerRelPathDefApiPath := ref.GetURL().Path
+	swg, err := swaggerloader.LoadSwagger(filepath.Join(index.SpecRootDir, swaggerRelPathDefApiPath))
 	if err != nil {
 		return nil, err
 	}
-
-	swg, err := swaggerloader.LoadSwagger(filepath.Join(index.SpecRootDir, string(swaggerRelPathDefApiPath)))
+	path := ref.GetPointer().DecodedTokens()[1]
+	normpath := utils.NormalizeAPIPath(path)
+	pathItem := swg.Paths.Paths[path]
+	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), normpath, pathItem)
 	if err != nil {
-		return nil, err
-	}
-
-	pathItem := swg.Paths.Paths[locator.ApiPath]
-	opInfos, err := getOpInfosFromAPIPath(index.SpecRootDir, string(swaggerRelPathDefApiPath), NewAPIPath(locator.ApiPath), pathItem)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get operation information from api path %q: %v", locator.ApiPath, err)
 	}
 
 	info, ok := opInfos[locator.Operation]
 	if !ok {
-		return nil, fmt.Errorf("no schema info found for schema locator %v: %w", locator, ErrFailedToLocateSchema)
+		return nil, fmt.Errorf("no schema info found for schema locator %v", locator)
 	}
 
 	return info, nil
 }
-
-//func (index *AzureRepoIndex) Refresh() error {
-//	newIndex := AzureRepoIndex{
-//		SpecRootDir:       index.SpecRootDir,
-//		ResourceProviders: ResourceProviders{},
-//	}
-//	schemaFolderPattern := regexp.MustCompile(fmt.Sprintf(schemaFolderPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
-//	schemaPattern := regexp.MustCompile(fmt.Sprintf(schemaPatternStr, regexp.QuoteMeta(string(os.PathSeparator))))
-//	if err := filepath.Walk(index.SpecRootDir,
-//		func(p string, info os.FileInfo, err error) error {
-//			relPath := strings.TrimPrefix(strings.TrimPrefix(p, index.SpecRootDir), string(os.PathSeparator))
-//			if err != nil {
-//				return err
-//			}
-//			if info == nil {
-//				return nil
-//			}
-//
-//			// Skip directories not match the schema folder patterns
-//			if info.IsDir() {
-//				if !schemaFolderPattern.MatchString(relPath) {
-//					return filepath.SkipDir
-//				}
-//				return nil
-//			}
-//
-//			// Skip files not match the schema file patterns
-//			match := schemaPattern.FindStringSubmatch(relPath)
-//			if len(match) == 0 {
-//				return nil
-//			}
-//
-//			rpName, apiState, apiVersion := match[1], match[2], match[3]
-//			rp := ResourceProvider{Name: rpName}
-//			api := API{
-//				Version:   apiVersion,
-//				IsPreview: apiState == "preview",
-//			}
-//
-//			if _, ok := index.SpecSetView()[relPath]; ok {
-//				apis, ok := newIndex.ResourceProviders[rp]
-//				if !ok {
-//					apis = APIs{}
-//					newIndex.ResourceProviders[rp] = apis
-//				}
-//				specs, ok := apis[api]
-//				if !ok {
-//					specs = Specs{}
-//					apis[api] = specs
-//				}
-//				specs[relPath] = index.ResourceProviders[rp][api][relPath]
-//				return nil
-//			}
-//
-//			if err := newIndex.recordSpec(relPath, rpName, api); err != nil {
-//				return err
-//			}
-//			return nil
-//		}); err != nil {
-//		return err
-//	}
-//
-//	// rebuild views
-//	newIndex.buildSpecSetView()
-//	newIndex.buildSpecLookupView()
-//
-//	*index = newIndex
-//	return nil
-//}
