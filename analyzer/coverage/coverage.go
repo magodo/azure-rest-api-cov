@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"runtime"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/schemainput"
-	"github.com/magodo/azure-rest-api-cov/analyzer/swaggerloader"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 	log "github.com/sirupsen/logrus"
 )
@@ -168,7 +166,7 @@ func (cov *Coverage) Predict(idx *workspace.AzureRepoIndex) error {
 
 predictLoop:
 	for _, schemaInput := range activeSchemaInputs {
-		specPath, err := idx.LocateSpec(schemaInput.SpecLocator)
+		opinfo, err := idx.LocateOperation(schemaInput.OperationLocator)
 		if err != nil {
 			if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 				log.Warn(err)
@@ -176,18 +174,12 @@ predictLoop:
 			}
 			return err
 		}
-
-		pathInfo, err := specPath.PathInfo()
+		pinfo, err := opinfo.SpecRelPath.PathInfo()
 		if err != nil {
 			return err
 		}
 
-		swg, err := swaggerloader.LoadSwagger(filepath.Join(idx.SpecRootDir, string(specPath)))
-		if err != nil {
-			return err
-		}
-
-		rp, currentVersion := pathInfo.ResourceProvider, swg.Info.Version
+		rp, currentVersion := pinfo.ResourceProvider, schemaInput.ApiVersion
 
 		var newApiVersions []workspace.APIVersion
 		for apiVersion := range idx.ResourceProviders[workspace.ResourceProvider(rp)] {
@@ -219,7 +211,7 @@ predictLoop:
 			wp.AddTask(func() (interface{}, error) {
 				opInfo, err := schemaInput.ToOperationInfo(idx, false, false, nil)
 				if err != nil {
-					if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
+					if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 						log.Warn(err)
 						return nil, utils.ErrSkipTask
 					}

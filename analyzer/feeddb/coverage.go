@@ -55,7 +55,7 @@ type APIVersion struct {
 
 func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage {
 	coverage := Coverage{
-		Ref:               index.Commit,
+		Ref:               index.Commit(),
 		Comment:           comment,
 		ResourceProviders: ResourceProviders{},
 	}
@@ -69,7 +69,7 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 		}
 		for version, specs := range versions {
 			versionName := string(version)
-			for _, apiPaths := range specs {
+			for apiPath, apiPaths := range specs {
 				for pathName, ops := range apiPaths {
 					if _, ok := paths[pathName]; !ok {
 						paths[pathName] = APIPath{
@@ -78,7 +78,7 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 						}
 					}
 
-					for op, opinfo := range ops {
+					for op := range ops {
 						opName := string(op)
 						if _, ok := paths[pathName].Operations[opName]; !ok {
 							paths[pathName].Operations[opName] = Operation{
@@ -87,7 +87,7 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 							}
 						}
 
-						pathInfo, _ := opinfo.SpecRelPath.PathInfo()
+						pathInfo, _ := apiPath.PathInfo()
 						paths[pathName].Operations[opName].Versions[versionName] = APIVersion{
 							Version:   versionName,
 							IsActive:  false,
@@ -247,7 +247,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 	log.Infof("Processing (uncovered) %q", loc)
 	opInfo, err := idx.LocateOperation(loc)
 	if err != nil {
-		if errors.Is(err, workspace.ErrFailedToLocateSwagger) || errors.Is(err, workspace.ErrFailedToLocateSchema) {
+		if errors.Is(err, workspace.ErrFailedToLocateSwagger) {
 			log.Warn(err)
 			return nil, nil
 		}

@@ -30,7 +30,7 @@ type APIVersions map[string]*SchemaCoverage
 
 func NewEmptyCoverage(index *workspace.AzureRepoIndex, additionalMessage string) Coverage {
 	coverage := Coverage{
-		Commit:            index.Commit,
+		Commit:            index.Commit(),
 		AdditionalMessage: additionalMessage,
 		ResourceProviders: ResourceProviders{},
 	}

@@ -14,3 +14,11 @@ func NormalizeAPIPath(p string) string {
 	}
 	return strings.Join(out, "/")
 }
+
+func SpecializeAPIPath(p string) string {
+	p = NormalizeAPIPath(p)
+	if !strings.HasPrefix(p, "/{}") {
+		return p
+	}
+	return strings.Replace(p, "/{}", "/SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.FOO/FOOS/FOO1", 1)
+}
