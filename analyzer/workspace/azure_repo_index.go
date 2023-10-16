@@ -429,11 +429,6 @@ func (index *AzureRepoIndex) LocateOperation(locator OperationLocator) (info *Op
 		return nil, fmt.Errorf("%v: %w", err, ErrFailedToLocateSwagger)
 	}
 
-	// TODO Consider use ref to get op infos directly
-	// FATA[2023-10-13T17:58:08+08:00] 2 errors occurred:
-	//         * task error: no schema info found for schema locator /SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.DATALAKESTORE/ACCOUNTS/{} PUT 2015-10-01-preview
-	//         * task error: no schema info found for schema locator /SUBSCRIPTIONS/{}/RESOURCEGROUPS/{}/PROVIDERS/MICROSOFT.DATALAKESTORE/ACCOUNTS/{}/FIREWALLRULES/{} DELETE 2015-10-01-preview
-
 	swaggerRelPathDefApiPath := ref.GetURL().Path
 	swg, err := swaggerloader.LoadSwagger(filepath.Join(index.SpecRootDir, swaggerRelPathDefApiPath))
 	if err != nil {
