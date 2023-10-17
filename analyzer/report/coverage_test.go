@@ -21,17 +21,10 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
 
 	expect := report.Coverage{
-		Commit: "xxx",
+		Commit: "",
 		ResourceProviders: report.ResourceProviders{
 			"dummy": &report.APIPaths{
-				"/{}/{}": &report.APIPath{
-					Operations: map[string]*report.APIVersions{
-						"GET": {
-							"2020-12-01-preview": nil,
-						},
-					},
-				},
-				"/{}/{}/DEF_FOO": &report.APIPath{
+				"/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": &report.APIPath{
 					Operations: map[string]*report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
@@ -46,14 +39,17 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 						},
 					},
 				},
-				"/{}/{}/DEF_BAR": &report.APIPath{
+				"/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR": &report.APIPath{
 					Operations: map[string]*report.APIVersions{
 						"POST": {
 							"2020-12-01": nil,
 						},
+						"GET": {
+							"2020-12-01-preview": nil,
+						},
 					},
 				},
-				"/{}/{}/DEF_BASE": &report.APIPath{
+				"/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": &report.APIPath{
 					Operations: map[string]*report.APIVersions{
 						"PUT": {
 							"2020-12-01": nil,
@@ -61,7 +57,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 						},
 					},
 				},
-				"/{}/{}/DEF_REGULAR": &report.APIPath{
+				"/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR": &report.APIPath{
 					Operations: map[string]*report.APIVersions{
 						"GET": {
 							"2020-12-01": nil,
@@ -77,7 +73,7 @@ func TestNewEmptyCoverageStore(t *testing.T) {
 		},
 	}
 
-	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
+	idx, err := workspace.NewAzureRepoIndex(specRootDir)
 	require.NoError(t, err, "generate index")
 	cov := report.NewEmptyCoverage(idx, "")
 	require.Equal(t, expect, cov)
@@ -101,21 +97,17 @@ func TestCoverageStoreAddSchema(t *testing.T) {
   "commit": "",
   "resource_providers": {
     "dummy": {
-      "/{}/{}": {
+      "/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR": {
         "operations": {
+          "POST": {
+            "2020-12-01": null
+          },
           "GET": {
             "2020-12-01-preview": null
           }
         }
       },
-      "/{}/{}/DEF_BAR": {
-        "operations": {
-          "POST": {
-            "2020-12-01": null
-          }
-        }
-      },
-      "/{}/{}/DEF_BASE": {
+      "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": {
         "operations": {
           "PUT": {
             "2020-12-01": {
@@ -211,7 +203,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
           }
         }
       },
-      "/{}/{}/DEF_FOO": {
+      "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": {
         "operations": {
           "GET": {
             "2020-12-01": null,
@@ -226,7 +218,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
           }
         }
       },
-      "/{}/{}/DEF_REGULAR": {
+      "/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR": {
         "operations": {
           "GET": {
             "2020-12-01": null,
@@ -245,7 +237,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {

@@ -19,29 +19,14 @@ func TestNewEmptyCoverage(t *testing.T) {
 	specRootDir := filepath.Join(filepath.Dir(pwd), "testdata", "spec")
 
 	expect := feeddb.Coverage{
-		Ref:     "xxx",
+		Ref:     "",
 		Comment: "comment",
 		ResourceProviders: feeddb.ResourceProviders{
 			"dummy": feeddb.ResourceProvider{
 				Name: "dummy",
 				Paths: feeddb.APIPaths{
-					"/{}/{}": feeddb.APIPath{
-						Name: "/{}/{}",
-						Operations: feeddb.Operations{
-							"GET": feeddb.Operation{
-								Name: "GET",
-								Versions: feeddb.APIVersions{
-									"2020-12-01-preview": feeddb.APIVersion{
-										Version:   "2020-12-01-preview",
-										IsActive:  false,
-										IsPreview: true,
-									},
-								},
-							},
-						},
-					},
-					"/{}/{}/DEF_FOO": feeddb.APIPath{
-						Name: "/{}/{}/DEF_FOO",
+					"/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": feeddb.APIPath{
+						Name: "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO",
 						Operations: feeddb.Operations{
 							"PUT": feeddb.Operation{
 								Name: "PUT",
@@ -75,8 +60,8 @@ func TestNewEmptyCoverage(t *testing.T) {
 							},
 						},
 					},
-					"/{}/{}/DEF_BAR": feeddb.APIPath{
-						Name: "/{}/{}/DEF_BAR",
+					"/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR": feeddb.APIPath{
+						Name: "/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR",
 						Operations: feeddb.Operations{
 							"POST": {
 								Name: "POST",
@@ -86,10 +71,20 @@ func TestNewEmptyCoverage(t *testing.T) {
 									},
 								},
 							},
+							"GET": feeddb.Operation{
+								Name: "GET",
+								Versions: feeddb.APIVersions{
+									"2020-12-01-preview": feeddb.APIVersion{
+										Version:   "2020-12-01-preview",
+										IsActive:  false,
+										IsPreview: true,
+									},
+								},
+							},
 						},
 					},
-					"/{}/{}/DEF_BASE": feeddb.APIPath{
-						Name: "/{}/{}/DEF_BASE",
+					"/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": feeddb.APIPath{
+						Name: "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE",
 						Operations: feeddb.Operations{
 							"PUT": {
 								Name: "PUT",
@@ -104,8 +99,8 @@ func TestNewEmptyCoverage(t *testing.T) {
 							},
 						},
 					},
-					"/{}/{}/DEF_REGULAR": feeddb.APIPath{
-						Name: "/{}/{}/DEF_REGULAR",
+					"/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR": feeddb.APIPath{
+						Name: "/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR",
 						Operations: feeddb.Operations{
 							"GET": {
 								Name: "GET",
@@ -136,7 +131,7 @@ func TestNewEmptyCoverage(t *testing.T) {
 		},
 	}
 
-	idx, err := workspace.NewAzureRepoIndex(specRootDir, "xxx")
+	idx, err := workspace.NewAzureRepoIndex(specRootDir)
 	require.NoError(t, err, "generate index")
 	cov := feeddb.NewEmptyCoverage(idx, "comment")
 	require.Equal(t, expect, cov)
@@ -163,23 +158,8 @@ func TestCoverageAddSchema(t *testing.T) {
     "dummy": {
       "name": "dummy",
       "paths": {
-        "/{}/{}": {
-          "name": "/{}/{}",
-          "operations": {
-            "GET": {
-              "name": "GET",
-              "versions": {
-                "2020-12-01-preview": {
-                  "version": "2020-12-01-preview",
-                  "isActive": false,
-                  "isPreview": true
-                }
-              }
-            }
-		  }
-        },
-        "/{}/{}/DEF_BAR": {
-          "name": "/{}/{}/DEF_BAR",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR",
           "operations": {
             "POST": {
               "name": "POST",
@@ -190,11 +170,21 @@ func TestCoverageAddSchema(t *testing.T) {
                   "isPreview": false
                 }
               }
+            },
+            "GET": {
+              "name": "GET",
+              "versions": {
+                "2020-12-01-preview": {
+                  "version": "2020-12-01-preview",
+                  "isActive": false,
+                  "isPreview": true
+                }
+              }
             }
           }
         },
-        "/{}/{}/DEF_BASE": {
-          "name": "/{}/{}/DEF_BASE",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE",
           "operations": {
             "PUT": {
               "name": "PUT",
@@ -271,8 +261,8 @@ func TestCoverageAddSchema(t *testing.T) {
             }
           }
         },
-        "/{}/{}/DEF_FOO": {
-          "name": "/{}/{}/DEF_FOO",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO",
           "operations": {
             "DELETE": {
               "name": "DELETE",
@@ -316,8 +306,8 @@ func TestCoverageAddSchema(t *testing.T) {
             }
           }
         },
-        "/{}/{}/DEF_REGULAR": {
-          "name": "/{}/{}/DEF_REGULAR",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR",
           "operations": {
             "GET": {
               "name": "GET",
@@ -359,7 +349,7 @@ func TestCoverageAddSchema(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {
@@ -411,31 +401,8 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
     "dummy": {
       "name": "dummy",
       "paths": {
-        "/{}/{}": {
-          "name": "/{}/{}",
-          "operations": {
-            "GET": {
-              "name": "GET",
-              "versions": {
-                "2020-12-01-preview": {
-                  "version": "2020-12-01-preview",
-                  "isActive": false,
-                  "isPreview": true,
-                  "model": {
-                    "name": "def_bar",
-                    "properties": {
-                      "bar": {
-                        "isCovered": false
-                      }
-                    }
-                  }
-                }
-              }
-            }
-		  }
-        },
-        "/{}/{}/DEF_BAR": {
-          "name": "/{}/{}/DEF_BAR",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR",
           "operations": {
             "POST": {
               "name": "POST",
@@ -454,11 +421,29 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
                   }
                 }
               }
+            },
+            "GET": {
+              "name": "GET",
+              "versions": {
+                "2020-12-01-preview": {
+                  "version": "2020-12-01-preview",
+                  "isActive": false,
+                  "isPreview": true,
+                  "model": {
+                    "name": "def_bar",
+                    "properties": {
+                      "bar": {
+                        "isCovered": false
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         },
-        "/{}/{}/DEF_BASE": {
-          "name": "/{}/{}/DEF_BASE",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE",
           "operations": {
             "PUT": {
               "name": "PUT",
@@ -535,8 +520,8 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
             }
           }
         },
-        "/{}/{}/DEF_FOO": {
-          "name": "/{}/{}/DEF_FOO",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO",
           "operations": {
             "DELETE": {
               "name": "DELETE",
@@ -604,8 +589,8 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
             }
           }
         },
-        "/{}/{}/DEF_REGULAR": {
-          "name": "/{}/{}/DEF_REGULAR",
+        "/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR": {
+          "name": "/PROVIDERS/MICROSOFT.DUMMY/DEF_REGULAR",
           "operations": {
             "GET": {
               "name": "GET",
@@ -753,7 +738,7 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {
