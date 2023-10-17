@@ -139,7 +139,6 @@ type APIOperations map[OperationKind]bool
 
 type OperationInfo struct {
 	SpecRelPath specpath.Path
-	APIVersion  string
 	APIPath     string
 	Model       *ModelInfo
 }

@@ -9,7 +9,7 @@
     "https"
   ],
   "paths": {
-    "/{host}/{bar}": {
+    "/providers/Microsoft.Dummy/def_bar": {
       "get": {
         "responses": {
           "200": {

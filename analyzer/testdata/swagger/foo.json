@@ -9,7 +9,7 @@
     "https"
   ],
   "paths": {
-    "/{host}/{foo}/def_foo": {
+    "/providers/Microsoft.Dummy/def_foo": {
       "get": {
         "responses": {
           "200": {
@@ -32,7 +32,7 @@
       },
       "delete": {}
     },
-    "/{host}/{foo}/def_bar": {
+    "/providers/Microsoft.Dummy/def_bar": {
       "post": {
         "parameters": [
           {
@@ -45,7 +45,7 @@
         ]
       }
     },
-    "/{host}/{foo}/def_regular": {
+    "/providers/Microsoft.Dummy/def_regular": {
       "get": {
         "responses": {
           "200": {
@@ -67,7 +67,7 @@
         ]
       }
     },
-    "/{host}/{foo}/def_base": {
+    "/providers/Microsoft.Dummy/def_base": {
       "put": {
         "parameters": [
           {

@@ -32,7 +32,7 @@ func TestCoverage_AddSchema(t *testing.T) {
 			expect: `
 {
   "dummy": {
-    "/{}/{}/DEF_BASE": {
+    "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": {
       "operations": {
         "PUT": {
           "2020-12-01": {
@@ -58,7 +58,7 @@ func TestCoverage_AddSchema(t *testing.T) {
         }
       }
     },
-    "/{}/{}/DEF_FOO": {
+    "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": {
       "operations": {
         "DELETE": {
           "2020-12-01": {
@@ -75,7 +75,7 @@ func TestCoverage_AddSchema(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 	for idx, c := range cases {
 		cov := NewEmptyCoverage()
@@ -126,7 +126,7 @@ func TestCoverage_ToSchemaInputs(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 	for idx, c := range cases {
 		var activeSchemaInputs []schemainput.SchemaInput
@@ -189,7 +189,7 @@ func TestCoverage_Predict(t *testing.T) {
 			expect: `
 {
   "dummy": {
-    "/{}/{}/DEF_FOO": {
+    "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": {
       "operations": {
         "DELETE": {
           "2020-12-01": {
@@ -205,7 +205,7 @@ func TestCoverage_Predict(t *testing.T) {
         }
       }
     },
-    "/{}/{}/DEF_BASE": {
+    "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": {
       "operations": {
         "PUT": {
           "2020-12-01": {
@@ -263,7 +263,7 @@ func TestCoverage_Predict(t *testing.T) {
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 	for idx, c := range cases {
 		cov := NewEmptyCoverage()
@@ -305,7 +305,7 @@ func TestCoverage_Unmarshal(t *testing.T) {
 			input: `
 {
   "dummy": {
-    "/{}/{}/DEF_BASE": {
+    "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": {
       "operations": {
         "PUT": {
           "2020-12-01": {
@@ -328,7 +328,7 @@ func TestCoverage_Unmarshal(t *testing.T) {
         }
       }
     },
-    "/{}/{}/DEF_FOO": {
+    "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": {
       "operations": {
         "DELETE": {
           "2020-12-01": {
@@ -344,12 +344,12 @@ func TestCoverage_Unmarshal(t *testing.T) {
 `,
 			expect: Coverage{
 				"dummy": &APIPaths{
-					"/{}/{}/DEF_BASE": &APIPath{
+					"/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE": &APIPath{
 						Operations: Operations{
 							"PUT": &APIVersions{
 								"2020-12-01": {
 									RP:             "dummy",
-									APIPath:        "/{}/{}/DEF_BASE",
+									APIPath:        "/PROVIDERS/MICROSOFT.DUMMY/DEF_BASE",
 									APIVersion:     "2020-12-01",
 									Operation:      workspace.OperationKindPut,
 									IsActive:       true,
@@ -373,12 +373,12 @@ func TestCoverage_Unmarshal(t *testing.T) {
 							},
 						},
 					},
-					"/{}/{}/DEF_FOO": &APIPath{
+					"/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO": &APIPath{
 						Operations: Operations{
 							"DELETE": &APIVersions{
 								"2020-12-01": {
 									RP:             "dummy",
-									APIPath:        "/{}/{}/DEF_FOO",
+									APIPath:        "/PROVIDERS/MICROSOFT.DUMMY/DEF_FOO",
 									APIVersion:     "2020-12-01",
 									Operation:      workspace.OperationKindDelete,
 									IsActive:       true,

@@ -114,11 +114,11 @@ func TestToSchema(t *testing.T) {
 		{
 			schemaInput:  filepath.Join(schemaBasePath, "def_foo", "def_foo.json"),
 			shiftVersion: "2021-01-01",
-			err:          workspace.ErrFailedToLocateSchema,
+			err:          workspace.ErrFailedToLocateSwagger,
 		},
 	}
 
-	index, err := workspace.NewAzureRepoIndex(specBaseDir, "")
+	index, err := workspace.NewAzureRepoIndex(specBaseDir)
 	require.NoError(t, err)
 
 	for idx, c := range cases {
