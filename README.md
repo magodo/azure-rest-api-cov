@@ -20,24 +20,15 @@ $ go install
 
 ## Usage
 
-```shell
-azure-rest-api-cov -i <schema input> <options>
-  -a    whether to export the RP level coverage
-  -c string
-        The azure-rest-api-spec repo commit hash to checkout
-  -f    whether to force create the workspace
-  -i string
-        The path to the schema input file, which is expected to hold a JSON array of input schemas
-  -r    whether to force regenerate the repository index in the workspace
-  -w string
-        The path to the workspace for caching the azure-rest-api repository and other stuffs (default "$HOME/.cache/azure-rest-api-cov")
-```
-
 The tool will setup a workspace (controlled by `-w` option, which by default is the [user cache directory](https://golang.org/pkg/os/#UserCacheDir)) that will hold the [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) repository and some index files for accelaration.
 
 Note that you should ensure that the commit of the [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs) from which you generate the [schema input](#schema-input-format) is the same as the one you run against this tool, via `-c` option.
 
-If `-a` is set, the output will contain all existing resource providers in the  [azure-rest-api-specs](https://github.com/Azure/azure-rest-api-specs), together with its API paths, versions and operations, no matter whether they appears in the  [schema input](#schema-input-format).
+Typically, one follow the process below to use this tool:
+
+- Generate the schema input file (see the "Schema Input Format" section below for its format) by some means, e.g. using `azure-rest-api-cov-terraform` for terraform provider to generate the input file
+- Run `azure-rest-api-cov [option] coverage [option]` to consume the schema input file above, and generate the coverage file, which contains the covered/uncovered expanded properties for each API model (optionally plus predicting models in newer API versions)
+- Run `azure-rest-api-cov [option] feeddb [option]` to consume the coverage file above, which will generate a report file that can contains not only the API operations covered, also include the other uncovered API models among all the available RPs. This report file is then expected to be upload to a backend cosmos db, to be consumed by the frontend portal, which is handled by [another project](https://github.com/magodo/azure-rest-api-viewer2).
 
 ## Schema Input Format
 
@@ -102,3 +93,7 @@ E.g.
 ```
 
 If the discriminatr value contains `}`, it should be escaped by prefixing a `\`.
+
+## Limitations
+
+Currently, only management plane APIs are handled, no data plane support yet.
