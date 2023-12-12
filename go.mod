@@ -8,6 +8,7 @@ require (
 	github.com/go-openapi/loads v0.21.2
 	github.com/go-openapi/spec v0.20.9
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/magodo/aztfq v0.0.0-20230817030325-ee44868712e5
 	github.com/magodo/azure-rest-api-index v0.0.0-20231103030022-9249102d39ee
 	github.com/pkg/profile v1.5.0
 	github.com/sirupsen/logrus v1.7.0
