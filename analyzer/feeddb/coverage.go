@@ -153,13 +153,11 @@ func (rp *ResourceProvider) AddOperation(opInfo *operation.Info, tfLookupTable a
 		v.Model = model
 	}
 
-	tfPropTable := map[string][]aztfq.TFResult{}
 	if len(tfLookupTable) > 0 {
-		tfPropTable = lookupAztfqByPath(tfLookupTable, opInfo.APIPath, opInfo.APIVersion, workspace.OperationKindPut)
-	}
-
-	if len(tfLookupTable) > 0 && v.Model != nil {
-		v.Model.MapTFAddr(tfPropTable)
+		tfPropTable := lookupAztfqByPath(tfLookupTable, opInfo.APIPath, opInfo.APIVersion, workspace.OperationKindPut)
+		if v.Model != nil {
+			v.Model.MapTFAddr(tfPropTable)
+		}
 	}
 
 	rp.Paths[opInfo.APIPath].Operations[string(opInfo.Operation)].Versions[opInfo.APIVersion] = v
@@ -333,7 +331,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 	return out, nil
 }
 
-func ParseRTbyPath(path string, ignoreSegCnt bool) string {
+func ParseRTbyPath(path string, keepAdditionalSeg bool) string {
 	idx := strings.LastIndex(path, "/PROVIDERS/")
 	if idx == -1 {
 		return ""
@@ -344,10 +342,8 @@ func ParseRTbyPath(path string, ignoreSegCnt bool) string {
 	rtSegs := segs[2:]
 
 	if len(rtSegs)%2 != 0 {
-		if ignoreSegCnt {
-			rtSegs = rtSegs[0 : len(rtSegs)-1]
-		} else {
-			return ""
+		if !keepAdditionalSeg {
+			rtSegs = rtSegs[:len(rtSegs)-2]
 		}
 	}
 
@@ -363,7 +359,7 @@ func ParseRTbyPath(path string, ignoreSegCnt bool) string {
 // aztfq uses the full name of resource provider such as MICROSOFT.ENTERPRISEKNOWLEDGEGRAPH as index, which is different from the `rpName` in coverage tool
 func lookupAztfqByPath(table aztfq.LookupTable, path string, version string, method workspace.OperationKind) (result map[string][]aztfq.TFResult) {
 	result = make(map[string][]aztfq.TFResult)
-	rtTable, ok := table[ParseRTbyPath(path, method == workspace.OperationKindPut)]
+	rtTable, ok := table[ParseRTbyPath(path, method == workspace.OperationKindGet)]
 	if !ok {
 		return
 	}

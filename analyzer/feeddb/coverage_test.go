@@ -771,58 +771,58 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
 
 func TestCoverageParseRTByPath(t *testing.T) {
 	cases := []struct {
-		expect       string
-		path         string
-		ignoreSegCnt bool
+		expect            string
+		path              string
+		keepAdditionalSeg bool
 	}{
 		{
-			path:         "/providers/Foo.Bar",
-			expect:       "FOO.BAR",
-			ignoreSegCnt: false,
+			path:              "/providers/Foo.Bar",
+			expect:            "FOO.BAR",
+			keepAdditionalSeg: true,
 		},
 		{
-			path:         "/providers/Foo.Bar/foos/{fooName}",
-			expect:       "FOO.BAR/FOOS",
-			ignoreSegCnt: false,
+			path:              "/providers/Foo.Bar/foos/{fooName}",
+			expect:            "FOO.BAR/FOOS",
+			keepAdditionalSeg: true,
 		},
 		{
-			path:         "/providers/Foo.Bar/foos/{fooName}/bars/{barName}",
-			expect:       "FOO.BAR/FOOS/BARS",
-			ignoreSegCnt: false,
+			path:              "/providers/Foo.Bar/foos/{fooName}/bars/{barName}",
+			expect:            "FOO.BAR/FOOS/BARS",
+			keepAdditionalSeg: true,
 		},
 		{
-			path:         "/providers/ABABAB/ababas/{ababaName}/providers/Foo.Bar/foos/{fooName}",
-			expect:       "FOO.BAR/FOOS",
-			ignoreSegCnt: false,
+			path:              "/providers/ABABAB/ababas/{ababaName}/providers/Foo.Bar/foos/{fooName}",
+			expect:            "FOO.BAR/FOOS",
+			keepAdditionalSeg: true,
 		},
 		{
 			// short rt
-			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}",
-			expect:       "Microsoft.Compute/virtualMachines",
-			ignoreSegCnt: false,
+			path:              "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}",
+			expect:            "Microsoft.Compute/virtualMachines",
+			keepAdditionalSeg: false,
 		},
 		{
 			// long rt
-			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}/instanceView/{viewName}",
-			expect:       "Microsoft.Compute/virtualMachines/instanceView",
-			ignoreSegCnt: false,
+			path:              "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}/instanceView/{viewName}",
+			expect:            "Microsoft.Compute/virtualMachines/instanceView",
+			keepAdditionalSeg: true,
 		},
 		{
 			// long rt with ignoreSegCnt
-			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/vmPool/{poolName}/virtualMachines/{vmName}/shutdown",
-			expect:       "Microsoft.Compute/vmPool/virtualMachines",
-			ignoreSegCnt: true,
+			path:              "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/vmPool/{poolName}/virtualMachines/{vmName}/shutdown",
+			expect:            "Microsoft.Compute/vmPool/virtualMachines",
+			keepAdditionalSeg: false,
 		},
 		{
 			// multi providers in one path
-			path:         "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}/instanceView/{viewName}/providers/Microsoft.Network/networkInterfaces/{networkInterfaceName}",
-			expect:       "MICROSOFT.NETWORK/NETWORKINTERFACES",
-			ignoreSegCnt: false,
+			path:              "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Compute/virtualMachines/{vmName}/instanceView/{viewName}/providers/Microsoft.Network/networkInterfaces/{networkInterfaceName}",
+			expect:            "MICROSOFT.NETWORK/NETWORKINTERFACES",
+			keepAdditionalSeg: false,
 		},
 	}
 
 	for _, c := range cases {
-		actual := feeddb.ParseRTbyPath(strings.ToUpper(c.path), c.ignoreSegCnt)
+		actual := feeddb.ParseRTbyPath(strings.ToUpper(c.path), c.keepAdditionalSeg)
 		require.Equal(t, strings.ToUpper(c.expect), actual)
 	}
 }
