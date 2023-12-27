@@ -258,7 +258,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 	if opInfo.Model == nil {
 		si := schemainput.SchemaInput{
 			OperationLocator: loc,
-			Properties:       []string{},
+			Properties:       []schemainput.SchemaInputProperty{},
 		}
 		out, err := si.ToOperationInfo(idx, true, false, allowMismatchPropMatchers)
 		if err != nil {
@@ -279,7 +279,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 	if len(variantRefSet) == 0 {
 		si := schemainput.SchemaInput{
 			OperationLocator: loc,
-			Properties:       []string{},
+			Properties:       []schemainput.SchemaInputProperty{},
 		}
 		out, err := si.ToOperationInfo(idx, true, false, allowMismatchPropMatchers)
 		if err != nil {
@@ -294,7 +294,7 @@ func getUncoveredOperation(loc workspace.OperationLocator, idx *workspace.AzureR
 		si := schemainput.SchemaInput{
 			OperationLocator: loc,
 			Variant:          ref,
-			Properties:       []string{},
+			Properties:       []schemainput.SchemaInputProperty{},
 		}
 		info, err := si.ToOperationInfo(idx, true, false, allowMismatchPropMatchers)
 		if err != nil {

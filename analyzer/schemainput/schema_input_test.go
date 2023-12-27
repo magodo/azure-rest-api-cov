@@ -36,7 +36,17 @@ func TestToSchema(t *testing.T) {
 		"state": "Uncovered"
 	},
 	"{def_variant1}/type": {
-		"state": "Covered"
+		"state": "Covered",
+		"app_property_maps": [
+		  {
+		    "name": "app1",
+			"addr": "type"
+		  },
+		  {
+		    "name": "app2",
+			"addr": "type"
+		  }
+		]
 	},
 	"{def_variant2}/type":{
 		"state":"Uncovered"
@@ -149,4 +159,122 @@ func TestToSchema(t *testing.T) {
 
 		require.JSONEq(t, c.expectProperties, string(b), idx)
 	}
+}
+
+func TestSchemaInputMarshal(t *testing.T) {
+	input := schemainput.SchemaInput{
+		OperationLocator: workspace.OperationLocator{
+			SpecLocator: workspace.SpecLocator{
+				ApiVersion: "v1",
+				ApiPath:    "p1",
+			},
+			Operation: "GET",
+		},
+		Properties: []schemainput.SchemaInputProperty{
+			{
+				Addr: "addr1",
+			},
+			{
+				Addr: "addr2",
+				AppPropertyMaps: []schemainput.AppPropertyMap{
+					{
+						Name: "app1",
+						Addr: "app_addr",
+					},
+					{
+						Name: "app2",
+						Addr: "app_addr",
+					},
+				},
+			},
+		},
+	}
+
+	expect := `{
+"api_version": "v1",
+"api_path":"p1",
+"operation":"GET",
+"properties": [
+  "addr1",
+  {
+	"addr": "addr2",
+	"app_property_maps": [
+	  {
+	    "name": "app1",
+		"addr": "app_addr"
+	  },
+	  {
+	    "name": "app2",
+		"addr": "app_addr"
+	  }
+	]
+  }
+]
+}`
+
+	b, err := json.Marshal(input)
+	require.NoError(t, err)
+	require.JSONEq(t, expect, string(b))
+}
+
+func TestSchemaInputUnmarshal(t *testing.T) {
+	input := `{
+"api_version": "v1",
+"api_path":"p1",
+"operation":"GET",
+"properties": [
+  "addr1",
+  {
+	"addr": "addr2",
+	"app_property_maps": [
+	  {
+	    "name": "app1",
+		"addr": "app_addr"
+	  },
+	  {
+	    "name": "app2",
+		"addr": "app_addr"
+	  }
+	]
+  },
+  {
+	"addr": "addr3"
+  }
+]
+}`
+	expect := schemainput.SchemaInput{
+		OperationLocator: workspace.OperationLocator{
+			SpecLocator: workspace.SpecLocator{
+				ApiVersion: "v1",
+				ApiPath:    "p1",
+			},
+			Operation: "GET",
+		},
+		Properties: []schemainput.SchemaInputProperty{
+			{
+				Addr: "addr1",
+			},
+			{
+				Addr: "addr2",
+				AppPropertyMaps: []schemainput.AppPropertyMap{
+					{
+						Name: "app1",
+						Addr: "app_addr",
+					},
+					{
+						Name: "app2",
+						Addr: "app_addr",
+					},
+				},
+			},
+			{
+				Addr: "addr3",
+			},
+		},
+	}
+
+	var si schemainput.SchemaInput
+	err := json.Unmarshal([]byte(input), &si)
+	require.NoError(t, err)
+	require.Equal(t, expect, si)
 }

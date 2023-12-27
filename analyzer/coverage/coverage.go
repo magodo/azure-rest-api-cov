@@ -112,14 +112,14 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 						}
 						for paddr, prop := range opInfo.Model.Properties {
 							if prop.IsCovered() {
-								schemaInput.Properties = append(schemaInput.Properties, paddr)
+								schemaInput.Properties = append(schemaInput.Properties, schemainput.FromSwaggerProperty(paddr, *prop))
 							}
 						}
 						schemaInputs = append(schemaInputs, schemaInput)
 						continue
 					}
 
-					variantProperties := map[string][]string{}
+					variantProperties := map[string][]schemainput.SchemaInputProperty{}
 					for paddr, pinfo := range opInfo.Model.Properties {
 						if !pinfo.IsCovered() {
 							continue
@@ -128,9 +128,9 @@ func (cov Coverage) ToSchemaInputs() []schemainput.SchemaInput {
 						if len(prop) > 1 {
 							variantProps := variantProperties[prop[0].DiscriminatorValue]
 							if variantProps == nil {
-								variantProps = []string{}
+								variantProps = []schemainput.SchemaInputProperty{}
 							}
-							variantProps = append(variantProps, prop[1:].String())
+							variantProps = append(variantProps, schemainput.FromSwaggerProperty(prop[1:].String(), *pinfo))
 							variantProperties[prop[0].DiscriminatorValue] = variantProps
 						}
 					}

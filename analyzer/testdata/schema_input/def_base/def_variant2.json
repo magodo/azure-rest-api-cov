@@ -4,6 +4,18 @@
   "operation": "PUT",
   "variant": "def_variant2",
   "properties": [
-    "type"
+    {
+        "addr": "type",
+        "app_property_maps": [
+          {
+            "name": "app1",
+            "addr": "type"
+          },
+          {
+            "name": "app2",
+            "addr": "type"
+          }
+        ]
+    }
   ]
 }

@@ -47,10 +47,30 @@ func TestCoverage_AddSchema(t *testing.T) {
                   "state": "Uncovered"
                 },
                 "{def_variant1}/type": {
-                  "state": "Covered"
+                  "state": "Covered",
+				  "app_property_maps": [
+				    {
+				  	  "name": "app1",
+				  	  "addr": "type"
+				    },
+				    {
+				  	  "name": "app2",
+				  	  "addr": "type"
+				    }
+				  ]
                 },
                 "{def_variant2}/type": {
-                  "state": "Covered"
+                  "state": "Covered",
+				  "app_property_maps": [
+				    {
+				  	  "name": "app1",
+				  	  "addr": "type"
+				    },
+				    {
+				  	  "name": "app2",
+				  	  "addr": "type"
+				    }
+				  ]
                 }
               }
             }
@@ -220,10 +240,31 @@ func TestCoverage_Predict(t *testing.T) {
                   "state": "Uncovered"
                 },
                 "{def_variant1}/type": {
-                  "state": "Covered"
+                  "state": "Covered",
+				  "app_property_maps": [
+				    {
+				  	  "name": "app1",
+				  	  "addr": "type"
+				    },
+				    {
+				  	  "name": "app2",
+				  	  "addr": "type"
+				    }
+				  ]
+
                 },
                 "{def_variant2}/type": {
-                  "state": "Covered"
+                  "state": "Covered",
+				  "app_property_maps": [
+				    {
+				  	  "name": "app1",
+				  	  "addr": "type"
+				    },
+				    {
+				  	  "name": "app2",
+				  	  "addr": "type"
+				    }
+				  ]
                 }
               }
             }
@@ -243,13 +284,33 @@ func TestCoverage_Predict(t *testing.T) {
                   "state": "Uncovered"
                 },
                 "{def_variant1}/type": {
-                  "state": "Covered"
+                  "state": "Covered",
+				  "app_property_maps": [
+				    {
+				  	  "name": "app1",
+				  	  "addr": "type"
+				    },
+				    {
+				  	  "name": "app2",
+				  	  "addr": "type"
+				    }
+				  ]
                 },
                 "{def_variant2}/new_prop": {
                   "state": "Uncovered"
                 },
                 "{def_variant2}/type": {
-                  "state": "Covered"
+                  "state": "Covered",
+				  "app_property_maps": [
+				    {
+				  	  "name": "app1",
+				  	  "addr": "type"
+				    },
+				    {
+				  	  "name": "app2",
+				  	  "addr": "type"
+				    }
+				  ]
                 }
               }
             }

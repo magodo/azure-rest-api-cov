@@ -99,6 +99,8 @@ func (s propertyStateIgnored) GetState() PropState { return s.State }
 type Property struct {
 	PropertyState `json:"state"`
 
+	AppPropertyMaps []AppPropertyMap `json:"app_property_maps,omitempty"`
+
 	// The schemas of this property
 	schema openapispec.Schema
 
@@ -489,6 +491,7 @@ func (props Properties) MarshalJSON() ([]byte, error) {
 	for k, prop := range props {
 		mm := map[string]interface{}{}
 		m[k] = mm
+
 		switch state := prop.PropertyState.(type) {
 		case propertyStateCovered:
 			mm["state"] = state.State
@@ -501,6 +504,18 @@ func (props Properties) MarshalJSON() ([]byte, error) {
 			mm["state"] = state.State
 		default:
 			panic("will not happen")
+		}
+
+		if len(prop.AppPropertyMaps) != 0 {
+			b, err := json.Marshal(prop.AppPropertyMaps)
+			if err != nil {
+				return nil, err
+			}
+			var maps []interface{}
+			if err := json.Unmarshal(b, &maps); err != nil {
+				return nil, err
+			}
+			mm["app_property_maps"] = maps
 		}
 	}
 	return json.Marshal(m)
@@ -525,6 +540,7 @@ func (props *Properties) UnmarshalJSON(b []byte) error {
 		if !ok {
 			return fmt.Errorf(`the "state" in the raw byte is not string`)
 		}
+
 		var grantComment string
 		grantCommentRaw, ok := v["grant_comment"]
 		if ok {
@@ -533,7 +549,20 @@ func (props *Properties) UnmarshalJSON(b []byte) error {
 				return fmt.Errorf(`the "grant_comment" in the raw byte is not string`)
 			}
 		}
-		(*props)[k] = &Property{PropertyState: NewPropertyState(PropState(state), grantComment)}
+
+		var appPropMaps []AppPropertyMap
+		appPropMapsRaw, ok := v["app_property_maps"]
+		if ok {
+			b, err := json.Marshal(appPropMapsRaw)
+			if err != nil {
+				return err
+			}
+			if err := json.Unmarshal(b, &appPropMaps); err != nil {
+				return err
+			}
+		}
+
+		(*props)[k] = &Property{PropertyState: NewPropertyState(PropState(state), grantComment), AppPropertyMaps: appPropMaps}
 	}
 	return nil
 }

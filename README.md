@@ -60,24 +60,58 @@ The schema input is a json array, where each element is a json object of followi
     "variant": "AdlsGen1File",
     ```
 
-- `properties` (OPTIONAL): This is only optional for `DELETE`, but is required for the other operations. This is an array of [properties](#property-format) indicating those properties are covered
+- `properties` (OPTIONAL): This is only optional for `DELETE`, but is required for the other operations. This is an array of [properties](#property-format) indicating those properties are covered.
 
-    E.g.
+    The element can be either a string of the property address, or a JSON object that specifies both its property address, and optionally with an array of its corresponding *application model's property address*. When the app model's property mapping is specified, the resulted coverage report will include it.
+
+    E.g. All elements are plain strings:
 
     ```json
     "properties": [
       "id",
-      "kind",
-      "properties/accountName",
-      "properties/dataSetId",
-      "properties/fileName",
-      "properties/folderPath",
-      "properties/resourceGroup",
-      "properties/subscriptionId"
+      "properties/resourceGroup"
     ]
     ```
 
-### Property Format
+    E.g. All elements are JSON objects (equivalent to the above):
+
+    ```json
+    "properties": [
+      {
+          "addr": "id"
+      },
+      {
+          "addr": "properties/resourceGroup"
+      }
+    ]
+    ```
+
+    E.g. All elements are JSON objects, which have its application model property mappings defined:
+
+    ```json
+    "properties": [
+      {
+          "addr": "id",
+          "app_property_maps": [
+            {
+                "name": "azurerm_virtual_network",
+                "addr": "id"
+            },
+          ]
+      },
+      {
+          "addr": "properties/resourceGroup",
+          "app_property_maps": [
+            {
+                "name": "azurerm_virtual_network",
+                "addr": "resource_group_name"
+            },
+          ]
+      }
+    ]
+    ```
+
+### Property Addresss Format
 
 The properties are flattend to segments till the most deep level, whose type is a primary type. Two property segments are separated by `/`. If the segment contains `/`, one can escape it by prefixing a `\`.
 
