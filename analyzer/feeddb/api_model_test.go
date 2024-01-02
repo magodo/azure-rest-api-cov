@@ -1,17 +1,19 @@
 package feeddb_test
 
 import (
+	"testing"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
 	"github.com/magodo/azure-rest-api-cov/analyzer/feeddb"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestProperty_Add(t *testing.T) {
 	type swgproperty struct {
 		addr  addr.Property
 		state swagger.PropertyState
+		maps  []swagger.AppPropertyMap
 	}
 	cases := []struct {
 		propertiesToAdd []swgproperty
@@ -26,6 +28,12 @@ func TestProperty_Add(t *testing.T) {
 				{
 					addr:  addr.MustParseProperty("prop1/covered"),
 					state: swagger.PropertyStateCovered,
+					maps: []swagger.AppPropertyMap{
+						{
+							Name: "app1",
+							Addr: "addr1",
+						},
+					},
 				},
 				{
 					addr:  addr.MustParseProperty("prop2/covered"),
@@ -45,6 +53,12 @@ func TestProperty_Add(t *testing.T) {
 							},
 							addr.MustParsePropertySegment("covered"): {
 								IsCovered: boolPtr(true),
+								AppPropertyMaps: []swagger.AppPropertyMap{
+									{
+										Name: "app1",
+										Addr: "addr1",
+									},
+								},
 							},
 						},
 					},
@@ -63,7 +77,7 @@ func TestProperty_Add(t *testing.T) {
 	for idx, c := range cases {
 		var property feeddb.Property
 		for _, prop := range c.propertiesToAdd {
-			property.Add(prop.addr, prop.state)
+			property.Add(prop.addr, prop.state, prop.maps)
 		}
 		require.Equal(t, c.expect, property, idx)
 	}
@@ -96,7 +110,7 @@ func TestNewAPIModel(t *testing.T) {
 				},
 			},
 			expect: &feeddb.APIModel{
-				Name:      "foo",
+				Name: "foo",
 				Properties: feeddb.Properties{
 					addr.MustParsePropertySegment("prop1"): {
 						Properties: feeddb.Properties{

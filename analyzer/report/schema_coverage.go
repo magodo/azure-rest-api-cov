@@ -3,6 +3,7 @@ package report
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
@@ -27,6 +28,8 @@ type PropertyCoverageNode struct {
 
 	Granted      bool   `json:"granted,omitempty"`
 	GrantComment string `json:"grant_comment,omitempty"`
+
+	AppPropertyMaps []swagger.AppPropertyMap `json:"app_property_maps,omitempty"`
 
 	Children PropertyCoverageNodes `json:"children,omitempty"`
 }
@@ -70,6 +73,12 @@ func (store *SchemaCoverage) Add(propAddr addr.Property, prop swagger.Property) 
 	}
 
 	store.Node.Add(propAddr, prop.PropertyState)
+
+	// After adding the property to the store, update its app property maps
+	if p, ok := store.FindNode(propAddr); ok {
+		p.AppPropertyMaps = prop.AppPropertyMaps
+	}
+
 	return nil
 }
 
@@ -89,15 +98,15 @@ func (store *SchemaCoverage) FindNode(prop addr.Property) (*PropertyCoverageNode
 	if prop == nil {
 		return nil, false
 	}
-	node := store.Node
+	node := &store.Node
 	for _, addrSeg := range prop {
 		tmpNode, ok := node.Children[addrSeg]
 		if !ok {
 			return nil, false
 		}
-		node = *tmpNode
+		node = tmpNode
 	}
-	return &node, true
+	return node, true
 }
 
 func (nodes PropertyCoverageNodes) MarshalJSON() ([]byte, error) {
@@ -127,6 +136,7 @@ func (node *PropertyCoverageNode) Add(propAddr addr.Property, state swagger.Prop
 	}
 
 	node.TotalAmount++
+
 	if state.IsCovered() || state.IsGranted() {
 		node.CoveredAmount++
 	}

@@ -206,7 +206,17 @@ func TestCoverageAddSchema(t *testing.T) {
                       "{def_variant1}": {
                         "properties": {
                           "type": {
-                            "isCovered": true
+                            "isCovered": true,
+							"app_property_maps": [
+							  {
+								"name": "app1",
+								"addr": "type"
+							  },
+							  {
+								"name": "app2",
+								"addr": "type"
+							  }
+							]
                           }
                         }
                       },
@@ -240,7 +250,17 @@ func TestCoverageAddSchema(t *testing.T) {
                             "isCovered": false
                           },
                           "type": {
-                            "isCovered": true
+                            "isCovered": true,
+							"app_property_maps": [
+							  {
+								"name": "app1",
+								"addr": "type"
+							  },
+							  {
+								"name": "app2",
+								"addr": "type"
+							  }
+							]
                           }
                         }
                       },
@@ -465,7 +485,17 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
                       "{def_variant1}": {
                         "properties": {
                           "type": {
-                            "isCovered": true
+                            "isCovered": true,
+							"app_property_maps": [
+							  {
+								"name": "app1",
+								"addr": "type"
+							  },
+							  {
+								"name": "app2",
+								"addr": "type"
+							  }
+							]
                           }
                         }
                       },
@@ -499,7 +529,17 @@ func TestCoverageIncludeUncoveredOperationModels(t *testing.T) {
                             "isCovered": false
                           },
                           "type": {
-                            "isCovered": true
+                            "isCovered": true,
+							"app_property_maps": [
+							  {
+								"name": "app1",
+								"addr": "type"
+							  },
+							  {
+								"name": "app2",
+								"addr": "type"
+							  }
+							]
                           }
                         }
                       },

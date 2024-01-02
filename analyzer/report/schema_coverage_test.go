@@ -2,8 +2,9 @@ package report_test
 
 import (
 	"fmt"
-	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"testing"
+
+	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/report"
 

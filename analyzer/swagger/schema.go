@@ -65,6 +65,7 @@ func NewEmptySchema(swaggerBaseURL, swaggerRelPath, schemaName string, forRespon
 	normSchemaRef := SchemaNameToRef(swaggerURI, schemaName)
 	rootProperty, err := followRefOneStep(
 		PropertyStateUncovered,
+		nil,
 		map[string]interface{}{},
 		normSchemaRef,
 		forResponse,
@@ -304,7 +305,7 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property, isVariant bo
 		}
 
 		normVariantRef := openapispec.MustCreateRef(variantRef)
-		p, err := followRefOneStep(prop.PropertyState, prop.resolvedRefs, normVariantRef, prop.forResponse, RefFollowReasonVarianting)
+		p, err := followRefOneStep(prop.PropertyState, prop.AppPropertyMaps, prop.resolvedRefs, normVariantRef, prop.forResponse, RefFollowReasonVarianting)
 		if err != nil {
 			return false, err
 		}

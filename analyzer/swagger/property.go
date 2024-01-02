@@ -148,6 +148,7 @@ func (prop Property) copy() *Property {
 
 	return &Property{
 		PropertyState:   prop.PropertyState,
+		AppPropertyMaps: prop.AppPropertyMaps,
 		schema:          prop.schema,
 		ownerSchemaRef:  prop.ownerSchemaRef,
 		resolvedRefs:    newResolvedRefs,
@@ -168,12 +169,13 @@ func (prop *Property) propagateSubPropOfSchema(schema openapispec.Schema) *Prope
 	}
 
 	newProp := &Property{
-		PropertyState:  prop.PropertyState,
-		schema:         schema,
-		ownerSchemaRef: prop.ownerSchemaRef,
-		resolvedRefs:   newResolvedRefs,
-		swaggerURI:     prop.swaggerURI,
-		forResponse:    prop.forResponse,
+		PropertyState:   prop.PropertyState,
+		AppPropertyMaps: prop.AppPropertyMaps,
+		schema:          schema,
+		ownerSchemaRef:  prop.ownerSchemaRef,
+		resolvedRefs:    newResolvedRefs,
+		swaggerURI:      prop.swaggerURI,
+		forResponse:     prop.forResponse,
 		// Ignore the discriminator related properties here as the new sub-property will not be a discriminator.
 	}
 
@@ -197,7 +199,7 @@ const (
 // followRefOneStep build a new property by its ref, together with all the needed information provided.
 // It is used when initiating the root property or building a property by following a reference to a new schema.
 // The "resolvedRefs" keeps track about resolved refs at this point.
-func followRefOneStep(state PropertyState, resolvedRefs map[string]interface{}, normSchemaRef openapispec.Ref, forResponse bool, reason RefFollowReason) (*Property, error) {
+func followRefOneStep(state PropertyState, appPropertyMaps []AppPropertyMap, resolvedRefs map[string]interface{}, normSchemaRef openapispec.Ref, forResponse bool, reason RefFollowReason) (*Property, error) {
 	schema, err := openapispec.ResolveRefWithBase(nil, &normSchemaRef, nil)
 	if err != nil {
 		return nil, err
@@ -214,12 +216,13 @@ func followRefOneStep(state PropertyState, resolvedRefs map[string]interface{}, 
 	}
 
 	prop := &Property{
-		PropertyState:  state,
-		schema:         *schema,
-		ownerSchemaRef: &normSchemaRef,
-		resolvedRefs:   newResolvedRefs,
-		swaggerURI:     swaggerURI,
-		forResponse:    forResponse,
+		PropertyState:   state,
+		AppPropertyMaps: appPropertyMaps,
+		schema:          *schema,
+		ownerSchemaRef:  &normSchemaRef,
+		resolvedRefs:    newResolvedRefs,
+		swaggerURI:      swaggerURI,
+		forResponse:     forResponse,
 	}
 
 	isDiscriminator, err := isDiscriminator(normSchemaRef)
@@ -443,7 +446,7 @@ func (prop *Property) expandRefPropertyInPlace(reason RefFollowReason) (isCyclic
 		return true, nil
 	}
 
-	refProp, err := followRefOneStep(prop.PropertyState, prop.resolvedRefs, *normalizedRef, prop.forResponse, reason)
+	refProp, err := followRefOneStep(prop.PropertyState, prop.AppPropertyMaps, prop.resolvedRefs, *normalizedRef, prop.forResponse, reason)
 	if err != nil {
 		return false, err
 	}

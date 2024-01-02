@@ -113,7 +113,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
             "2020-12-01": {
               "name": "def_base",
               "url": "prefix/dummy/resource-manager/Microsoft.Dummy/stable/2020-12-01/foo.json",
-              "active": false,
+              "active": true,
               "node": {
                 "total_amount": 3,
                 "covered_amount": 1,
@@ -134,7 +134,17 @@ func TestCoverageStoreAddSchema(t *testing.T) {
                     "children": {
                       "type": {
                         "total_amount": 1,
-                        "covered_amount": 1
+                        "covered_amount": 1,
+						"app_property_maps": [
+						  {
+							"name": "app1",
+							"addr": "type"
+						  },
+						  {
+							"name": "app2",
+							"addr": "type"
+						  }
+						]
                       }
                     }
                   },
@@ -179,7 +189,17 @@ func TestCoverageStoreAddSchema(t *testing.T) {
                       },
                       "type": {
                         "total_amount": 1,
-                        "covered_amount": 1
+                        "covered_amount": 1,
+						"app_property_maps": [
+						  {
+							"name": "app1",
+							"addr": "type"
+						  },
+						  {
+							"name": "app2",
+							"addr": "type"
+						  }
+						]
                       }
                     }
                   },
@@ -251,7 +271,7 @@ func TestCoverageStoreAddSchema(t *testing.T) {
 		err = json.Unmarshal(b, &schemaInput)
 		require.NoError(t, err, idx)
 
-		opInfo, err := schemaInput.ToOperationInfo(index, true, false, nil)
+		opInfo, err := schemaInput.ToOperationInfo(index, true, true, nil)
 		require.NoError(t, err, idx)
 		require.NoError(t, cov.AddOperation("prefix/", opInfo), idx)
 
