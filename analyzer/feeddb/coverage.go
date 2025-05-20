@@ -69,7 +69,7 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 		}
 		for version, specs := range versions {
 			versionName := string(version)
-			for apiPath, apiPaths := range specs {
+			for _, apiPaths := range specs {
 				for pathName, ops := range apiPaths {
 					if _, ok := paths[pathName]; !ok {
 						paths[pathName] = APIPath{
@@ -87,11 +87,10 @@ func NewEmptyCoverage(index *workspace.AzureRepoIndex, comment string) Coverage 
 							}
 						}
 
-						pathInfo, _ := apiPath.PathInfo()
 						paths[pathName].Operations[opName].Versions[versionName] = APIVersion{
 							Version:   versionName,
 							IsActive:  false,
-							IsPreview: pathInfo.IsPreview,
+							IsPreview: utils.ApiVersionIsPreview(versionName),
 						}
 					}
 				}

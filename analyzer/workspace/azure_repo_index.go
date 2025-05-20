@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-openapi/jsonreference"
 
-	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"github.com/magodo/azure-rest-api-index/azidx"
 
@@ -131,14 +130,15 @@ type APIVersions map[APIVersion]Specs
 
 type APIVersion string
 
-type Specs map[specpath.Path]APIPaths
+// key is the spec rel path
+type Specs map[string]APIPaths
 
 type APIPaths map[string]APIOperations
 
 type APIOperations map[OperationKind]bool
 
 type OperationInfo struct {
-	SpecRelPath specpath.Path
+	SpecRelPath string
 	APIPath     string
 	Model       *ModelInfo
 }
@@ -181,9 +181,8 @@ func (idx AzureRepoIndex) Commit() string {
 
 func buildResourceProvidersFromIndex(idx *azidx.Index) ResourceProviders {
 	recordToRPs := func(rps ResourceProviders, version string, method azidx.OperationKind, ref jsonreference.Ref) {
-		filepath := specpath.Path(ref.GetURL().Path)
-		pinfo, _ := filepath.PathInfo()
-		rp := pinfo.ResourceProvider
+		filepath := ref.GetURL().Path
+		rp := utils.SpecRelPathRP(filepath)
 		path := utils.NormalizeAPIPath(ref.GetPointer().DecodedTokens()[1])
 
 		apiVersions, ok := rps[ResourceProvider(rp)]
@@ -275,7 +274,7 @@ func getOpInfosFromAPIPath(specRootPath, specRelPathDefAPI string, apiPath strin
 		}
 
 		opInfo := &OperationInfo{
-			SpecRelPath: specpath.Path(specRelPathDefAPI),
+			SpecRelPath: specRelPathDefAPI,
 			APIPath:     apiPath,
 			Model:       info,
 		}

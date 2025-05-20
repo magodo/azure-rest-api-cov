@@ -1,7 +1,6 @@
 package workspace_test
 
 import (
-	"github.com/magodo/azure-rest-api-cov/analyzer/specpath"
 	"os"
 	"path/filepath"
 	"testing"
@@ -108,7 +107,7 @@ func TestAzureRepoIndexLocateOperation(t *testing.T) {
 					SpecRelPath: filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "preview", "2020-12-01-preview", "bar.json"),
 				},
 				APIPath:     "/PROVIDERS/MICROSOFT.DUMMY/DEF_BAR",
-				SpecRelPath: specpath.Path(filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "stable", "2020-12-01", "foo.json")),
+				SpecRelPath: filepath.Join("dummy", "resource-manager", "Microsoft.Dummy", "stable", "2020-12-01", "foo.json"),
 			},
 		},
 	}

@@ -174,12 +174,8 @@ predictLoop:
 			}
 			return err
 		}
-		pinfo, err := opinfo.SpecRelPath.PathInfo()
-		if err != nil {
-			return err
-		}
 
-		rp, currentVersion := pinfo.ResourceProvider, schemaInput.ApiVersion
+		rp, currentVersion := utils.SpecRelPathRP(opinfo.SpecRelPath), schemaInput.ApiVersion
 
 		var newApiVersions []workspace.APIVersion
 		for apiVersion := range idx.ResourceProviders[workspace.ResourceProvider(rp)] {

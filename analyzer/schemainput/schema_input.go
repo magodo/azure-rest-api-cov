@@ -2,11 +2,11 @@ package schemainput
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/operation"
 	"github.com/magodo/azure-rest-api-cov/analyzer/propmatch"
 	"github.com/magodo/azure-rest-api-cov/analyzer/swagger"
+	"github.com/magodo/azure-rest-api-cov/analyzer/utils"
 	"github.com/magodo/azure-rest-api-cov/analyzer/workspace"
 )
 
@@ -61,16 +61,11 @@ func (schemaInput SchemaInput) ToOperationInfo(index *workspace.AzureRepoIndex, 
 		return nil, err
 	}
 
-	pathInfo, err := info.SpecRelPath.PathInfo()
-	if err != nil {
-		return nil, fmt.Errorf("getting path info for %q: %v", info.SpecRelPath, err)
-	}
-
 	out := &operation.Info{
-		RP:             pathInfo.ResourceProvider,
+		RP:             utils.SpecRelPathRP(info.SpecRelPath),
 		APIPath:        info.APIPath,
 		APIVersion:     opLoc.ApiVersion,
-		IsPreview:      pathInfo.IsPreview,
+		IsPreview:      utils.ApiVersionIsPreview(opLoc.ApiVersion),
 		IsActive:       active,
 		Operation:      opLoc.Operation,
 		SwaggerRelPath: info.SpecRelPath,
