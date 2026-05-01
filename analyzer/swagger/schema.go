@@ -262,8 +262,8 @@ func (s *Schema) expandPropertyOneLevelDeep(propAddr addr.Property, isVariant bo
 		return false, fmt.Errorf("failed to expand allOf properties for %q: %v", propAddr.String(), err)
 	}
 
-	levelProperties.Merge(directTopSWGProperties)
 	levelProperties.Merge(allOfSWGProperties)
+	levelProperties.Merge(directTopSWGProperties)
 
 	// In case:
 	// - current property is not a discriminator schema

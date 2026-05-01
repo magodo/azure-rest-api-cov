@@ -407,6 +407,22 @@
     },
     "def_empty_object": {
       "properties": {}
+    },
+    "def_base_default": {
+      "discriminator": "type",
+      "properties": {
+        "type": {}
+      }
+    },
+    "def_child_default": {
+      "allOf": [{"$ref": "#/definitions/def_base_default"}],
+      "properties": {
+        "properties": {
+          "properties": {
+            "a": {}
+          }
+        }
+      }
     }
   }
 }

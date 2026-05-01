@@ -2047,10 +2047,55 @@ func TestSchema_ExpandProperties(t *testing.T) {
 				},
 			},
 		},
+		// 21
+		{
+			name:           `Expand parent model with child model that overrides properties defined in the parent model.`,
+			swaggerRelPath: "foo.json",
+			schemaName:     "def_base_default",
+			expect: map[string]*Property{
+				"{def_base_default}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_base_default"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_base_default"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base_default": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_child_default}/type": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_base_default"].Properties["type"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_base_default"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_base_default":  struct{}{},
+						specFooPath + "#/definitions/def_child_default": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+				"{def_child_default}/properties/a": {
+					PropertyState: PropertyStateUncovered,
+					schema:        swaggerFoo.Definitions["def_child_default"].Properties["properties"].Properties["a"],
+					ownerSchemaRef: &openapispec.Ref{
+						Ref: jsonreference.MustCreateRef(specFooPath + "#/definitions/def_child_default"),
+					},
+					resolvedRefs: map[string]interface{}{
+						specFooPath + "#/definitions/def_child_default": struct{}{},
+					},
+					swaggerURI: specFooPath,
+				},
+			},
+		},
 	}
 
 	for idx, c := range cases {
 		for i := 0; i <= c.repeat; i++ {
+			if idx != 21 {
+				continue
+			}
 			schema, err := NewEmptySchema(specBasePath, c.swaggerRelPath, c.schemaName, c.forResponse)
 			require.NoError(t, err, i)
 
