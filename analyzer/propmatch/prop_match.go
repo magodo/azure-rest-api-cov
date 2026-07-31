@@ -2,6 +2,7 @@ package propmatch
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/magodo/azure-rest-api-cov/analyzer/addr"
@@ -38,7 +39,8 @@ type PropMatcher struct {
 }
 
 func (m PropMatcher) Match(o PropMatcher) bool {
-	return m.SwaggerURI == o.SwaggerURI && m.ModelName == o.ModelName && propMatch(m.PropAddr, o.PropAddr)
+	p := regexp.MustCompile(m.SwaggerURI)
+	return p.MatchString(o.SwaggerURI) && m.ModelName == o.ModelName && propMatch(o.PropAddr, m.PropAddr)
 }
 
 const (
